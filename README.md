@@ -140,13 +140,14 @@ To enable Google Sign-In:
 4. Add authorized redirect URIs:
    - Development: `http://localhost:3000`
    - Production: `https://przio.com`
-5. Add credentials to `frontend/.env.local` (development) or `frontend/.env.production` (production):
-   ```env
-   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-   GOOGLE_CLIENT_SECRET=your-client-secret
-   ```
+5. **Configure credentials through Admin Panel**:
+   - Log in as admin
+   - Go to **Admin Dashboard → Settings → Google OAuth Configuration**
+   - Enter your Google Client ID and Client Secret
+   - Enable Google Sign-In toggle
+   - Click "Save Google OAuth Settings"
    
-   **Note**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is prefixed with `NEXT_PUBLIC_` because it needs to be accessible in the browser. `GOOGLE_CLIENT_SECRET` should NOT have this prefix as it's server-side only.
+   **Note**: Google OAuth credentials are now managed through the Admin Panel instead of environment variables. This allows admins to update credentials without restarting the server or rebuilding the application.
 
 ## Production Deployment
 

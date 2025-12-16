@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import axios from 'axios';
 
 declare global {
   interface Window {
@@ -27,6 +28,8 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState<string>('');
+  const [googleOAuthEnabled, setGoogleOAuthEnabled] = useState(false);
   const { signup, googleLogin } = useAuth();
   const router = useRouter();
   const googleButtonRef = useRef<HTMLDivElement>(null);
@@ -80,11 +83,39 @@ export default function SignupPage() {
     }
   }, [googleLogin, router]);
 
+  // Fetch Google OAuth settings from API
   useEffect(() => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const fetchGoogleOAuthSettings = async () => {
+      try {
+        const response = await axios.get('/api/auth/google-oauth');
+        if (response.data.clientId && response.data.enabled) {
+          setGoogleClientId(response.data.clientId);
+          setGoogleOAuthEnabled(true);
+        } else {
+          // Fallback to environment variable
+          const envClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+          if (envClientId && envClientId.trim()) {
+            setGoogleClientId(envClientId);
+            setGoogleOAuthEnabled(true);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch Google OAuth settings:', error);
+        // Fallback to environment variable
+        const envClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+        if (envClientId && envClientId.trim()) {
+          setGoogleClientId(envClientId);
+          setGoogleOAuthEnabled(true);
+        }
+      }
+    };
+    fetchGoogleOAuthSettings();
+  }, []);
+
+  useEffect(() => {
+    const clientId = googleClientId || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     
-    if (!clientId || !clientId.trim()) {
-      console.warn('Google Client ID not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID in your .env.local file');
+    if (!clientId || !clientId.trim() || !googleOAuthEnabled) {
       return;
     }
 
@@ -142,12 +173,12 @@ export default function SignupPage() {
         existingScript.parentNode.removeChild(existingScript);
       }
     };
-  }, [handleGoogleCredentialResponse]);
+  }, [handleGoogleCredentialResponse, googleClientId, googleOAuthEnabled]);
 
   const handleGoogleLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (!clientId || !clientId.trim()) {
-      setError('Google OAuth is not configured. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID to your .env.local file and restart the server.');
+    const clientId = googleClientId || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (!clientId || !clientId.trim() || !googleOAuthEnabled) {
+      setError('Google OAuth is not configured. Please contact the administrator.');
       return;
     }
 
@@ -266,10 +297,11 @@ export default function SignupPage() {
           </div>
 
           <div className="mt-4">
-            <div ref={googleButtonRef} className="flex justify-center w-full"></div>
-            {!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-              <p className="mt-2 text-xs text-gray-500 text-center">
-                Google Sign-In is not configured. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID to your environment variables.
+            {googleOAuthEnabled && googleClientId ? (
+              <div ref={googleButtonRef} className="flex justify-center w-full"></div>
+            ) : (
+              <p className="text-xs text-gray-500 text-center py-2">
+                Google Sign-In is not configured. Please contact the administrator.
               </p>
             )}
           </div>
