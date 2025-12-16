@@ -7,9 +7,12 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const { email, name, googleId } = await req.json();
+    const { email, name, googleId, sub } = await req.json();
 
-    if (!email || !name || !googleId) {
+    // Use sub (Google's user ID) if googleId is not provided
+    const finalGoogleId = googleId || sub;
+
+    if (!email || !name || !finalGoogleId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -22,14 +25,18 @@ export async function POST(req: NextRequest) {
       user = new User({
         email: email.toLowerCase().trim(),
         name: name.trim(),
-        googleId,
+        googleId: finalGoogleId,
         emailVerified: true, // Google emails are pre-verified
       });
       await user.save();
     } else if (!user.googleId) {
       // Link Google account to existing email account
-      user.googleId = googleId;
+      user.googleId = finalGoogleId;
       user.emailVerified = true;
+      await user.save();
+    } else if (user.googleId !== finalGoogleId) {
+      // Update Google ID if it changed
+      user.googleId = finalGoogleId;
       await user.save();
     }
 

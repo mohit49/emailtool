@@ -73,7 +73,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const response = await axios.post(`${API_URL}/auth/google`, {
       email: googleData.email,
       name: googleData.name,
-      googleId: googleData.sub || googleData.id,
+      googleId: googleData.sub || googleData.id || googleData.googleId,
+      sub: googleData.sub || googleData.id || googleData.googleId,
     });
     const { token: authToken, user: userData } = response.data;
     setToken(authToken);

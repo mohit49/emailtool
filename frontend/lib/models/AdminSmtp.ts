@@ -74,3 +74,4 @@ const AdminSmtp: Model<IAdminSmtp> = mongoose.models.AdminSmtp || mongoose.model
 
 export default AdminSmtp;
 
+

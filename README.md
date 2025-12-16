@@ -137,11 +137,16 @@ To enable Google Sign-In:
 1. Create a project in [Google Cloud Console](https://console.cloud.google.com/)
 2. Enable Google+ API
 3. Create OAuth 2.0 credentials
-4. Add credentials to `backend/.env`:
+4. Add authorized redirect URIs:
+   - Development: `http://localhost:3000`
+   - Production: `https://przio.com`
+5. Add credentials to `frontend/.env.local` (development) or `frontend/.env.production` (production):
    ```env
-   GOOGLE_CLIENT_ID=your-client-id
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
    GOOGLE_CLIENT_SECRET=your-client-secret
    ```
+   
+   **Note**: `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is prefixed with `NEXT_PUBLIC_` because it needs to be accessible in the browser. `GOOGLE_CLIENT_SECRET` should NOT have this prefix as it's server-side only.
 
 ## Production Deployment
 

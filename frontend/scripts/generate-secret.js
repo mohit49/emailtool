@@ -16,3 +16,4 @@ console.log('━━━━━━━━━━━━━━━━━━━━━━�
 console.log('\n📝 Add this to your .env.production file:');
 console.log(`JWT_SECRET=${secret}\n`);
 
+
