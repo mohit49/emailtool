@@ -1,0 +1,1028 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '../providers/AuthProvider';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import axios from 'axios';
+
+const API_URL = '/api';
+
+interface DefaultTemplate {
+  _id: string;
+  name: string;
+  description?: string;
+  html: string;
+  category?: string;
+  createdAt: string;
+}
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  role: 'user' | 'admin';
+  createdAt: string;
+}
+
+export default function AdminDashboard() {
+  const { user, token, logout, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'templates' | 'users' | 'settings'>('templates');
+  const [templates, setTemplates] = useState<DefaultTemplate[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<DefaultTemplate | null>(null);
+  const [templateForm, setTemplateForm] = useState({
+    name: '',
+    description: '',
+    html: '',
+    category: 'General',
+  });
+  const [adminSmtpConfigs, setAdminSmtpConfigs] = useState<any[]>([]);
+  const [showSmtpModal, setShowSmtpModal] = useState(false);
+  const [editingSmtp, setEditingSmtp] = useState<any | null>(null);
+  const [smtpSettings, setSmtpSettings] = useState({
+    title: '',
+    host: '',
+    port: '587',
+    user: '',
+    pass: '',
+    from: '',
+    isActive: true,
+    isDefault: false,
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [testingSmtp, setTestingSmtp] = useState<string | null>(null);
+  const [testEmailAddress, setTestEmailAddress] = useState('');
+  const [showTestModal, setShowTestModal] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    } else if (!authLoading && user && user.role !== 'admin') {
+      router.push('/tool');
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user && user.role === 'admin' && token) {
+      if (activeTab === 'settings') {
+        fetchSettings();
+      } else {
+        fetchData();
+        // Auto-seed welcome template if no templates exist
+        if (activeTab === 'templates') {
+          seedWelcomeTemplate();
+        }
+      }
+    }
+  }, [user, token, activeTab]);
+
+  const seedWelcomeTemplate = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/admin/seed-welcome-template`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.data.message) {
+        // Refresh templates after seeding
+        fetchData();
+      }
+    } catch (error: any) {
+      // Ignore error if template already exists or other issues
+      if (error.response?.status !== 403) {
+        console.error('Failed to seed welcome template:', error);
+      }
+    }
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      if (activeTab === 'templates') {
+        const response = await axios.get(`${API_URL}/admin/default-templates`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setTemplates(response.data.templates);
+      } else {
+        const response = await axios.get(`${API_URL}/admin/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUsers(response.data.users);
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/admin/smtp`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAdminSmtpConfigs(response.data.smtpConfigs || []);
+    } catch (error) {
+      console.error('Failed to fetch admin SMTP settings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenSmtpModal = (config?: any) => {
+    if (config) {
+      setEditingSmtp(config);
+      setSmtpSettings({
+        title: config.title || '',
+        host: config.smtpHost || '',
+        port: config.smtpPort?.toString() || '587',
+        user: config.smtpUser || '',
+        pass: '',
+        from: config.smtpFrom || '',
+        isActive: config.isActive !== undefined ? config.isActive : true,
+        isDefault: config.isDefault !== undefined ? config.isDefault : false,
+      });
+    } else {
+      setEditingSmtp(null);
+      setSmtpSettings({
+        title: '',
+        host: '',
+        port: '587',
+        user: '',
+        pass: '',
+        from: '',
+        isActive: true,
+        isDefault: false,
+      });
+    }
+    setShowPassword(false);
+    setShowSmtpModal(true);
+  };
+
+  const handleCloseSmtpModal = () => {
+    setShowSmtpModal(false);
+    setEditingSmtp(null);
+    setSmtpSettings({
+      title: '',
+      host: '',
+      port: '587',
+      user: '',
+      pass: '',
+      from: '',
+      isActive: true,
+      isDefault: false,
+    });
+    setShowPassword(false);
+  };
+
+  const handleSaveSmtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!smtpSettings.title.trim() || !smtpSettings.host || !smtpSettings.user) {
+      alert('Title, Host, and User are required');
+      return;
+    }
+
+    if (!editingSmtp && !smtpSettings.pass) {
+      alert('Password is required for new configurations');
+      return;
+    }
+
+    setSavingSettings(true);
+    try {
+      const payload: any = {
+        title: smtpSettings.title.trim(),
+        smtpHost: smtpSettings.host.trim(),
+        smtpPort: parseInt(smtpSettings.port),
+        smtpUser: smtpSettings.user.trim(),
+        smtpFrom: smtpSettings.from.trim() || smtpSettings.user.trim(),
+        isActive: smtpSettings.isActive,
+        isDefault: smtpSettings.isDefault,
+      };
+
+      if (editingSmtp?._id) {
+        payload.id = editingSmtp._id;
+      }
+
+      if (editingSmtp) {
+        if (smtpSettings.pass && smtpSettings.pass.trim()) {
+          payload.smtpPass = smtpSettings.pass.trim();
+        }
+      } else {
+        payload.smtpPass = smtpSettings.pass.trim();
+      }
+
+      await axios.post(
+        `${API_URL}/admin/smtp`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert('SMTP configuration saved successfully!');
+      handleCloseSmtpModal();
+      fetchSettings();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to save SMTP configuration');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleDeleteSmtp = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this SMTP configuration?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_URL}/admin/smtp/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      alert('SMTP configuration deleted successfully!');
+      fetchSettings();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to delete SMTP configuration');
+    }
+  };
+
+  const handleTestSmtp = async (smtpId?: string, defaultEmail?: string) => {
+    // If editing existing SMTP, use the ID
+    // If creating new, use form data
+    if (smtpId) {
+      setTestingSmtp(smtpId);
+      setTestEmailAddress(defaultEmail || smtpSettings.user || '');
+      setShowTestModal(true);
+    } else {
+      // Test with current form data
+      if (!smtpSettings.host || !smtpSettings.user || !smtpSettings.pass) {
+        alert('Please fill in Host, User, and Password fields to test');
+        return;
+      }
+      setTestingSmtp('form-data');
+      setTestEmailAddress(smtpSettings.user || '');
+      setShowTestModal(true);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testingSmtp) return;
+
+    try {
+      const payload: any = {
+        testEmail: testEmailAddress.trim() || undefined,
+      };
+
+      if (testingSmtp === 'form-data') {
+        // Test with form data
+        payload.smtpData = {
+          host: smtpSettings.host,
+          port: smtpSettings.port,
+          user: smtpSettings.user,
+          pass: smtpSettings.pass,
+          from: smtpSettings.from || smtpSettings.user,
+          title: smtpSettings.title,
+        };
+      } else {
+        // Test with existing SMTP ID
+        payload.smtpId = testingSmtp;
+      }
+
+      await axios.post(
+        `${API_URL}/admin/smtp/test`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert('Test email sent successfully! Check the recipient inbox.');
+      setShowTestModal(false);
+      setTestingSmtp(null);
+      setTestEmailAddress('');
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to send test email');
+    } finally {
+      setTestingSmtp(null);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateForm.name.trim() || !templateForm.html.trim()) {
+      alert('Name and HTML are required');
+      return;
+    }
+
+    try {
+      if (editingTemplate) {
+        await axios.put(
+          `${API_URL}/admin/default-templates/${editingTemplate._id}`,
+          templateForm,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        await axios.post(
+          `${API_URL}/admin/default-templates`,
+          templateForm,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+      setShowTemplateModal(false);
+      setEditingTemplate(null);
+      setTemplateForm({ name: '', description: '', html: '', category: 'General' });
+      fetchData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to save template');
+    }
+  };
+
+  const handleEditTemplate = (template: DefaultTemplate) => {
+    setEditingTemplate(template);
+    setTemplateForm({
+      name: template.name,
+      description: template.description || '',
+      html: template.html,
+      category: template.category || 'General',
+    });
+    setShowTemplateModal(true);
+  };
+
+  const handleDeleteTemplate = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this template?')) return;
+
+    try {
+      await axios.delete(`${API_URL}/admin/default-templates/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to delete template');
+    }
+  };
+
+  const handleUpdateUser = async (userId: string, updates: Partial<User>) => {
+    try {
+      await axios.put(
+        `${API_URL}/admin/users/${userId}`,
+        updates,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to update user');
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    try {
+      await axios.delete(`${API_URL}/admin/users/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Failed to delete user');
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <Link href="/" className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                PRZIO
+              </Link>
+              <span className="text-sm text-gray-500">Admin Dashboard</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/tool"
+                className="px-4 py-2 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
+                Go to Tool
+              </Link>
+              <span className="text-sm text-gray-600">Welcome, {user.name}</span>
+              <button
+                onClick={logout}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-md mb-6">
+          <div className="border-b border-gray-200">
+            <div className="flex">
+              <button
+                onClick={() => setActiveTab('templates')}
+                className={`px-6 py-3 font-medium text-sm transition-colors ${
+                  activeTab === 'templates'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Default Templates
+              </button>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`px-6 py-3 font-medium text-sm transition-colors ${
+                  activeTab === 'users'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                User Management
+              </button>
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`px-6 py-3 font-medium text-sm transition-colors ${
+                  activeTab === 'settings'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Settings
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        {activeTab === 'templates' ? (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Default Templates</h2>
+              <button
+                onClick={() => {
+                  setEditingTemplate(null);
+                  setTemplateForm({ name: '', description: '', html: '', category: 'General' });
+                  setShowTemplateModal(true);
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+              >
+                Add Template
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {templates.map((template) => (
+                <div key={template._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <h3 className="font-semibold text-gray-900 mb-2">{template.name}</h3>
+                  {template.description && (
+                    <p className="text-sm text-gray-600 mb-2">{template.description}</p>
+                  )}
+                  {template.category && (
+                    <span className="inline-block px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded mb-2">
+                      {template.category}
+                    </span>
+                  )}
+                  <div className="flex space-x-2 mt-4">
+                    <button
+                      onClick={() => handleEditTemplate(template)}
+                      className="flex-1 px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTemplate(template._id)}
+                      className="flex-1 px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {templates.length === 0 && (
+              <p className="text-center text-gray-500 py-8">No default templates yet</p>
+            )}
+          </div>
+        ) : activeTab === 'users' ? (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">User Management</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Verified
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {users.map((u) => (
+                    <tr key={u._id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {u.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {u.email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleUpdateUser(u._id, { role: e.target.value as 'user' | 'admin' })}
+                          className="text-sm border border-gray-300 rounded px-2 py-1"
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={u.emailVerified}
+                          onChange={(e) => handleUpdateUser(u._id, { emailVerified: e.target.checked })}
+                          className="rounded"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(u.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <button
+                          onClick={() => handleDeleteUser(u._id)}
+                          className="text-red-600 hover:text-red-900"
+                          disabled={u._id === user.id}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Email Settings (SMTP)</h2>
+              <button
+                onClick={() => handleOpenSmtpModal()}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Add SMTP Configuration</span>
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6">
+              Manage SMTP configurations that will be available as default options for all users. Users can also add their own SMTP settings.
+            </p>
+
+            {adminSmtpConfigs.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No SMTP configurations</h3>
+                <p className="text-sm text-gray-500 mb-4">Get started by adding your first SMTP configuration.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {adminSmtpConfigs.map((config) => (
+                  <div
+                    key={config._id}
+                    className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{config.title}</h3>
+                          {config.isDefault && (
+                            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                              Default
+                            </span>
+                          )}
+                          {config.isActive && (
+                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                          <div>
+                            <span className="font-medium">Host:</span> {config.smtpHost}
+                          </div>
+                          <div>
+                            <span className="font-medium">Port:</span> {config.smtpPort}
+                          </div>
+                          <div>
+                            <span className="font-medium">User:</span> {config.smtpUser}
+                          </div>
+                          <div>
+                            <span className="font-medium">From:</span> {config.smtpFrom}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
+                        <button
+                          onClick={() => handleOpenSmtpModal(config)}
+                          className="p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded transition-colors"
+                          title="Edit"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSmtp(config._id)}
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                          title="Delete"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* SMTP Configuration Modal */}
+            {showSmtpModal && (
+              <>
+                <div
+                  className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                  onClick={handleCloseSmtpModal}
+                ></div>
+                <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div className="p-6">
+                      <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                        {editingSmtp ? 'Edit SMTP Configuration' : 'Add SMTP Configuration'}
+                      </h2>
+                      <form onSubmit={handleSaveSmtp}>
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Title <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={smtpSettings.title}
+                            onChange={(e) => setSmtpSettings({ ...smtpSettings, title: e.target.value })}
+                            placeholder="e.g., Company Email, Gmail SMTP"
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            A descriptive name for this SMTP configuration
+                          </p>
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            SMTP Host <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={smtpSettings.host}
+                            onChange={(e) => setSmtpSettings({ ...smtpSettings, host: e.target.value })}
+                            placeholder="smtp.gmail.com"
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            For Gmail: smtp.gmail.com | For Outlook: smtp-mail.outlook.com
+                          </p>
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            SMTP Port <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={smtpSettings.port}
+                            onChange={(e) => setSmtpSettings({ ...smtpSettings, port: e.target.value })}
+                            placeholder="587"
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Common ports: 587 (TLS) or 465 (SSL)
+                          </p>
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            SMTP User (Email) <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={smtpSettings.user}
+                            onChange={(e) => setSmtpSettings({ ...smtpSettings, user: e.target.value })}
+                            placeholder="your-email@gmail.com"
+                            required
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                          />
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            SMTP Password {!editingSmtp && <span className="text-red-500">*</span>}
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              value={smtpSettings.pass}
+                              onChange={(e) => setSmtpSettings({ ...smtpSettings, pass: e.target.value })}
+                              placeholder={editingSmtp ? "Leave blank to keep existing password" : "Your app password"}
+                              required={!editingSmtp}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            >
+                              {showPassword ? (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.736m0 0L21 21" />
+                                </svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                          <p className="mt-1 text-xs text-gray-500">
+                            For Gmail: Generate an App Password at{' '}
+                            <a
+                              href="https://myaccount.google.com/apppasswords"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-indigo-600 hover:underline"
+                            >
+                              Google Account Settings
+                            </a>
+                          </p>
+                        </div>
+
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            From Email Address
+                          </label>
+                          <input
+                            type="email"
+                            value={smtpSettings.from}
+                            onChange={(e) => setSmtpSettings({ ...smtpSettings, from: e.target.value })}
+                            placeholder="your-email@gmail.com"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Email address shown as sender (defaults to SMTP User if empty)
+                          </p>
+                        </div>
+
+                        <div className="mb-4 flex items-center space-x-6">
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={smtpSettings.isActive}
+                              onChange={(e) => setSmtpSettings({ ...smtpSettings, isActive: e.target.checked })}
+                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="text-sm text-gray-700">Active</span>
+                          </label>
+                          <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={smtpSettings.isDefault}
+                              onChange={(e) => setSmtpSettings({ ...smtpSettings, isDefault: e.target.checked })}
+                              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="text-sm text-gray-700">Set as Default (for all users)</span>
+                          </label>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => handleTestSmtp(editingSmtp?._id, smtpSettings.user)}
+                              disabled={!smtpSettings.host || !smtpSettings.user || (!smtpSettings.pass && !editingSmtp) || testingSmtp !== null}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              </svg>
+                              <span>{testingSmtp ? 'Sending...' : 'Send Test Email'}</span>
+                            </button>
+                          </div>
+                          <div className="flex space-x-3">
+                            <button
+                              type="button"
+                              onClick={handleCloseSmtpModal}
+                              className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={savingSettings}
+                              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                            >
+                              {savingSettings ? 'Saving...' : 'Save Configuration'}
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Test Email Modal */}
+      {showTestModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => {
+              setShowTestModal(false);
+              setTestingSmtp(null);
+              setTestEmailAddress('');
+            }}
+          ></div>
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Send Test Email</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Send a test email to verify your SMTP configuration is working correctly.
+                </p>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Recipient Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={testEmailAddress}
+                    onChange={(e) => setTestEmailAddress(e.target.value)}
+                    placeholder="test@example.com"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Leave empty to send to the SMTP user email address
+                  </p>
+                </div>
+                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowTestModal(false);
+                      setTestingSmtp(null);
+                      setTestEmailAddress('');
+                    }}
+                    className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendTestEmail}
+                    disabled={testingSmtp === null}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {testingSmtp ? 'Sending...' : 'Send Test Email'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Template Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">
+                {editingTemplate ? 'Edit Template' : 'Add Template'}
+              </h3>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Template Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={templateForm.name}
+                    onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    placeholder="Newsletter Template"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={templateForm.description}
+                    onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    placeholder="A beautiful newsletter template"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={templateForm.category}
+                    onChange={(e) => setTemplateForm({ ...templateForm, category: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                    placeholder="General"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    HTML Content *
+                  </label>
+                  <textarea
+                    value={templateForm.html}
+                    onChange={(e) => setTemplateForm({ ...templateForm, html: e.target.value })}
+                    className="w-full h-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-mono text-sm"
+                    placeholder="<html>...</html>"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  setShowTemplateModal(false);
+                  setEditingTemplate(null);
+                  setTemplateForm({ name: '', description: '', html: '', category: 'General' });
+                }}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+              >
+                Save Template
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
