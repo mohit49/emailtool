@@ -62,6 +62,8 @@ export async function POST(req: NextRequest) {
 
     const { clientId, clientSecret, enabled } = await req.json();
 
+    console.log('Received Google OAuth settings update:', { clientId, hasSecret: !!clientSecret, enabled });
+
     if (!clientId || !clientId.trim()) {
       return NextResponse.json(
         { error: 'Google Client ID is required' },
@@ -73,9 +75,12 @@ export async function POST(req: NextRequest) {
     const existingSettings = await Settings.findOne({ key: 'googleOAuth' });
     const existingSecret = existingSettings?.value?.clientSecret;
 
+    // Explicitly handle enabled - default to true if not provided, but respect false
+    const isEnabled = enabled === undefined ? true : enabled === true;
+
     const settingsValue: any = {
       clientId: clientId.trim(),
-      enabled: enabled !== false,
+      enabled: isEnabled,
     };
 
     // Only update secret if provided (allows updating just client ID)
@@ -97,6 +102,12 @@ export async function POST(req: NextRequest) {
       },
       { upsert: true, new: true, runValidators: true }
     ).populate('updatedBy', 'name email');
+
+    console.log('Google OAuth settings saved:', {
+      clientId: setting.value.clientId,
+      enabled: setting.value.enabled,
+      hasSecret: !!setting.value.clientSecret,
+    });
 
     return NextResponse.json({
       message: 'Google OAuth settings updated successfully',

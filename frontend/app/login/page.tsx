@@ -85,24 +85,40 @@ export default function LoginPage() {
     const fetchGoogleOAuthSettings = async () => {
       try {
         const response = await axios.get('/api/auth/google-oauth');
-        if (response.data.clientId && response.data.enabled) {
-          setGoogleClientId(response.data.clientId);
+        console.log('Google OAuth API response:', response.data); // Debug log
+        
+        const clientId = response.data?.clientId?.trim();
+        const enabled = response.data?.enabled === true;
+        
+        if (clientId && enabled) {
+          console.log('Setting Google OAuth with Client ID:', clientId);
+          setGoogleClientId(clientId);
           setGoogleOAuthEnabled(true);
         } else {
+          console.log('Google OAuth not enabled or missing Client ID. ClientId:', clientId, 'Enabled:', enabled);
           // Fallback to environment variable
-          const envClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-          if (envClientId && envClientId.trim()) {
+          const envClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
+          if (envClientId) {
+            console.log('Using environment variable for Google Client ID');
             setGoogleClientId(envClientId);
             setGoogleOAuthEnabled(true);
+          } else {
+            console.log('No Google OAuth configuration found');
+            setGoogleClientId('');
+            setGoogleOAuthEnabled(false);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to fetch Google OAuth settings:', error);
         // Fallback to environment variable
-        const envClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-        if (envClientId && envClientId.trim()) {
+        const envClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim();
+        if (envClientId) {
+          console.log('Using environment variable fallback for Google Client ID');
           setGoogleClientId(envClientId);
           setGoogleOAuthEnabled(true);
+        } else {
+          setGoogleClientId('');
+          setGoogleOAuthEnabled(false);
         }
       }
     };
