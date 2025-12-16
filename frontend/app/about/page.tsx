@@ -19,7 +19,7 @@ export default function AboutPage() {
             About <span className="font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">PRZIO</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We're on a mission to make email template creation and testing simple, 
+            We&apos;re on a mission to make email template creation and testing simple, 
             powerful, and accessible to everyone.
           </p>
         </div>
@@ -35,7 +35,7 @@ export default function AboutPage() {
             expertise, should be able to create beautiful, responsive email templates.
           </p>
           <p className="text-lg text-gray-600 leading-relaxed">
-            Whether you're a marketer sending newsletters, a developer building email systems, 
+            Whether you&apos;re a marketer sending newsletters, a developer building email systems, 
             or a designer creating email campaigns, our platform provides the tools you need 
             to succeed. We combine the power of professional code editors with intuitive 
             interfaces to give you the best of both worlds.
@@ -56,7 +56,7 @@ export default function AboutPage() {
             <h3 className="text-2xl font-semibold text-gray-900 mb-4">Professional Tools</h3>
             <p className="text-gray-600 leading-relaxed">
               Our VS Code-like editor provides syntax highlighting, autocomplete, and all the 
-              features you'd expect from a professional development environment. Write clean, 
+              features you&apos;d expect from a professional development environment. Write clean, 
               maintainable HTML code with confidence.
             </p>
           </div>
@@ -158,7 +158,7 @@ export default function AboutPage() {
             <div>
               <h3 className="text-2xl font-semibold text-gray-900 mb-3">Always Improving</h3>
               <p className="text-gray-600 leading-relaxed">
-                We're constantly adding new features and improvements based on user feedback. 
+                We&apos;re constantly adding new features and improvements based on user feedback. 
                 Our platform evolves with your needs, ensuring you always have the best tools available.
               </p>
             </div>
@@ -171,7 +171,7 @@ export default function AboutPage() {
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-12 text-center text-white">
           <h2 className="text-4xl font-bold mb-6">Have Questions?</h2>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            We're here to help! Reach out to us anytime and we'll get back to you as soon as possible.
+            We&apos;re here to help! Reach out to us anytime and we&apos;ll get back to you as soon as possible.
           </p>
           <a
             href="mailto:support@przio.com"

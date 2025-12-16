@@ -157,7 +157,7 @@ export default function Home() {
             </div>
             <h3 className="text-2xl font-semibold text-gray-900 mb-4">Create Your Account</h3>
             <p className="text-gray-600 leading-relaxed">
-              Sign up for free in seconds. Verify your email and you're ready to start creating amazing email templates.
+              Sign up for free in seconds. Verify your email and you&apos;re ready to start creating amazing email templates.
             </p>
           </div>
 
@@ -201,7 +201,7 @@ export default function Home() {
             Perfect For Everyone
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Whether you're a marketer, developer, or designer, we've got you covered
+            Whether you&apos;re a marketer, developer, or designer, we&apos;ve got you covered
           </p>
         </div>
 

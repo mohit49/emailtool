@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -68,38 +68,7 @@ export default function AdminDashboard() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user && user.role === 'admin' && token) {
-      if (activeTab === 'settings') {
-        fetchSettings();
-      } else {
-        fetchData();
-        // Auto-seed welcome template if no templates exist
-        if (activeTab === 'templates') {
-          seedWelcomeTemplate();
-        }
-      }
-    }
-  }, [user, token, activeTab]);
-
-  const seedWelcomeTemplate = async () => {
-    try {
-      const response = await axios.post(`${API_URL}/admin/seed-welcome-template`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.data.message) {
-        // Refresh templates after seeding
-        fetchData();
-      }
-    } catch (error: any) {
-      // Ignore error if template already exists or other issues
-      if (error.response?.status !== 403) {
-        console.error('Failed to seed welcome template:', error);
-      }
-    }
-  };
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'templates') {
@@ -118,9 +87,9 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, token]);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/admin/smtp`, {
@@ -132,7 +101,38 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  const seedWelcomeTemplate = useCallback(async () => {
+    try {
+      const response = await axios.post(`${API_URL}/admin/seed-welcome-template`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.data.message) {
+        // Refresh templates after seeding
+        fetchData();
+      }
+    } catch (error: any) {
+      // Ignore error if template already exists or other issues
+      if (error.response?.status !== 403) {
+        console.error('Failed to seed welcome template:', error);
+      }
+    }
+  }, [token, fetchData]);
+
+  useEffect(() => {
+    if (user && user.role === 'admin' && token) {
+      if (activeTab === 'settings') {
+        fetchSettings();
+      } else {
+        fetchData();
+        // Auto-seed welcome template if no templates exist
+        if (activeTab === 'templates') {
+          seedWelcomeTemplate();
+        }
+      }
+    }
+  }, [user, token, activeTab, fetchData, fetchSettings, seedWelcomeTemplate]);
 
   const handleOpenSmtpModal = (config?: any) => {
     if (config) {

@@ -79,7 +79,7 @@ export default function HTMLEditor({ value, onChange, isFullscreen, onFullscreen
             acceptSuggestionOnEnter: 'on',
             snippetSuggestions: 'top',
             suggestSelection: 'first',
-            wordBasedSuggestions: 'all',
+            wordBasedSuggestions: 'allDocuments',
             autoIndent: 'full',
             bracketPairColorization: { enabled: true },
             colorDecorators: true,

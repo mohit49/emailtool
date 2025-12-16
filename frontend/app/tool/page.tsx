@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -98,35 +98,7 @@ export default function ToolPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user && token) {
-      fetchTemplates();
-      fetchDefaultTemplates();
-      fetchSmtpConfigs();
-      fetchRecipients();
-    }
-  }, [user, token]);
-
-  // Set default template when modal opens
-  useEffect(() => {
-    if (showSendEmailModal) {
-      // If a template is currently selected, use it
-      if (selectedTemplate && templates.find(t => t._id === selectedTemplate)) {
-        // Already set
-      } else if (templates.length > 0) {
-        // Try to find template matching current HTML
-        const matchingTemplate = templates.find(t => t.html.trim() === html.trim());
-        if (matchingTemplate) {
-          setSelectedTemplate(matchingTemplate._id);
-        } else {
-          // Default to first template
-          setSelectedTemplate(templates[0]._id);
-        }
-      }
-    }
-  }, [showSendEmailModal, templates, selectedTemplate, html]);
-
-  const fetchSmtpConfigs = async () => {
+  const fetchSmtpConfigs = useCallback(async () => {
     try {
       // Fetch user's SMTP configs
       const userSmtpResponse = await axios.get('/api/user/smtp', {
@@ -160,9 +132,9 @@ export default function ToolPage() {
     } catch (error) {
       console.error('Error fetching SMTP configs:', error);
     }
-  };
+  }, [token]);
 
-  const fetchRecipients = async () => {
+  const fetchRecipients = useCallback(async () => {
     try {
       const response = await axios.get('/api/user/recipients', {
         headers: { Authorization: `Bearer ${token}` },
@@ -178,33 +150,9 @@ export default function ToolPage() {
     } catch (error) {
       console.error('Error fetching recipients:', error);
     }
-  };
+  }, [token]);
 
-  // Auto-save functionality - saves after 2 seconds of inactivity
-  useEffect(() => {
-    // Only auto-save if we have content
-    if (!html.trim()) {
-      return;
-    }
-
-    // Only auto-save if we have a template name OR it's an existing template
-    if (!templateName.trim() && !selectedTemplate) {
-      return;
-    }
-
-    // Clear existing timeout
-    const timeoutId = setTimeout(() => {
-      handleSaveTemplate(true);
-    }, 2000); // Auto-save after 2 seconds of inactivity
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [html, templateName, selectedTemplate]);
-
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/templates`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -229,16 +177,67 @@ export default function ToolPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const fetchDefaultTemplates = async () => {
+  const fetchDefaultTemplates = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/default-templates`);
-      setDefaultTemplates(response.data.templates);
+      setDefaultTemplates(response.data.templates || []);
     } catch (error) {
       console.error('Failed to fetch default templates:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (user && token) {
+      fetchTemplates();
+      fetchDefaultTemplates();
+      fetchSmtpConfigs();
+      fetchRecipients();
+    }
+  }, [user, token, fetchTemplates, fetchDefaultTemplates, fetchSmtpConfigs, fetchRecipients]);
+
+  // Set default template when modal opens
+  useEffect(() => {
+    if (showSendEmailModal) {
+      // If a template is currently selected, use it
+      if (selectedTemplate && templates.find(t => t._id === selectedTemplate)) {
+        // Already set
+      } else if (templates.length > 0) {
+        // Try to find template matching current HTML
+        const matchingTemplate = templates.find(t => t.html.trim() === html.trim());
+        if (matchingTemplate) {
+          setSelectedTemplate(matchingTemplate._id);
+        } else {
+          // Default to first template
+          setSelectedTemplate(templates[0]._id);
+        }
+      }
+    }
+  }, [showSendEmailModal, templates, selectedTemplate, html]);
+
+  // Auto-save functionality - saves after 2 seconds of inactivity
+  useEffect(() => {
+    // Only auto-save if we have content
+    if (!html.trim()) {
+      return;
+    }
+
+    // Only auto-save if we have a template name OR it's an existing template
+    if (!templateName.trim() && !selectedTemplate) {
+      return;
+    }
+
+    // Clear existing timeout
+    const timeoutId = setTimeout(() => {
+      handleSaveTemplate(true);
+    }, 2000); // Auto-save after 2 seconds of inactivity
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html, templateName, selectedTemplate]);
 
   const handleSaveTemplate = async (isAutoSave = false) => {
     // Prevent duplicate saves
@@ -438,7 +437,7 @@ export default function ToolPage() {
     }
     // Expand the folder if recipient is in a folder
     if (recipient.folder && !expandedRecipientFolders.has(recipient.folder)) {
-      setExpandedRecipientFolders(new Set([...expandedRecipientFolders, recipient.folder]));
+      setExpandedRecipientFolders(new Set([...Array.from(expandedRecipientFolders), recipient.folder]));
     }
     setRecipientSearch('');
     setShowSearchSuggestions(false);

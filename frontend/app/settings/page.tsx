@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -34,13 +34,7 @@ export default function SettingsPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user && token) {
-      fetchSmtpSettings();
-    }
-  }, [user, token]);
-
-  const fetchSmtpSettings = async () => {
+  const fetchSmtpSettings = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/user/smtp`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -51,7 +45,13 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (user && token) {
+      fetchSmtpSettings();
+    }
+  }, [user, token, fetchSmtpSettings]);
 
   const handleOpenModal = (config?: any) => {
     if (config) {
@@ -280,7 +280,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             {smtpConfigs.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                <p>No SMTP configurations yet. Click "Add SMTP" to create one.</p>
+                <p>No SMTP configurations yet. Click &quot;Add SMTP&quot; to create one.</p>
               </div>
             ) : (
               smtpConfigs.map((config) => (
@@ -408,7 +408,7 @@ export default function SettingsPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                   />
                   <p className="mt-1 text-sm text-gray-500">
-                    Your email provider's SMTP server address
+                    Your email provider&apos;s SMTP server address
                   </p>
                 </div>
 

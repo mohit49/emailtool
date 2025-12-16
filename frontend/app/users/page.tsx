@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -47,13 +47,7 @@ export default function UsersPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user && token) {
-      fetchRecipients();
-    }
-  }, [user, token]);
-
-  const fetchRecipients = async () => {
+  const fetchRecipients = useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get('/api/user/recipients', {
@@ -73,7 +67,13 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (user && token) {
+      fetchRecipients();
+    }
+  }, [user, token, fetchRecipients]);
 
   const handleAddRecipient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +133,7 @@ export default function UsersPage() {
     if (newFolderName.trim() && !folders.includes(newFolderName.trim())) {
       const newFolders = [...folders, newFolderName.trim()].sort();
       setFolders(newFolders);
-      setExpandedFolders(new Set([...expandedFolders, newFolderName.trim()])); // Auto-expand new folder
+      setExpandedFolders(new Set([...Array.from(expandedFolders), newFolderName.trim()])); // Auto-expand new folder
       setNewFolderName('');
       setShowNewFolderInput(false);
       setMessage({ type: 'success', text: `Folder "${newFolderName.trim()}" created successfully` });

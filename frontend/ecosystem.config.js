@@ -6,12 +6,12 @@ module.exports = {
     name: 'email-testing-tool',
     script: 'npm',
     args: 'start',
-    cwd: '/var/www/emailtestingtool/frontend',
+    cwd: '/home/email-host/frontend',
     instances: 1,
     exec_mode: 'fork',
     env: {
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 3001
     },
     error_file: './logs/err.log',
     out_file: './logs/out.log',
