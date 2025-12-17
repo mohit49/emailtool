@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../providers/AuthProvider';
 import axios from 'axios';
+import Link from 'next/link';
 import ConfirmDialog from '../../../components/ConfirmDialog';
 
 interface PreviewPageClientProps {
@@ -25,9 +26,18 @@ interface Comment {
   resolved?: boolean;
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  role?: 'user' | 'admin';
+}
+
 export default function PreviewPageClient({ html, shareToken }: PreviewPageClientProps) {
   // Auth is optional for preview page (public access)
-  let user, token;
+  let user: User | null = null;
+  let token: string | null = null;
   try {
     const auth = useAuth();
     user = auth?.user || null;
@@ -953,9 +963,9 @@ export default function PreviewPageClient({ html, shareToken }: PreviewPageClien
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <Link href="/" className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                 PRZIO
-              </h1>
+              </Link>
               <p className="text-sm text-gray-600 mt-1">Email Template Preview</p>
             </div>
             
