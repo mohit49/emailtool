@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Recipient from '@/lib/models/Recipient';
+import Project from '@/lib/models/Project';
+import ProjectMember from '@/lib/models/ProjectMember';
 import { requireAuth } from '@/lib/utils/auth';
 import * as XLSX from 'xlsx';
+import mongoose from 'mongoose';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,12 +17,41 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const folder = formData.get('folder')?.toString() || undefined;
+    const projectId = formData.get('projectId')?.toString() || undefined;
 
     if (!file) {
       return NextResponse.json(
         { error: 'No file provided' },
         { status: 400 }
       );
+    }
+
+    await connectDB();
+
+    const userId = new mongoose.Types.ObjectId(auth.userId);
+
+    // If projectId is provided, verify access
+    let projId: mongoose.Types.ObjectId | null = null;
+    if (projectId) {
+      projId = new mongoose.Types.ObjectId(projectId);
+      
+      const project = await Project.findById(projId);
+      if (!project) {
+        return NextResponse.json(
+          { error: 'Project not found' },
+          { status: 404 }
+        );
+      }
+
+      const isCreator = project.createdBy.toString() === userId.toString();
+      const member = await ProjectMember.findOne({ userId, projectId: projId });
+
+      if (!isCreator && !member) {
+        return NextResponse.json(
+          { error: 'Access denied' },
+          { status: 403 }
+        );
+      }
     }
 
     // Read file as buffer
@@ -40,8 +72,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
-    await connectDB();
 
     const errors: string[] = [];
     let added = 0;
@@ -91,9 +121,10 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      // Check if recipient already exists
+      // Check if recipient already exists for this user and project
       const existing = await Recipient.findOne({
         userId: auth.userId,
+        projectId: projId || null,
         email: emailStr,
       });
 
@@ -106,6 +137,7 @@ export async function POST(req: NextRequest) {
       try {
         const recipient = new Recipient({
           userId: auth.userId,
+          projectId: projId || undefined,
           name: name.toString().trim(),
           email: emailStr,
           folder: folder && folder.trim() ? folder.trim() : undefined,

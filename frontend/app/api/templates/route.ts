@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Template from '@/lib/models/Template';
+import Project from '@/lib/models/Project';
+import ProjectMember from '@/lib/models/ProjectMember';
 import { authenticateRequest } from '@/lib/utils/auth';
+import mongoose from 'mongoose';
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,10 +18,52 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
 
-    const templates = await Template.find({ userId: auth.userId })
-      .sort({ updatedAt: -1 });
+    const { searchParams } = new URL(req.url);
+    const projectId = searchParams.get('projectId');
 
-    return NextResponse.json({ templates });
+    if (projectId) {
+      // Verify user has access to this project
+      const userId = new mongoose.Types.ObjectId(auth.userId);
+      const projId = new mongoose.Types.ObjectId(projectId);
+      
+      const project = await Project.findById(projId);
+      if (!project) {
+        return NextResponse.json(
+          { error: 'Project not found' },
+          { status: 404 }
+        );
+      }
+
+      const isCreator = project.createdBy.toString() === userId.toString();
+      const member = await ProjectMember.findOne({ userId, projectId: projId });
+
+      if (!isCreator && !member) {
+        return NextResponse.json(
+          { error: 'Access denied' },
+          { status: 403 }
+        );
+      }
+
+      // Get templates for this project
+      const templates = await Template.find({ 
+        $or: [
+          { projectId: projId },
+          { projectId: null, userId } // Include user's personal templates for backward compatibility
+        ]
+      })
+        .sort({ updatedAt: -1 });
+
+      return NextResponse.json({ templates });
+    } else {
+      // No projectId - return user's personal templates (backward compatibility)
+      const templates = await Template.find({ 
+        userId: auth.userId,
+        projectId: null
+      })
+        .sort({ updatedAt: -1 });
+
+      return NextResponse.json({ templates });
+    }
   } catch (error: any) {
     console.error('Get templates error:', error);
     return NextResponse.json(
@@ -40,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const { name, html, folder, isDefault, defaultTemplateId } = await req.json();
+    const { name, html, folder, isDefault, defaultTemplateId, projectId } = await req.json();
 
     if (!name || !html) {
       return NextResponse.json(
@@ -49,8 +94,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const userId = new mongoose.Types.ObjectId(auth.userId);
+
+    // If projectId is provided, verify access and role
+    if (projectId) {
+      const projId = new mongoose.Types.ObjectId(projectId);
+      
+      const project = await Project.findById(projId);
+      if (!project) {
+        return NextResponse.json(
+          { error: 'Project not found' },
+          { status: 404 }
+        );
+      }
+
+      const isCreator = project.createdBy.toString() === userId.toString();
+      const member = await ProjectMember.findOne({ userId, projectId: projId });
+
+      if (!isCreator && !member) {
+        return NextResponse.json(
+          { error: 'Access denied' },
+          { status: 403 }
+        );
+      }
+
+      // emailDeveloper and ProjectAdmin can create templates
+      if (!isCreator && member && !['emailDeveloper', 'ProjectAdmin'].includes(member.role)) {
+        return NextResponse.json(
+          { error: 'Insufficient permissions to create templates' },
+          { status: 403 }
+        );
+      }
+    }
+
     const template = new Template({
-      userId: auth.userId,
+      userId,
+      projectId: projectId ? new mongoose.Types.ObjectId(projectId) : undefined,
       name: name.trim(),
       html,
       folder: folder?.trim() || undefined,

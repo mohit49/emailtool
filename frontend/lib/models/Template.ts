@@ -2,6 +2,7 @@ import mongoose, { Schema, Model, Document } from 'mongoose';
 
 interface ITemplate extends Document {
   userId: mongoose.Types.ObjectId;
+  projectId?: mongoose.Types.ObjectId; // Optional for backward compatibility
   name: string;
   html: string;
   folder?: string;
@@ -16,6 +17,10 @@ const templateSchema = new Schema<ITemplate>({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+  },
+  projectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Project',
   },
   name: {
     type: String,

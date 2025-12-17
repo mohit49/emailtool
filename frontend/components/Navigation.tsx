@@ -46,10 +46,10 @@ export default function Navigation() {
               </>
             ) : (
               <Link
-                href="/tool"
+                href="/projects"
                 className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-md"
               >
-                Go to Tool
+                My Projects
               </Link>
             )}
           </div>
@@ -92,8 +92,8 @@ export default function Navigation() {
                   </Link>
                 </>
               ) : (
-                <Link href="/tool" className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium text-center" onClick={() => setMobileMenuOpen(false)}>
-                  Go to Tool
+                <Link href="/projects" className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium text-center" onClick={() => setMobileMenuOpen(false)}>
+                  My Projects
                 </Link>
               )}
             </div>

@@ -74,7 +74,7 @@ export default function SignupPage() {
         picture: credentialData.picture,
       });
 
-      router.push('/tool');
+      router.push('/projects');
     } catch (err: any) {
       console.error('Google login error:', err);
       setError(err.response?.data?.error || err.message || 'Google login failed. Please try again.');

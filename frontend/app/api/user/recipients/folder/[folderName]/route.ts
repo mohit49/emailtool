@@ -17,6 +17,14 @@ export async function DELETE(
 
     await connectDB();
 
+    // Protect "Team Members" folder from deletion
+    if (folderName === 'Team Members') {
+      return NextResponse.json(
+        { error: 'Cannot delete the "Team Members" folder. This folder is protected and contains project team members.' },
+        { status: 400 }
+      );
+    }
+
     // Delete all recipients in this folder
     const result = await Recipient.deleteMany({
       userId: auth.userId,

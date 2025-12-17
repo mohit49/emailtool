@@ -2,6 +2,7 @@ import mongoose, { Schema, Model, Document } from 'mongoose';
 
 interface IFolder extends Document {
   userId: mongoose.Types.ObjectId;
+  projectId?: mongoose.Types.ObjectId; // Optional for backward compatibility
   name: string;
   type: 'template' | 'recipient'; // Type of folder (for templates or recipients)
   createdAt: Date;
@@ -13,6 +14,10 @@ const folderSchema = new Schema<IFolder>({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+  },
+  projectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Project',
   },
   name: {
     type: String,
@@ -34,8 +39,8 @@ const folderSchema = new Schema<IFolder>({
   },
 });
 
-// Ensure unique folder names per user and type
-folderSchema.index({ userId: 1, name: 1, type: 1 }, { unique: true });
+// Ensure unique folder names per user/project and type
+folderSchema.index({ userId: 1, projectId: 1, name: 1, type: 1 }, { unique: true });
 
 folderSchema.pre('save', function(next) {
   this.updatedAt = new Date();

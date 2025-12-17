@@ -271,3 +271,248 @@ export const sendTestEmail = async (to: string, subject: string, html: string, u
   }
 };
 
+// Send project invitation email (uses admin SMTP)
+export const sendProjectInvitationEmail = async (
+  email: string,
+  userName: string,
+  projectName: string,
+  addedByName: string,
+  role: string
+) => {
+  try {
+    const transporter = await createSystemTransporter();
+    const settings = await getAdminSMTPSettings();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const projectsUrl = `${appUrl}/projects`;
+
+    const roleDisplay = role === 'ProjectAdmin' ? 'Project Admin' : 'Email Developer';
+
+    const mailOptions = {
+      from: settings.from || 'support@przio.com',
+      to: email,
+      subject: `You've been added to "${projectName}" project - PRZIO`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Project Invitation</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f2f4f7; font-family: Arial, Helvetica, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f2f4f7">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <!-- Main Container -->
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="width: 100%; max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  
+                  <!-- Gradient Header -->
+                  <tr>
+                    <td align="center" style="padding: 40px 30px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);">
+                      <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center;">
+                        🎉 You've Been Added to a Project!
+                      </h1>
+                    </td>
+                  </tr>
+
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 40px 30px;">
+                      <p style="margin: 0 0 20px; font-size: 16px; line-height: 24px; color: #333333;">
+                        Hi <strong>${userName}</strong>,
+                      </p>
+                      
+                      <p style="margin: 0 0 20px; font-size: 16px; line-height: 24px; color: #333333;">
+                        Great news! <strong>${addedByName}</strong> has added you to the project:
+                      </p>
+
+                      <!-- Project Card -->
+                      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 100%); border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <tr>
+                          <td align="center">
+                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                              <span style="font-size: 30px;">📁</span>
+                            </div>
+                            <h2 style="margin: 0 0 10px; font-size: 24px; font-weight: bold; color: #1f2937;">
+                              ${projectName}
+                            </h2>
+                            <span style="display: inline-block; padding: 6px 12px; background-color: #6366f1; color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                              ${roleDisplay}
+                            </span>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin: 20px 0; font-size: 16px; line-height: 24px; color: #333333;">
+                        You now have access to collaborate on email templates within this project. Click the button below to get started:
+                      </p>
+
+                      <!-- CTA Button -->
+                      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 30px 0;">
+                        <tr>
+                          <td align="center">
+                            <a href="${projectsUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);">
+                              View Project →
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin: 20px 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
+                        If you have any questions, feel free to reach out to <strong>${addedByName}</strong> or our support team.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 30px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
+                      <p style="margin: 0; font-size: 12px; line-height: 18px; color: #6b7280; text-align: center;">
+                        This email was sent by PRZIO - Email Testing Tool<br>
+                        © ${new Date().getFullYear()} PRZIO. All rights reserved.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Project invitation email sent to ${email} from ${settings.from}`);
+  } catch (error) {
+    console.error('Error sending project invitation email:', error);
+    // Don't throw error - we don't want to fail the API call if email fails
+    console.error('Failed to send project invitation email, but member was added successfully');
+  }
+};
+
+// Send project invitation email for unregistered users (prompts them to sign up)
+export const sendProjectSignupInvitationEmail = async (
+  email: string,
+  projectName: string,
+  addedByName: string,
+  role: string
+) => {
+  try {
+    const transporter = await createSystemTransporter();
+    const settings = await getAdminSMTPSettings();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const signupUrl = `${appUrl}/signup`;
+
+    const roleDisplay = role === 'ProjectAdmin' ? 'Project Admin' : 'Email Developer';
+
+    const mailOptions = {
+      from: settings.from || 'support@przio.com',
+      to: email,
+      subject: `You've been invited to join "${projectName}" project - PRZIO`,
+      html: `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Project Invitation</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f2f4f7; font-family: Arial, Helvetica, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f2f4f7">
+            <tr>
+              <td align="center" style="padding: 40px 20px;">
+                <!-- Main Container -->
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="width: 100%; max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                  
+                  <!-- Gradient Header -->
+                  <tr>
+                    <td align="center" style="padding: 40px 30px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);">
+                      <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center;">
+                        🎉 You've Been Invited to Join a Project!
+                      </h1>
+                    </td>
+                  </tr>
+
+                  <!-- Content -->
+                  <tr>
+                    <td style="padding: 40px 30px;">
+                      <p style="margin: 0 0 20px; font-size: 16px; line-height: 24px; color: #333333;">
+                        Hi there,
+                      </p>
+                      
+                      <p style="margin: 0 0 20px; font-size: 16px; line-height: 24px; color: #333333;">
+                        Great news! <strong>${addedByName}</strong> has invited you to join the project:
+                      </p>
+
+                      <!-- Project Card -->
+                      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 100%); border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <tr>
+                          <td align="center">
+                            <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                              <span style="font-size: 30px;">📁</span>
+                            </div>
+                            <h2 style="margin: 0 0 10px; font-size: 24px; font-weight: bold; color: #1f2937;">
+                              ${projectName}
+                            </h2>
+                            <span style="display: inline-block; padding: 6px 12px; background-color: #6366f1; color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                              ${roleDisplay}
+                            </span>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin: 20px 0; font-size: 16px; line-height: 24px; color: #333333;">
+                        To get started, you'll need to sign up on PRZIO. Click the button below to create your account:
+                      </p>
+
+                      <!-- CTA Button -->
+                      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 30px 0;">
+                        <tr>
+                          <td align="center">
+                            <a href="${signupUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);">
+                              Sign Up on PRZIO →
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin: 20px 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
+                        Once you sign up with this email address (${email}), you'll automatically be added to the project and can start collaborating on email templates.
+                      </p>
+
+                      <p style="margin: 20px 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
+                        If you have any questions, feel free to reach out to <strong>${addedByName}</strong> or our support team.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 30px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
+                      <p style="margin: 0; font-size: 12px; line-height: 18px; color: #6b7280; text-align: center;">
+                        This email was sent by PRZIO - Email Testing Tool<br>
+                        © ${new Date().getFullYear()} PRZIO. All rights reserved.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Project signup invitation email sent to ${email} from ${settings.from}`);
+  } catch (error) {
+    console.error('Error sending project signup invitation email:', error);
+    // Don't throw error - we don't want to fail the API call if email fails
+    console.error('Failed to send project signup invitation email, but invitation was created successfully');
+  }
+};
+

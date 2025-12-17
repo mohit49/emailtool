@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Recipient from '@/lib/models/Recipient';
 import { requireAuth } from '@/lib/utils/auth';
+import mongoose from 'mongoose';
 
 export async function PUT(req: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { folder, newFolder } = await req.json();
+    const { folder, newFolder, projectId } = await req.json();
 
     if (!folder) {
       return NextResponse.json(
@@ -21,11 +22,19 @@ export async function PUT(req: NextRequest) {
 
     await connectDB();
 
+    const updateQuery: any = {
+      userId: auth.userId,
+      folder: folder,
+    };
+
+    if (projectId) {
+      updateQuery.projectId = new mongoose.Types.ObjectId(projectId);
+    } else {
+      updateQuery.projectId = null;
+    }
+
     const result = await Recipient.updateMany(
-      {
-        userId: auth.userId,
-        folder: folder,
-      },
+      updateQuery,
       {
         $set: {
           folder: newFolder && newFolder.trim() ? newFolder.trim() : undefined,

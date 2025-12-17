@@ -2,6 +2,7 @@ import mongoose, { Schema, Model, Document } from 'mongoose';
 
 interface IRecipient extends Document {
   userId: mongoose.Types.ObjectId; // The user who added this recipient
+  projectId?: mongoose.Types.ObjectId; // Optional for backward compatibility
   name: string;
   email: string;
   folder?: string; // Folder name for organization
@@ -16,6 +17,10 @@ const recipientSchema = new Schema<IRecipient>({
     ref: 'User',
     required: true,
     index: true,
+  },
+  projectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Project',
   },
   name: {
     type: String,
@@ -46,8 +51,8 @@ const recipientSchema = new Schema<IRecipient>({
   },
 });
 
-// Compound index to ensure unique email per user
-recipientSchema.index({ userId: 1, email: 1 }, { unique: true });
+// Compound index to ensure unique email per user and project
+recipientSchema.index({ userId: 1, projectId: 1, email: 1 }, { unique: true });
 
 // Update updatedAt before saving
 recipientSchema.pre('save', function(next) {

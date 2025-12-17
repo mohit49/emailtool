@@ -8,6 +8,7 @@ import Link from 'next/link';
 import HTMLEditor from '../../components/HTMLEditor';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Alert from '../../components/Alert';
+import AuthHeader from '../../components/AuthHeader';
 
 const API_URL = '/api';
 
@@ -198,6 +199,10 @@ interface Template {
 export default function ToolPage() {
   const { user, token, logout, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [projectInfo, setProjectInfo] = useState<{ name: string; role: 'owner' | 'ProjectAdmin' | 'emailDeveloper' } | null>(null);
+  const [checkingProject, setCheckingProject] = useState(true);
   const [html, setHtml] = useState(defaultHtmlTemplate);
   const [templateName, setTemplateName] = useState('');
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -239,6 +244,10 @@ export default function ToolPage() {
   const [expandedRecipientFolders, setExpandedRecipientFolders] = useState<Set<string>>(new Set());
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1);
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [showTemplateSuggestions, setShowTemplateSuggestions] = useState(false);
+  const [highlightedTemplateIndex, setHighlightedTemplateIndex] = useState(-1);
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -337,7 +346,13 @@ export default function ToolPage() {
 
   const fetchRecipients = useCallback(async () => {
     try {
-      const response = await axios.get('/api/user/recipients', {
+      // If projectId is available, fetch project-specific recipients (includes Team Members folder)
+      // Otherwise, fetch personal recipients
+      const url = projectId 
+        ? `/api/user/recipients?projectId=${projectId}`
+        : '/api/user/recipients';
+      
+      const response = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const recipientsData = response.data.recipients || [];
@@ -345,23 +360,35 @@ export default function ToolPage() {
       
       // Extract unique folders
       const uniqueFolders = Array.from(
-        new Set(recipientsData.map((r: any) => r.folder || '').filter((f: string) => f))
+        new Set(recipientsData.map((r: any) => (r.folder || '').trim()).filter((f: string) => f))
       ) as string[];
-      setRecipientFolders(uniqueFolders.sort());
+      
+      // Ensure Team Members folder appears first if it exists
+      const sortedFolders = uniqueFolders.sort((a, b) => {
+        if (a === 'Team Members') return -1;
+        if (b === 'Team Members') return 1;
+        return a.localeCompare(b);
+      });
+      
+      setRecipientFolders(sortedFolders);
+      
+      console.log('Recipients fetched:', recipientsData.length, 'Folders:', sortedFolders);
     } catch (error) {
       console.error('Error fetching recipients:', error);
     }
-  }, [token]);
+  }, [token, projectId]);
 
   const fetchTemplates = useCallback(async () => {
+    if (!projectId) return;
+    
     try {
-      const response = await axios.get(`${API_URL}/templates`, {
+      const response = await axios.get(`${API_URL}/templates?projectId=${projectId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTemplates(response.data.templates);
       
       // Fetch folders after templates are loaded
-      const foldersResponse = await axios.get(`${API_URL}/folders?type=template`, {
+      const foldersResponse = await axios.get(`${API_URL}/folders?type=template&projectId=${projectId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const dbFolders = foldersResponse.data.folders || [];
@@ -398,15 +425,58 @@ export default function ToolPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, projectId]);
+
+  // Check project access
+  useEffect(() => {
+    const checkProject = async () => {
+      if (!user || !token) {
+        setCheckingProject(false);
+        return;
+      }
+
+      // Get projectId from query params or localStorage
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryProjectId = urlParams.get('projectId');
+      const storedProjectId = localStorage.getItem('selectedProjectId');
+      const currentProjectId = queryProjectId || storedProjectId;
+
+      if (!currentProjectId) {
+        router.push('/projects');
+        return;
+      }
+
+      try {
+        // Verify user has access to this project
+        const response = await axios.get(`${API_URL}/projects/${currentProjectId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        setProjectId(currentProjectId);
+        setProjectInfo({
+          name: response.data.project.name,
+          role: response.data.project.role,
+        });
+        localStorage.setItem('selectedProjectId', currentProjectId);
+      } catch (error: any) {
+        console.error('Project access error:', error);
+        localStorage.removeItem('selectedProjectId');
+        router.push('/projects');
+      } finally {
+        setCheckingProject(false);
+      }
+    };
+
+    checkProject();
+  }, [user, token, router]);
 
   useEffect(() => {
-    if (user && token) {
+    if (user && token && projectId && !checkingProject) {
       fetchTemplates();
       fetchSmtpConfigs();
       fetchRecipients();
     }
-  }, [user, token, fetchTemplates, fetchSmtpConfigs, fetchRecipients]);
+  }, [user, token, projectId, checkingProject, fetchTemplates, fetchSmtpConfigs, fetchRecipients]);
 
   // Set default template when modal opens
   useEffect(() => {
@@ -508,7 +578,7 @@ export default function ToolPage() {
         // Update existing template
         await axios.put(
           `${API_URL}/templates/${selectedTemplate}`,
-          { name: templateName, html, folder: selectedFolder || undefined },
+          { name: templateName, html, folder: selectedFolder || undefined, projectId: projectId || undefined },
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
@@ -519,7 +589,8 @@ export default function ToolPage() {
             name: templateName, 
             html, 
             folder: selectedFolder || undefined,
-            isDefault: false
+            isDefault: false,
+            projectId: projectId || undefined
           },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -631,6 +702,16 @@ export default function ToolPage() {
     setHighlightedSuggestionIndex(-1);
   };
 
+  const handleSelectTemplateSuggestion = (template: any) => {
+    setSelectedTemplate(template._id);
+    setHtml(template.html);
+    setTemplateName(template.name);
+    setTemplateSearch('');
+    setShowTemplateDropdown(false);
+    setShowTemplateSuggestions(false);
+    setHighlightedTemplateIndex(-1);
+  };
+
   const handleSendEmails = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -734,7 +815,7 @@ export default function ToolPage() {
       // Save folder to database
       const response = await axios.post(
         `${API_URL}/folders`,
-        { name: folderName, type: 'template' },
+        { name: folderName, type: 'template', projectId: projectId || undefined },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -761,7 +842,7 @@ export default function ToolPage() {
         if (!folderExists) {
           // Try to fetch the folder from DB to get its ID
           try {
-            const foldersResponse = await axios.get(`${API_URL}/folders?type=template`, {
+            const foldersResponse = await axios.get(`${API_URL}/folders?type=template${projectId ? `&projectId=${projectId}` : ''}`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             const dbFolder = foldersResponse.data.folders?.find((f: any) => f.name === folderName);
@@ -842,7 +923,8 @@ export default function ToolPage() {
         { 
           name: template.name, 
           html: template.html,
-          folder: targetFolder || undefined
+          folder: targetFolder || undefined,
+          projectId: projectId || undefined
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -1047,7 +1129,7 @@ export default function ToolPage() {
     };
   }, [isResizing]);
 
-  if (authLoading || loading) {
+  if (authLoading || loading || checkingProject) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -1058,88 +1140,15 @@ export default function ToolPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !projectId || !projectInfo) {
     return null;
   }
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
-      {!isFullscreen && (
-        <header className="bg-white border-b border-gray-200 flex-shrink-0">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-4">
-                <Link href="/" className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  PRZIO
-                </Link>
-              </div>
-              <div className="flex items-center space-x-4">
-                {user.role === 'admin' && (
-                  <Link
-                    href="/admin"
-                    className="px-4 py-2 text-sm text-indigo-600 hover:text-indigo-700 transition-colors"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
-                <span className="text-sm text-gray-600">Welcome, {user.name}</span>
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Settings"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </button>
-                  {showSettingsDropdown && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setShowSettingsDropdown(false)}
-                      ></div>
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                        <Link
-                          href="/settings"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                          onClick={() => setShowSettingsDropdown(false)}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            <span>Email Settings</span>
-                          </div>
-                        </Link>
-                        <Link
-                          href="/users"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                          onClick={() => setShowSettingsDropdown(false)}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            <span>Users</span>
-                          </div>
-                        </Link>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <button
-                  onClick={logout}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
+      {!isFullscreen && projectInfo && (
+        <AuthHeader showProjectInfo={projectInfo} projectId={projectId || undefined} />
       )}
 
       <div className="flex-1 flex overflow-hidden">
@@ -1908,58 +1917,260 @@ export default function ToolPage() {
         <span>Send Email</span>
       </button>
 
-      {/* Send Email Modal */}
+      {/* Send Email Side Panel */}
       {showSendEmailModal && (
         <>
+          {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-50"
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300"
             onClick={() => {
               setShowSendEmailModal(false);
               setRecipientSearch('');
               setExpandedRecipientFolders(new Set());
+              setTemplateSearch('');
+              setShowTemplateSuggestions(false);
+              setShowTemplateDropdown(false);
             }}
           ></div>
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Send Email</h2>
-                
-                <form onSubmit={handleSendEmails}>
+          
+          {/* Side Panel */}
+          <div className="fixed top-0 right-0 h-full w-1/2 z-50 transform transition-transform duration-300 ease-in-out">
+            <div className="bg-white h-full shadow-2xl flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <h2 className="text-2xl font-bold text-gray-900">Send Email</h2>
+                <button
+                      onClick={() => {
+                        setShowSendEmailModal(false);
+                        setRecipientSearch('');
+                        setExpandedRecipientFolders(new Set());
+                        setSelectedRecipients([]);
+                        setSelectedFolders([]);
+                        setTemplateSearch('');
+                        setShowTemplateSuggestions(false);
+                        setShowTemplateDropdown(false);
+                      }}
+                  className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                  aria-label="Close panel"
+                >
+                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <form onSubmit={handleSendEmails} className="h-full flex flex-col">
                   {/* Template Selection */}
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Select Template <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative">
-                      <select
-                        value={selectedTemplate || ''}
-                        onChange={(e) => {
-                          const template = templates.find(t => t._id === e.target.value);
-                          if (template) {
-                            setSelectedTemplate(template._id);
-                            setHtml(template.html);
-                            setTemplateName(template.name);
-                          }
+                    <div 
+                      className="relative"
+                      onBlur={(e) => {
+                        // Close dropdown if clicking outside
+                        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                          setTimeout(() => setShowTemplateDropdown(false), 200);
+                        }
+                      }}
+                    >
+                      {/* Custom Select Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowTemplateDropdown(!showTemplateDropdown);
+                          setTemplateSearch('');
                         }}
-                        className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all appearance-none cursor-pointer hover:border-gray-400 shadow-sm"
-                        required
+                        className={`w-full px-4 py-3 pr-10 text-left border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+                          showTemplateDropdown ? 'ring-2 ring-blue-500 border-blue-500' : 'hover:border-gray-400'
+                        } ${!selectedTemplate ? 'text-gray-500' : ''}`}
                       >
-                        <option value="">Select a template...</option>
-                        {templates.map((template) => (
-                          <option key={template._id} value={template._id}>
-                            {template.name} {template.folder ? `(${template.folder})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
+                        <div className="flex items-center justify-between">
+                          <span className="truncate">
+                            {selectedTemplate 
+                              ? templates.find(t => t._id === selectedTemplate)?.name || 'Select a template...'
+                              : 'Select a template...'}
+                          </span>
+                          <svg 
+                            className={`w-5 h-5 text-gray-400 transition-transform ${showTemplateDropdown ? 'transform rotate-180' : ''}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {showTemplateDropdown && (
+                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-96 overflow-hidden flex flex-col">
+                          {/* Search Input */}
+                          <div className="p-3 border-b border-gray-200 bg-gray-50">
+                            <input
+                              type="text"
+                              value={templateSearch}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                setTemplateSearch(e.target.value);
+                                setHighlightedTemplateIndex(-1);
+                              }}
+                              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                const searchLower = templateSearch.toLowerCase();
+                                const filtered = templates.filter(t => 
+                                  t.name.toLowerCase().includes(searchLower) ||
+                                  (t.folder || '').toLowerCase().includes(searchLower)
+                                );
+                                
+                                if (e.key === 'ArrowDown') {
+                                  e.preventDefault();
+                                  setHighlightedTemplateIndex(prev => 
+                                    prev < filtered.length - 1 ? prev + 1 : prev
+                                  );
+                                } else if (e.key === 'ArrowUp') {
+                                  e.preventDefault();
+                                  setHighlightedTemplateIndex(prev => prev > 0 ? prev - 1 : -1);
+                                } else if (e.key === 'Enter' && highlightedTemplateIndex >= 0) {
+                                  e.preventDefault();
+                                  handleSelectTemplateSuggestion(filtered[highlightedTemplateIndex]);
+                                }
+                              }}
+                              placeholder="Search templates..."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                              autoFocus
+                            />
+                          </div>
+
+                          {/* Template List */}
+                          <div className="overflow-y-auto max-h-80">
+                            {(() => {
+                              const searchLower = templateSearch.toLowerCase();
+                              const filteredTemplates = templates.filter(t => 
+                                !templateSearch.trim() ||
+                                t.name.toLowerCase().includes(searchLower) ||
+                                (t.folder || '').toLowerCase().includes(searchLower)
+                              );
+
+                              // Group by folder
+                              const grouped: Record<string, typeof templates> = {};
+                              const rootTemplates: typeof templates = [];
+
+                              filteredTemplates.forEach(t => {
+                                const folder = (t.folder || '').trim();
+                                if (folder) {
+                                  if (!grouped[folder]) {
+                                    grouped[folder] = [];
+                                  }
+                                  grouped[folder].push(t);
+                                } else {
+                                  rootTemplates.push(t);
+                                }
+                              });
+
+                              const folderNames = Object.keys(grouped).sort();
+
+                              if (filteredTemplates.length === 0) {
+                                return (
+                                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                                    No templates found
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div>
+                                  {/* Root Templates (No Folder) */}
+                                  {rootTemplates.length > 0 && (
+                                    <div className="py-2">
+                                      <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                        No Folder
+                                      </div>
+                                      {rootTemplates.map((template, index) => (
+                                        <div
+                                          key={template._id}
+                                          onClick={() => handleSelectTemplateSuggestion(template)}
+                                          onMouseEnter={() => {
+                                            const globalIndex = rootTemplates.findIndex(t => t._id === template._id);
+                                            setHighlightedTemplateIndex(globalIndex);
+                                          }}
+                                          className={`px-4 py-3 cursor-pointer transition-colors ${
+                                            highlightedTemplateIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'
+                                          } ${selectedTemplate === template._id ? 'bg-green-50 border-l-4 border-green-500' : ''}`}
+                                        >
+                                          <div className="flex items-center space-x-3">
+                                            {selectedTemplate === template._id && (
+                                              <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                              </svg>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                              <div className="text-sm font-medium text-gray-900 truncate">
+                                                {template.name}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Folders */}
+                                  {folderNames.map((folderName) => {
+                                    const folderTemplates = grouped[folderName];
+                                    return (
+                                      <div key={folderName} className="py-2 border-t border-gray-100">
+                                        <div className="px-4 py-2 flex items-center space-x-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                          </svg>
+                                          <span>{folderName}</span>
+                                        </div>
+                                        {folderTemplates.map((template) => {
+                                          const globalIndex = rootTemplates.length + 
+                                            folderNames.slice(0, folderNames.indexOf(folderName)).reduce((sum, f) => sum + grouped[f].length, 0) +
+                                            folderTemplates.findIndex(t => t._id === template._id);
+                                          
+                                          return (
+                                            <div
+                                              key={template._id}
+                                              onClick={() => handleSelectTemplateSuggestion(template)}
+                                              onMouseEnter={() => setHighlightedTemplateIndex(globalIndex)}
+                                              className={`px-4 py-3 cursor-pointer transition-colors ${
+                                                highlightedTemplateIndex === globalIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
+                                              } ${selectedTemplate === template._id ? 'bg-green-50 border-l-4 border-green-500' : ''}`}
+                                            >
+                                              <div className="flex items-center space-x-3">
+                                                {selectedTemplate === template._id && (
+                                                  <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                  </svg>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="text-sm font-medium text-gray-900 truncate">
+                                                    {template.name}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     {selectedTemplate && (
                       <p className="mt-2 text-sm text-gray-500">
-                        Current template: <strong>{templates.find(t => t._id === selectedTemplate)?.name}</strong>
+                        Selected: <strong>{templates.find(t => t._id === selectedTemplate)?.name}</strong>
+                        {templates.find(t => t._id === selectedTemplate)?.folder && (
+                          <span className="text-gray-400"> • {templates.find(t => t._id === selectedTemplate)?.folder}</span>
+                        )}
                       </p>
                     )}
                   </div>
@@ -2155,17 +2366,24 @@ export default function ToolPage() {
                         const rootRecipients: typeof recipients = [];
 
                         filteredRecipients.forEach(r => {
-                          if (r.folder && r.folder.trim()) {
-                            if (!grouped[r.folder]) {
-                              grouped[r.folder] = [];
+                          // Handle empty string folders properly
+                          const folder = (r.folder || '').trim();
+                          if (folder) {
+                            if (!grouped[folder]) {
+                              grouped[folder] = [];
                             }
-                            grouped[r.folder].push(r);
+                            grouped[folder].push(r);
                           } else {
                             rootRecipients.push(r);
                           }
                         });
 
-                        const folderNames = Object.keys(grouped).sort();
+                        // Sort folders with Team Members first
+                        const folderNames = Object.keys(grouped).sort((a, b) => {
+                          if (a === 'Team Members') return -1;
+                          if (b === 'Team Members') return 1;
+                          return a.localeCompare(b);
+                        });
 
                         return (
                           <div className="divide-y divide-gray-200">
@@ -2326,28 +2544,34 @@ export default function ToolPage() {
                       </p>
                     )}
                   </div>
-
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowSendEmailModal(false);
-                        setSelectedRecipients([]);
-                        setSelectedFolders([]);
-                        setRecipientSearch('');
-                        setExpandedRecipientFolders(new Set());
-                      }}
-                      className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={sendingEmails || !selectedSmtp || (selectedRecipients.length === 0 && selectedFolders.length === 0)}
-                      className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {sendingEmails ? 'Sending...' : 'Confirm & Send'}
-                    </button>
+                  
+                  {/* Footer - Sticky at bottom of form */}
+                  <div className="mt-auto pt-6 border-t border-gray-200">
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSendEmailModal(false);
+                          setSelectedRecipients([]);
+                          setSelectedFolders([]);
+                          setRecipientSearch('');
+                          setExpandedRecipientFolders(new Set());
+                          setTemplateSearch('');
+                          setShowTemplateSuggestions(false);
+                          setShowTemplateDropdown(false);
+                        }}
+                        className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={sendingEmails || !selectedSmtp || (selectedRecipients.length === 0 && selectedFolders.length === 0)}
+                        className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {sendingEmails ? 'Sending...' : 'Confirm & Send'}
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>

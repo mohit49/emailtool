@@ -25,7 +25,7 @@ export default function VerifyEmailPage() {
         setMessage('Email verified successfully! Redirecting...');
         
         setTimeout(() => {
-          router.push('/tool');
+          router.push('/projects');
         }, 2000);
       } catch (error: any) {
         setStatus('error');
