@@ -11,18 +11,174 @@ const API_URL = '/api';
 
 const defaultHtmlTemplate = `<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
+    <title>Welcome to Przio</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Template</title>
 </head>
-<body>
-    <!-- Your HTML placed here -->
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h1>Welcome!</h1>
-        <p>Your HTML placed here</p>
-    </div>
+
+<body style="margin:0; padding:0; background-color:#f2f4f7;">
+
+    <!-- Wrapper -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f2f4f7">
+        <tr>
+            <td align="center" style="padding:20px 10px;">
+
+                <!-- Main Container -->
+                <table width="600" cellpadding="0" cellspacing="0" border="0"
+                    style="width:100%; max-width:600px; background-color:#ffffff; border-radius:8px;">
+
+                    <!-- Gradient Header -->
+                    <tr>
+                        <td align="center" style="padding:35px 20px;
+                   background-color:#4f46e5;
+                   background-image: linear-gradient(90deg, #4f46e5, #0ea5e9);
+                   border-radius:8px 8px 0 0;">
+
+                            <h1 style="margin:0;
+                       font-family:Arial, Helvetica, sans-serif;
+                       font-size:28px;
+                       color:#ffffff;">
+                                Welcome to Przio
+                            </h1>
+
+                            <p style="margin:10px 0 0;
+                      font-family:Arial, Helvetica, sans-serif;
+                      font-size:16px;
+                      color:#e0e7ff;">
+                                Your journey starts here
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Banner Placeholder -->
+                    <tr>
+                        <td align="center" style="padding:20px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                                style="background-color:#eef2ff; border:1px dashed #c7d2fe;">
+                                <tr>
+                                    <td align="center" style="padding:40px 20px;">
+                                        <p style="margin:0;
+                            font-family:Arial, Helvetica, sans-serif;
+                            font-size:18px;
+                            color:#4f46e5;">
+                                            Banner Image Placeholder
+                                        </p>
+                                        <p style="margin:8px 0 0;
+                            font-family:Arial, Helvetica, sans-serif;
+                            font-size:14px;
+                            color:#6b7280;">
+                                            (Recommended size: 600 × 250)
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Body Content -->
+                    <tr>
+                        <td style="padding:10px 30px 30px;
+                     font-family:Arial, Helvetica, sans-serif;
+                     color:#333333;">
+
+                            <p style="font-size:16px; line-height:24px; margin:0 0 15px;">
+                                Hello <strong>{{User Name}}</strong>,
+                            </p>
+
+                            <p style="font-size:16px; line-height:24px; margin:0 0 15px;">
+                                We're excited to welcome you to <strong>Przio</strong>. You're now part of a growing
+                                community that values innovation, performance, and simplicity.
+                            </p>
+
+                            <p style="font-size:16px; line-height:24px; margin:0 0 20px;">
+                                This email is designed to help you get started quickly and understand what Przio
+                                can do for you.
+                            </p>
+
+                            <!-- Feature Section -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td style="padding:15px; background-color:#f9fafb; border-radius:6px;">
+
+                                        <h3 style="margin:0 0 10px;
+                             font-size:18px;
+                             font-family:Arial, Helvetica, sans-serif;
+                             color:#111827;">
+                                            What you can do with Przio
+                                        </h3>
+
+                                        <ul style="padding-left:20px; margin:0; font-size:15px; line-height:22px;">
+                                            <li>Feature placeholder one – short explanation text</li>
+                                            <li>Feature placeholder two – short explanation text</li>
+                                            <li>Feature placeholder three – short explanation text</li>
+                                        </ul>
+
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- CTA Button -->
+                            <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:30px auto;">
+                                <tr>
+                                    <td align="center" style="background-color:#4f46e5;
+                         background-image: linear-gradient(90deg, #4f46e5, #0ea5e9);
+                         border-radius:5px;">
+                                        <a href="{{CTA Link}}" target="_blank" style="display:inline-block;
+                           padding:14px 28px;
+                           font-size:16px;
+                           font-family:Arial, Helvetica, sans-serif;
+                           color:#ffffff;
+                           text-decoration:none;">
+                                            Get Started with Przio
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="font-size:15px; line-height:22px; margin:0 0 10px; color:#4b5563;">
+                                Need help? Our support team is always here for you.
+                            </p>
+
+                            <p style="font-size:14px; line-height:22px; margin:0; color:#6b7280;">
+                                Simply reply to this email or visit our help center for more information.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="padding:20px;
+                   background-color:#f2f4f7;
+                   border-radius:0 0 8px 8px;">
+                            <p style="margin:0;
+                      font-family:Arial, Helvetica, sans-serif;
+                      font-size:13px;
+                      color:#6b7280;">
+                                © 2025 Przio. All rights reserved.
+                            </p>
+                            <p style="margin:5px 0 0;
+                      font-family:Arial, Helvetica, sans-serif;
+                      font-size:12px;
+                      color:#9ca3af;">
+                                {{Company Address}} | <a href="{{Unsubscribe Link}}"
+                                    style="color:#6b7280;">Unsubscribe</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+                <!-- End Main Container -->
+
+            </td>
+        </tr>
+    </table>
+
 </body>
+
 </html>`;
 
 interface Template {
@@ -36,13 +192,6 @@ interface Template {
   updatedAt: string;
 }
 
-interface DefaultTemplate {
-  _id: string;
-  name: string;
-  description?: string;
-  html: string;
-  category?: string;
-}
 
 export default function ToolPage() {
   const { user, token, logout, loading: authLoading } = useAuth();
@@ -50,13 +199,11 @@ export default function ToolPage() {
   const [html, setHtml] = useState(defaultHtmlTemplate);
   const [templateName, setTemplateName] = useState('');
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [defaultTemplates, setDefaultTemplates] = useState<DefaultTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'split'>('split');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showDefaultTemplates, setShowDefaultTemplates] = useState(false);
   const [previewMode, setPreviewMode] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [previewZoom, setPreviewZoom] = useState(100); // Zoom percentage
   const [splitPosition, setSplitPosition] = useState(50); // Percentage
@@ -106,21 +253,48 @@ export default function ToolPage() {
       });
       const userSmtpConfigs = userSmtpResponse.data.smtpConfigs || [];
 
-      // Fetch admin SMTP configs (public, active ones)
+      // Fetch admin SMTP configs (public, default active one)
       const adminSmtpResponse = await axios.get('/api/admin/smtp/public');
-      const adminSmtpConfigs = (adminSmtpResponse.data.smtpConfigs || []).map((smtp: any) => ({
-        ...smtp,
-        _id: `admin_${smtp._id}`, // Prefix to distinguish from user SMTP
-        isAdminSmtp: true,
-      }));
+      const adminSmtpConfigs = (adminSmtpResponse.data.smtpConfigs || []).map((smtp: any) => {
+        const adminSmtp = {
+          ...smtp,
+          _id: `admin_${smtp._id}`, // Prefix to distinguish from user SMTP
+          isAdminSmtp: true,
+          // Explicitly preserve isDefault and isActive
+          isDefault: smtp.isDefault === true,
+          isActive: smtp.isActive === true,
+        };
+        console.log('Admin SMTP mapped:', {
+          originalId: smtp._id,
+          mappedId: adminSmtp._id,
+          isDefault: adminSmtp.isDefault,
+          isActive: adminSmtp.isActive,
+          title: adminSmtp.title,
+        });
+        return adminSmtp;
+      });
 
       // Combine: user SMTP first, then admin SMTP
       const allConfigs = [...userSmtpConfigs, ...adminSmtpConfigs];
       setSmtpConfigs(allConfigs);
 
+      // Debug logging
+      console.log('SMTP Configs Debug:', {
+        userSmtpCount: userSmtpConfigs.length,
+        adminSmtpCount: adminSmtpConfigs.length,
+        adminSmtpConfigs: adminSmtpConfigs,
+        allConfigsCount: allConfigs.length,
+      });
+
       // Set default to active user SMTP, or default admin SMTP, or first one
       const activeUser = userSmtpConfigs.find((s: any) => s.isActive);
-      const defaultAdmin = adminSmtpConfigs.find((s: any) => s.isDefault);
+      const defaultAdmin = adminSmtpConfigs.find((s: any) => s.isDefault === true);
+      
+      console.log('SMTP Selection Debug:', {
+        activeUser: activeUser ? activeUser._id : null,
+        defaultAdmin: defaultAdmin ? defaultAdmin._id : null,
+        defaultAdminDetails: defaultAdmin,
+      });
       
       if (activeUser) {
         setSelectedSmtp(activeUser._id);
@@ -159,16 +333,26 @@ export default function ToolPage() {
       });
       setTemplates(response.data.templates);
       
-      // Extract unique folders
-      const uniqueFolders = Array.from(new Set(
+      // Fetch folders after templates are loaded
+      const foldersResponse = await axios.get(`${API_URL}/folders?type=template`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const dbFolders = foldersResponse.data.folders || [];
+      const folderNames = dbFolders.map((f: any) => f.name);
+      
+      // Extract unique folders from templates
+      const foldersFromTemplates = Array.from(new Set(
         response.data.templates
           .map((t: Template) => t.folder)
           .filter((f: string | undefined) => f && f.trim())
       )) as string[];
-      setFolders(uniqueFolders);
+      
+      // Merge DB folders with folders from templates
+      const allFolders = Array.from(new Set([...folderNames, ...foldersFromTemplates])).sort();
+      setFolders(allFolders);
       
       // Auto-expand folders that have templates
-      const foldersWithTemplates = uniqueFolders.filter(folder => 
+      const foldersWithTemplates = foldersFromTemplates.filter(folder => 
         response.data.templates.some((t: Template) => t.folder === folder)
       );
       setExpandedFolders(new Set(foldersWithTemplates));
@@ -179,23 +363,13 @@ export default function ToolPage() {
     }
   }, [token]);
 
-  const fetchDefaultTemplates = useCallback(async () => {
-    try {
-      const response = await axios.get(`${API_URL}/default-templates`);
-      setDefaultTemplates(response.data.templates || []);
-    } catch (error) {
-      console.error('Failed to fetch default templates:', error);
-    }
-  }, []);
-
   useEffect(() => {
     if (user && token) {
       fetchTemplates();
-      fetchDefaultTemplates();
       fetchSmtpConfigs();
       fetchRecipients();
     }
-  }, [user, token, fetchTemplates, fetchDefaultTemplates, fetchSmtpConfigs, fetchRecipients]);
+  }, [user, token, fetchTemplates, fetchSmtpConfigs, fetchRecipients]);
 
   // Set default template when modal opens
   useEffect(() => {
@@ -398,38 +572,6 @@ export default function ToolPage() {
     setLastSaved(null);
   };
 
-  const handleLoadDefaultTemplate = async (template: DefaultTemplate) => {
-    setHtml(template.html);
-    setTemplateName(template.name);
-    setShowDefaultTemplates(false);
-    setOriginalHtml(template.html);
-    setOriginalTemplateName(template.name);
-    setLastSaved(null);
-    setSelectedFolder('');
-
-    // Auto-save default template as user's template
-    try {
-      const response = await axios.post(
-        `${API_URL}/templates`,
-        {
-          name: template.name,
-          html: template.html,
-          isDefault: true,
-          defaultTemplateId: template._id,
-          folder: selectedFolder || undefined,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (response.data.template) {
-        setSelectedTemplate(response.data.template._id);
-        setOriginalHtml(template.html);
-        setOriginalTemplateName(template.name);
-        await fetchTemplates();
-      }
-    } catch (error) {
-      console.error('Failed to save default template:', error);
-    }
-  };
 
   const handleSelectSuggestion = (recipient: any) => {
     if (!selectedRecipients.includes(recipient._id)) {
@@ -529,33 +671,41 @@ export default function ToolPage() {
     }
   };
 
-  const handleRemoveDefaultTemplate = async (templateId: string) => {
-    if (!confirm('Are you sure you want to remove this template from your templates?')) return;
 
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+
+    const folderName = newFolderName.trim();
+    
     try {
-      await axios.delete(`${API_URL}/templates/${templateId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      await fetchTemplates();
-      if (selectedTemplate === templateId) {
-        setHtml(defaultHtmlTemplate);
-        setTemplateName('');
-        setSelectedTemplate(null);
-        setOriginalHtml(defaultHtmlTemplate);
-        setOriginalTemplateName('');
-        setSelectedFolder('');
-      }
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to remove template');
-    }
-  };
+      // Save folder to database
+      const response = await axios.post(
+        `${API_URL}/folders`,
+        { name: folderName, type: 'template' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-  const handleCreateFolder = () => {
-    if (newFolderName.trim()) {
-      setFolders([...folders, newFolderName.trim()]);
-      setSelectedFolder(newFolderName.trim());
+      // Update local state
+      if (!folders.includes(folderName)) {
+        setFolders([...folders, folderName].sort());
+      }
+      setSelectedFolder(folderName);
       setNewFolderName('');
       setShowNewFolderInput(false);
+    } catch (error: any) {
+      console.error('Failed to create folder:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to create folder';
+      alert(errorMessage);
+      
+      // Still add to local state if it's a duplicate error (folder might already exist in DB)
+      if (error.response?.status === 400 && errorMessage.includes('already exists')) {
+        if (!folders.includes(folderName)) {
+          setFolders([...folders, folderName].sort());
+        }
+        setSelectedFolder(folderName);
+        setNewFolderName('');
+        setShowNewFolderInput(false);
+      }
     }
   };
 
@@ -650,7 +800,7 @@ export default function ToolPage() {
 
   // Separate folders and templates without folders
   const templatesWithoutFolder = groupedTemplates[''] || [];
-  const folderOrder = folders.filter(f => groupedTemplates[f] && groupedTemplates[f].length > 0);
+  const folderOrder = folders;
 
   const handleDeleteTemplate = async (id: string) => {
     const template = templates.find(t => t._id === id);
@@ -912,54 +1062,16 @@ export default function ToolPage() {
                 </div>
               )}
 
-              {defaultTemplates.length > 0 && (
-                <div className="mb-4">
-                  <button
-                    onClick={() => setShowDefaultTemplates(!showDefaultTemplates)}
-                    className="w-full px-3 py-2 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors flex items-center justify-between"
-                  >
-                    <span>Default Templates ({defaultTemplates.length})</span>
-                    <svg
-                      className={`w-4 h-4 transition-transform ${showDefaultTemplates ? 'rotate-180' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {showDefaultTemplates && (
-                    <div className="mt-2 space-y-2 max-h-[200px] overflow-y-auto">
-                      {defaultTemplates.map((template) => (
-                        <div
-                          key={template._id}
-                          className="p-2 rounded-lg border border-purple-200 bg-purple-50 cursor-pointer hover:bg-purple-100 transition-colors relative group"
-                          onClick={() => handleLoadDefaultTemplate(template)}
-                          title="Click to load template. You can save it as your own template and delete it later."
-                        >
-                          <h4 className="font-medium text-sm text-gray-900">{template.name}</h4>
-                          {template.description && (
-                            <p className="text-xs text-gray-600 mt-1">{template.description}</p>
-                          )}
-                          <span className="absolute top-1 right-1 text-xs text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                            Load
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
               <div className="space-y-1">
-                {templates.length === 0 ? (
+                {templates.length === 0 && folders.length === 0 ? (
                   <div className="text-center py-4">
                     <p className="text-sm text-gray-500 mb-2">No templates yet</p>
-                    <p className="text-xs text-gray-400">Load a default template or create a new one</p>
+                    <p className="text-xs text-gray-400">Create a new template to get started</p>
                   </div>
                 ) : (
                   <>
                     {/* Folders with Accordion */}
-                    {folderOrder.map((folderName) => {
+                    {folders.map((folderName) => {
                       const folderTemplates = groupedTemplates[folderName] || [];
                       const isExpanded = expandedFolders.has(folderName);
                       const isDraggedOver = dragOverFolder === folderName;
@@ -1009,7 +1121,13 @@ export default function ToolPage() {
                           {isExpanded && (
                             <div className="bg-white border-t border-gray-200">
                               <div className="p-2 space-y-1">
-                                {folderTemplates.map((template) => (
+                                {folderTemplates.length === 0 ? (
+                                  <div className="text-center py-4 text-sm text-gray-400">
+                                    <p>No templates in this folder</p>
+                                    <p className="text-xs mt-1">Create a template and save it here</p>
+                                  </div>
+                                ) : (
+                                  folderTemplates.map((template) => (
                                   <div
                                     key={template._id}
                                     draggable
@@ -1034,29 +1152,12 @@ export default function ToolPage() {
                                           <h3 className="font-medium text-sm text-gray-900 truncate">
                                             {template.name}
                                           </h3>
-                                          {template.isDefault && (
-                                            <span className="text-xs text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded flex-shrink-0">Default</span>
-                                          )}
                                         </div>
                                         <p className="text-xs text-gray-500 ml-5.5">
                                           {new Date(template.updatedAt).toLocaleDateString()}
                                         </p>
                                       </div>
                                       <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
-                                        {template.isDefault && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleRemoveDefaultTemplate(template._id);
-                                            }}
-                                            className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors"
-                                            title="Remove from my templates"
-                                          >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                          </button>
-                                        )}
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -1072,7 +1173,8 @@ export default function ToolPage() {
                                       </div>
                                     </div>
                                   </div>
-                                ))}
+                                  ))
+                                )}
                                 
                                 {/* Drop Zone inside folder */}
                                 <div
@@ -1144,29 +1246,12 @@ export default function ToolPage() {
                                     <h3 className="font-medium text-sm text-gray-900 truncate">
                                       {template.name}
                                     </h3>
-                                    {template.isDefault && (
-                                      <span className="text-xs text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded flex-shrink-0">Default</span>
-                                    )}
                                   </div>
                                   <p className="text-xs text-gray-500 ml-5.5">
                                     {new Date(template.updatedAt).toLocaleDateString()}
                                   </p>
                                 </div>
                                 <div className="flex items-center space-x-1 flex-shrink-0 ml-2">
-                                  {template.isDefault && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRemoveDefaultTemplate(template._id);
-                                      }}
-                                      className="p-1 text-orange-500 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors"
-                                      title="Remove from my templates"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                      </svg>
-                                    </button>
-                                  )}
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1208,7 +1293,7 @@ export default function ToolPage() {
                       placeholder="Template name..."
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                     />
-                    {folders.length > 0 && (
+                    {(folders.length > 0 || selectedFolder) && (
                       <div className="relative">
                         <select
                           value={selectedFolder}
@@ -1221,6 +1306,12 @@ export default function ToolPage() {
                               {folder}
                             </option>
                           ))}
+                          {/* Show selected folder even if it's not in folders yet (newly created) */}
+                          {selectedFolder && !folders.includes(selectedFolder) && (
+                            <option key={selectedFolder} value={selectedFolder}>
+                              {selectedFolder}
+                            </option>
+                          )}
                         </select>
                         <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

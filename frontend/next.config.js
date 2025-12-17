@@ -6,6 +6,19 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
+  // Enable source maps for debugging in development
+  // Next.js automatically enables source maps in dev mode, but we can ensure they're enabled
+  productionBrowserSourceMaps: false, // Only in dev, not production
+  
+  // For better source map support in development
+  webpack: (config, { dev, isServer }) => {
+    if (dev && !isServer) {
+      // Use eval-source-map for faster rebuilds and better source mapping
+      config.devtool = 'eval-source-map';
+    }
+    return config;
+  },
+  
   // Output configuration (for standalone deployment)
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   

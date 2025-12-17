@@ -8,14 +8,6 @@ import axios from 'axios';
 
 const API_URL = '/api';
 
-interface DefaultTemplate {
-  _id: string;
-  name: string;
-  description?: string;
-  html: string;
-  category?: string;
-  createdAt: string;
-}
 
 interface User {
   _id: string;
@@ -29,18 +21,9 @@ interface User {
 export default function AdminDashboard() {
   const { user, token, logout, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'templates' | 'users' | 'settings'>('templates');
-  const [templates, setTemplates] = useState<DefaultTemplate[]>([]);
+  const [activeTab, setActiveTab] = useState<'users' | 'settings'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<DefaultTemplate | null>(null);
-  const [templateForm, setTemplateForm] = useState({
-    name: '',
-    description: '',
-    html: '',
-    category: 'General',
-  });
   const [adminSmtpConfigs, setAdminSmtpConfigs] = useState<any[]>([]);
   const [showSmtpModal, setShowSmtpModal] = useState(false);
   const [editingSmtp, setEditingSmtp] = useState<any | null>(null);
@@ -78,17 +61,10 @@ export default function AdminDashboard() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      if (activeTab === 'templates') {
-        const response = await axios.get(`${API_URL}/admin/default-templates`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setTemplates(response.data.templates);
-      } else {
-        const response = await axios.get(`${API_URL}/admin/users`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setUsers(response.data.users);
-      }
+      const response = await axios.get(`${API_URL}/admin/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(response.data.users);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -353,58 +329,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSaveTemplate = async () => {
-    if (!templateForm.name.trim() || !templateForm.html.trim()) {
-      alert('Name and HTML are required');
-      return;
-    }
-
-    try {
-      if (editingTemplate) {
-        await axios.put(
-          `${API_URL}/admin/default-templates/${editingTemplate._id}`,
-          templateForm,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      } else {
-        await axios.post(
-          `${API_URL}/admin/default-templates`,
-          templateForm,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-      }
-      setShowTemplateModal(false);
-      setEditingTemplate(null);
-      setTemplateForm({ name: '', description: '', html: '', category: 'General' });
-      fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to save template');
-    }
-  };
-
-  const handleEditTemplate = (template: DefaultTemplate) => {
-    setEditingTemplate(template);
-    setTemplateForm({
-      name: template.name,
-      description: template.description || '',
-      html: template.html,
-      category: template.category || 'General',
-    });
-    setShowTemplateModal(true);
-  };
-
-  const handleDeleteTemplate = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
-
-    try {
-      await axios.delete(`${API_URL}/admin/default-templates/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to delete template');
-    }
-  };
 
   const handleUpdateUser = async (userId: string, updates: Partial<User>) => {
     try {
@@ -484,16 +408,6 @@ export default function AdminDashboard() {
           <div className="border-b border-gray-200">
             <div className="flex">
               <button
-                onClick={() => setActiveTab('templates')}
-                className={`px-6 py-3 font-medium text-sm transition-colors ${
-                  activeTab === 'templates'
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Default Templates
-              </button>
-              <button
                 onClick={() => setActiveTab('users')}
                 className={`px-6 py-3 font-medium text-sm transition-colors ${
                   activeTab === 'users'
@@ -518,57 +432,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Content */}
-        {activeTab === 'templates' ? (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Default Templates</h2>
-              <button
-                onClick={() => {
-                  setEditingTemplate(null);
-                  setTemplateForm({ name: '', description: '', html: '', category: 'General' });
-                  setShowTemplateModal(true);
-                }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
-              >
-                Add Template
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {templates.map((template) => (
-                <div key={template._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <h3 className="font-semibold text-gray-900 mb-2">{template.name}</h3>
-                  {template.description && (
-                    <p className="text-sm text-gray-600 mb-2">{template.description}</p>
-                  )}
-                  {template.category && (
-                    <span className="inline-block px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded mb-2">
-                      {template.category}
-                    </span>
-                  )}
-                  <div className="flex space-x-2 mt-4">
-                    <button
-                      onClick={() => handleEditTemplate(template)}
-                      className="flex-1 px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTemplate(template._id)}
-                      className="flex-1 px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {templates.length === 0 && (
-              <p className="text-center text-gray-500 py-8">No default templates yet</p>
-            )}
-          </div>
-        ) : activeTab === 'users' ? (
+        {activeTab === 'users' ? (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">User Management</h2>
             <div className="overflow-x-auto">
@@ -1085,87 +949,6 @@ export default function AdminDashboard() {
         </>
       )}
 
-      {/* Template Modal */}
-      {showTemplateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">
-                {editingTemplate ? 'Edit Template' : 'Add Template'}
-              </h3>
-            </div>
-            <div className="p-6 overflow-y-auto flex-1">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Template Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={templateForm.name}
-                    onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                    placeholder="Newsletter Template"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <input
-                    type="text"
-                    value={templateForm.description}
-                    onChange={(e) => setTemplateForm({ ...templateForm, description: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                    placeholder="A beautiful newsletter template"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    value={templateForm.category}
-                    onChange={(e) => setTemplateForm({ ...templateForm, category: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                    placeholder="General"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    HTML Content *
-                  </label>
-                  <textarea
-                    value={templateForm.html}
-                    onChange={(e) => setTemplateForm({ ...templateForm, html: e.target.value })}
-                    className="w-full h-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-mono text-sm"
-                    placeholder="<html>...</html>"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
-              <button
-                onClick={() => {
-                  setShowTemplateModal(false);
-                  setEditingTemplate(null);
-                  setTemplateForm({ name: '', description: '', html: '', category: 'General' });
-                }}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveTemplate}
-                className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
-              >
-                Save Template
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
