@@ -4,9 +4,9 @@ import HomeRedirect from '../components/HomeRedirect';
 import Footer from '../components/Footer';
 
 export const metadata = {
-  title: 'PRZIO - Test & Preview HTML Email Templates',
-  description: 'Create, preview, and test your HTML email templates with our powerful email testing tool. Collaborate with your team using interactive comments and feedback. Perfect for marketers, developers, and designers.',
-  keywords: 'email testing, email template, HTML email, email preview, email design, collaborative preview, email comments',
+  title: 'Free Email Testing Tool - Test, Create & Send Emails | PRZIO',
+  description: 'Free email testing tool to test, preview, and send HTML email templates. Create and send free emails with our powerful email editor. Perfect for testing email campaigns, bulk email sending, and collaborative email design.',
+  keywords: 'free email testing tool, free email sending tool, create and send free email, free email editor tool, email testing, email template, HTML email, email preview, email design, collaborative preview, email comments, bulk email sending, email campaign testing',
 };
 
 export default function Home() {
@@ -19,13 +19,13 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
         <div className="text-center">
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-            Test Your Email
+            <strong>Test</strong> Your Email
             <span className="block bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
               Templates with Ease
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Create, preview, and save your HTML email templates. Test how your emails look
+            Create, preview, and save your HTML email templates. <strong>Test</strong> how your emails look
             across different devices and collaborate with your team using interactive comments and feedback.
           </p>
 
@@ -50,10 +50,10 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Powerful Features for Email Testing
+            Powerful Features for Email <strong>Testing</strong>
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Everything you need to create, test, and send professional email campaigns
+            Everything you need to create, <strong>test</strong>, and send professional email campaigns
           </p>
         </div>
 
