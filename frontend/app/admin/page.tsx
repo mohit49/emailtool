@@ -70,7 +70,7 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, token]);
+  }, [token]);
 
   const fetchSettings = useCallback(async () => {
     setLoading(true);
@@ -121,10 +121,6 @@ export default function AdminDashboard() {
         fetchSettings();
       } else {
         fetchData();
-        // Auto-seed welcome template if no templates exist
-        if (activeTab === 'templates') {
-          seedWelcomeTemplate();
-        }
       }
     }
   }, [user, token, activeTab, fetchData, fetchSettings, seedWelcomeTemplate]);
