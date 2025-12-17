@@ -5,8 +5,8 @@ import Footer from '../components/Footer';
 
 export const metadata = {
   title: 'PRZIO - Test & Preview HTML Email Templates',
-  description: 'Create, preview, and test your HTML email templates with our powerful email testing tool. Perfect for marketers, developers, and designers.',
-  keywords: 'email testing, email template, HTML email, email preview, email design',
+  description: 'Create, preview, and test your HTML email templates with our powerful email testing tool. Collaborate with your team using interactive comments and feedback. Perfect for marketers, developers, and designers.',
+  keywords: 'email testing, email template, HTML email, email preview, email design, collaborative preview, email comments',
 };
 
 export default function Home() {
@@ -26,7 +26,7 @@ export default function Home() {
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
             Create, preview, and save your HTML email templates. Test how your emails look
-            across different devices and email clients before sending them to your audience.
+            across different devices and collaborate with your team using interactive comments and feedback.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -65,10 +65,11 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-3">Live Preview</h3>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-3">Interactive Preview</h3>
             <p className="text-gray-600 leading-relaxed">
               See exactly how your email will look in real-time as you edit your HTML code. 
-              Preview on mobile, tablet, and desktop views to ensure perfect rendering across all devices.
+              Preview on mobile, tablet, and desktop views with zoom controls. Share preview links 
+              with your team for collaborative feedback and comments.
             </p>
           </div>
 
@@ -127,6 +128,19 @@ export default function Home() {
           <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
             <div className="w-14 h-14 bg-yellow-100 rounded-lg flex items-center justify-center mb-6">
               <svg className="w-7 h-7 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-3">Collaborative Comments</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Add comments directly on specific elements in your email preview. Share feedback with your team, 
+              track comments in a timeline view, and mark items as resolved. Perfect for design reviews and team collaboration.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="w-14 h-14 bg-teal-100 rounded-lg flex items-center justify-center mb-6">
+              <svg className="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
             </div>
@@ -165,10 +179,11 @@ export default function Home() {
             <div className="w-20 h-20 bg-purple-600 text-white rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6">
               2
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Design Your Template</h3>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Design & Preview</h3>
             <p className="text-gray-600 leading-relaxed">
               Use our powerful HTML editor to create your email template. Preview it in real-time 
-              and see how it looks on different devices.
+              on mobile, tablet, and desktop views. Share preview links with your team and collect 
+              feedback with interactive comments directly on the template.
             </p>
           </div>
 
@@ -210,7 +225,8 @@ export default function Home() {
             <h3 className="text-3xl font-bold mb-4">For Marketers</h3>
             <p className="text-lg mb-6 opacity-90">
               Create stunning email campaigns without coding. Use our pre-built templates 
-              or customize them to match your brand. Send to thousands of recipients with ease.
+              or customize them to match your brand. Share previews with stakeholders and 
+              collect feedback with interactive comments.
             </p>
             <ul className="space-y-3">
               <li className="flex items-center">
@@ -223,13 +239,13 @@ export default function Home() {
                 <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                Bulk email sending
+                Collaborative preview & feedback
               </li>
               <li className="flex items-center">
                 <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                Recipient management
+                Bulk email sending
               </li>
             </ul>
           </div>
@@ -238,7 +254,8 @@ export default function Home() {
             <h3 className="text-3xl font-bold mb-4">For Developers</h3>
             <p className="text-lg mb-6 opacity-90">
               Write clean HTML code with our VS Code-like editor. Test email rendering 
-              across different clients and devices. Integrate with your own SMTP servers.
+              across different clients and devices. Share preview links and collaborate with 
+              team members using interactive comments.
             </p>
             <ul className="space-y-3">
               <li className="flex items-center">
@@ -251,13 +268,13 @@ export default function Home() {
                 <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                Custom SMTP integration
+                Shared preview with comments
               </li>
               <li className="flex items-center">
                 <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                API access
+                Custom SMTP integration
               </li>
             </ul>
           </div>
