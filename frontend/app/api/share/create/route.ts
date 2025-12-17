@@ -53,8 +53,22 @@ export async function POST(req: NextRequest) {
       await sharedTemplate.save();
     }
 
-    // Generate share URL
-    const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/preview/${sharedTemplate.shareToken}`;
+    // Generate share URL - prioritize environment variable, fallback to request headers
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    
+    // If env var is not set or contains localhost, use request headers
+    if (!baseUrl || baseUrl.includes('localhost')) {
+      const protocol = req.headers.get('x-forwarded-proto') || 
+                      (req.url.startsWith('https') ? 'https' : 'http');
+      const host = req.headers.get('host') || 
+                  req.headers.get('x-forwarded-host') || 
+                  'localhost:3000';
+      baseUrl = `${protocol}://${host}`;
+    }
+    
+    // Ensure baseUrl doesn't end with a slash
+    baseUrl = baseUrl.replace(/\/$/, '');
+    const shareUrl = `${baseUrl}/preview/${sharedTemplate.shareToken}`;
 
     return NextResponse.json({
       shareToken: sharedTemplate.shareToken,
