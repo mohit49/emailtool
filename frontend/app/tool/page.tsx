@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Link from 'next/link';
 import HTMLEditor from '../../components/HTMLEditor';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import Alert from '../../components/Alert';
 
 const API_URL = '/api';
 
@@ -212,7 +214,7 @@ export default function ToolPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [originalHtml, setOriginalHtml] = useState(defaultHtmlTemplate);
   const [originalTemplateName, setOriginalTemplateName] = useState('');
-  const [folders, setFolders] = useState<string[]>([]);
+  const [folders, setFolders] = useState<Array<{ _id?: string; name: string }>>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -237,6 +239,31 @@ export default function ToolPage() {
   const [expandedRecipientFolders, setExpandedRecipientFolders] = useState<Set<string>>(new Set());
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning',
+  });
+  const [alert, setAlert] = useState<{
+    isOpen: boolean;
+    message: string;
+    type?: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  });
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [creatingShareLink, setCreatingShareLink] = useState(false);
   const isSavingRef = useRef(false);
 
   useEffect(() => {
@@ -338,7 +365,9 @@ export default function ToolPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const dbFolders = foldersResponse.data.folders || [];
-      const folderNames = dbFolders.map((f: any) => f.name);
+      const dbFolderMap = new Map<string, { _id: string; name: string }>(
+        dbFolders.map((f: any) => [f.name, { _id: f._id, name: f.name }])
+      );
       
       // Extract unique folders from templates
       const foldersFromTemplates = Array.from(new Set(
@@ -348,7 +377,15 @@ export default function ToolPage() {
       )) as string[];
       
       // Merge DB folders with folders from templates
-      const allFolders = Array.from(new Set([...folderNames, ...foldersFromTemplates])).sort();
+      const allFolderNames = Array.from(new Set([...dbFolders.map((f: any) => f.name), ...foldersFromTemplates]));
+      const allFolders: Array<{ _id?: string; name: string }> = allFolderNames.map((name: string) => {
+        // If folder exists in DB, use DB folder object, otherwise create a name-only object
+        const dbFolder = dbFolderMap.get(name);
+        if (dbFolder) {
+          return { _id: dbFolder._id, name: dbFolder.name };
+        }
+        return { name };
+      }).sort((a, b) => a.name.localeCompare(b.name));
       setFolders(allFolders);
       
       // Auto-expand folders that have templates
@@ -449,7 +486,11 @@ export default function ToolPage() {
 
     // For manual save, show alert if fields are empty
     if (!isAutoSave && (!templateName.trim() || !html.trim())) {
-      alert('Please provide a template name and HTML content');
+      setAlert({
+        isOpen: true,
+        message: 'Please provide a template name and HTML content',
+        type: 'error',
+      });
       isSavingRef.current = false;
       return;
     }
@@ -512,7 +553,11 @@ export default function ToolPage() {
       }
     } catch (error: any) {
       if (!isAutoSave) {
-        alert(error.response?.data?.error || 'Failed to save template');
+        setAlert({
+          isOpen: true,
+          message: error.response?.data?.error || 'Failed to save template',
+          type: 'error',
+        });
       }
     } finally {
       isSavingRef.current = false;
@@ -615,13 +660,21 @@ export default function ToolPage() {
     });
 
     if (recipientEmails.length === 0) {
-      alert('Please select at least one recipient');
+      setAlert({
+        isOpen: true,
+        message: 'Please select at least one recipient',
+        type: 'error',
+      });
       return;
     }
 
     const template = templates.find(t => t._id === selectedTemplate);
     if (!template) {
-      alert('Template not found');
+      setAlert({
+        isOpen: true,
+        message: 'Template not found',
+        type: 'error',
+      });
       return;
     }
 
@@ -686,8 +739,9 @@ export default function ToolPage() {
       );
 
       // Update local state
-      if (!folders.includes(folderName)) {
-        setFolders([...folders, folderName].sort());
+      const folderExists = folders.some(f => f.name === folderName);
+      if (!folderExists) {
+        setFolders([...folders, { _id: response.data.folder._id, name: folderName }].sort((a, b) => a.name.localeCompare(b.name)));
       }
       setSelectedFolder(folderName);
       setNewFolderName('');
@@ -695,12 +749,30 @@ export default function ToolPage() {
     } catch (error: any) {
       console.error('Failed to create folder:', error);
       const errorMessage = error.response?.data?.error || 'Failed to create folder';
-      alert(errorMessage);
+      setAlert({
+        isOpen: true,
+        message: errorMessage,
+        type: 'error',
+      });
       
       // Still add to local state if it's a duplicate error (folder might already exist in DB)
       if (error.response?.status === 400 && errorMessage.includes('already exists')) {
-        if (!folders.includes(folderName)) {
-          setFolders([...folders, folderName].sort());
+        const folderExists = folders.some(f => f.name === folderName);
+        if (!folderExists) {
+          // Try to fetch the folder from DB to get its ID
+          try {
+            const foldersResponse = await axios.get(`${API_URL}/folders?type=template`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const dbFolder = foldersResponse.data.folders?.find((f: any) => f.name === folderName);
+            if (dbFolder) {
+              setFolders([...folders, { _id: dbFolder._id, name: folderName }].sort((a, b) => a.name.localeCompare(b.name)));
+            } else {
+              setFolders([...folders, { name: folderName }].sort((a, b) => a.name.localeCompare(b.name)));
+            }
+          } catch {
+            setFolders([...folders, { name: folderName }].sort((a, b) => a.name.localeCompare(b.name)));
+          }
         }
         setSelectedFolder(folderName);
         setNewFolderName('');
@@ -782,10 +854,56 @@ export default function ToolPage() {
         setExpandedFolders(prev => new Set(prev).add(targetFolder));
       }
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to move template');
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to move template',
+        type: 'error',
+      });
     } finally {
       setDraggedTemplate(null);
     }
+  };
+
+  const handleDeleteFolder = (folderId: string, folderName: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Folder',
+      message: `Are you sure you want to delete the folder "${folderName}"? This will only delete the folder if it's empty.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          await axios.delete(`${API_URL}/folders/${folderId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          // Remove folder from state
+          setFolders(folders.filter(f => f._id !== folderId));
+          
+          // Clear selected folder if it was the deleted one
+          if (selectedFolder === folderName) {
+            setSelectedFolder('');
+          }
+          
+          // Remove from expanded folders
+          setExpandedFolders(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(folderName);
+            return newSet;
+          });
+          
+          // Refresh templates to update folder list
+          await fetchTemplates();
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.error || 'Failed to delete folder';
+          setAlert({
+            isOpen: true,
+            message: errorMessage,
+            type: 'error',
+          });
+        }
+      },
+    });
   };
 
   // Group templates by folder
@@ -800,35 +918,90 @@ export default function ToolPage() {
 
   // Separate folders and templates without folders
   const templatesWithoutFolder = groupedTemplates[''] || [];
-  const folderOrder = folders;
+  const folderOrder = folders.map(f => f.name);
 
-  const handleDeleteTemplate = async (id: string) => {
+  const handleShare = async () => {
+    if (!html || !html.trim()) {
+      setAlert({
+        isOpen: true,
+        message: 'Please add some content to share',
+        type: 'error',
+      });
+      return;
+    }
+
+    setCreatingShareLink(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/share/create`,
+        {
+          html: html,
+          templateId: selectedTemplate || undefined,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setShareUrl(response.data.shareUrl);
+      setShowShareModal(true);
+    } catch (error: any) {
+      console.error('Share error:', error);
+      const errorMessage = error.response?.data?.error || error.response?.data?.details || 'Failed to create share link';
+      setAlert({
+        isOpen: true,
+        message: errorMessage,
+        type: 'error',
+      });
+    } finally {
+      setCreatingShareLink(false);
+    }
+  };
+
+  const handleCopyShareLink = () => {
+    if (shareUrl) {
+      navigator.clipboard.writeText(shareUrl);
+      setAlert({
+        isOpen: true,
+        message: 'Share link copied to clipboard!',
+        type: 'success',
+      });
+    }
+  };
+
+  const handleDeleteTemplate = (id: string) => {
     const template = templates.find(t => t._id === id);
     const templateName = template?.name || 'this template';
     
-    if (!confirm(`Are you sure you want to delete "${templateName}"? This action cannot be undone.`)) return;
-
-    try {
-      await axios.delete(`${API_URL}/templates/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      await fetchTemplates();
-      if (selectedTemplate === id) {
-        setHtml('');
-        setTemplateName('');
-        setSelectedTemplate(null);
-      }
-      // Show success message
-      const successMsg = document.createElement('div');
-      successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      successMsg.textContent = 'Template deleted successfully';
-      document.body.appendChild(successMsg);
-      setTimeout(() => {
-        document.body.removeChild(successMsg);
-      }, 3000);
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to delete template');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Template',
+      message: `Are you sure you want to delete "${templateName}"? This action cannot be undone.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          await axios.delete(`${API_URL}/templates/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          await fetchTemplates();
+          if (selectedTemplate === id) {
+            setHtml('');
+            setTemplateName('');
+            setSelectedTemplate(null);
+          }
+          setAlert({
+            isOpen: true,
+            message: 'Template deleted successfully',
+            type: 'success',
+          });
+        } catch (error: any) {
+          setAlert({
+            isOpen: true,
+            message: error.response?.data?.error || 'Failed to delete template',
+            type: 'error',
+          });
+        }
+      },
+    });
   };
 
   const handleNewTemplate = () => {
@@ -1071,7 +1244,8 @@ export default function ToolPage() {
                 ) : (
                   <>
                     {/* Folders with Accordion */}
-                    {folders.map((folderName) => {
+                    {folders.map((folder) => {
+                      const folderName = folder.name;
                       const folderTemplates = groupedTemplates[folderName] || [];
                       const isExpanded = expandedFolders.has(folderName);
                       const isDraggedOver = dragOverFolder === folderName;
@@ -1080,7 +1254,7 @@ export default function ToolPage() {
                         <div key={folderName} className="border border-gray-200 rounded-lg overflow-hidden">
                           {/* Folder Accordion Header */}
                           <div
-                            className={`flex items-center justify-between p-2.5 bg-gray-50 cursor-pointer transition-colors ${
+                            className={`flex items-center justify-between p-2.5 bg-gray-50 transition-colors ${
                               isDraggedOver
                                 ? 'bg-indigo-100 border-b-2 border-indigo-400'
                                 : 'hover:bg-gray-100'
@@ -1091,9 +1265,11 @@ export default function ToolPage() {
                             }}
                             onDragLeave={handleDragLeave}
                             onDrop={(e) => handleDrop(e, folderName)}
-                            onClick={() => toggleFolder(folderName)}
                           >
-                            <div className="flex items-center space-x-2 flex-1">
+                            <div 
+                              className="flex items-center space-x-2 flex-1 cursor-pointer"
+                              onClick={() => toggleFolder(folderName)}
+                            >
                               <svg
                                 className={`w-4 h-4 text-gray-600 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
                                 fill="none"
@@ -1115,6 +1291,20 @@ export default function ToolPage() {
                                 {folderTemplates.length}
                               </span>
                             </div>
+                            {folder._id && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteFolder(folder._id!, folderName);
+                                }}
+                                className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors ml-2"
+                                title="Delete folder"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
                           </div>
                           
                           {/* Folder Accordion Content */}
@@ -1302,12 +1492,12 @@ export default function ToolPage() {
                         >
                           <option value="">No Folder</option>
                           {folders.map((folder) => (
-                            <option key={folder} value={folder}>
-                              {folder}
+                            <option key={folder.name} value={folder.name}>
+                              {folder.name}
                             </option>
                           ))}
                           {/* Show selected folder even if it's not in folders yet (newly created) */}
-                          {selectedFolder && !folders.includes(selectedFolder) && (
+                          {selectedFolder && !folders.some(f => f.name === selectedFolder) && (
                             <option key={selectedFolder} value={selectedFolder}>
                               {selectedFolder}
                             </option>
@@ -1520,6 +1710,20 @@ export default function ToolPage() {
                             </button>
                           </div>
                           <button
+                            onClick={handleShare}
+                            disabled={creatingShareLink || !html || !html.trim()}
+                            className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors border border-gray-300 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Share preview"
+                          >
+                            {creatingShareLink ? (
+                              <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                              </svg>
+                            )}
+                          </button>
+                          <button
                             onClick={() => setActiveTab('preview')}
                             className="text-xs text-gray-500 hover:text-gray-700"
                             title="Expand preview"
@@ -1639,6 +1843,20 @@ export default function ToolPage() {
                             </svg>
                           </button>
                         </div>
+                        <button
+                          onClick={handleShare}
+                          disabled={creatingShareLink || !html || !html.trim()}
+                          className="px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors border border-gray-300 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Share preview"
+                        >
+                          {creatingShareLink ? (
+                            <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                            </svg>
+                          )}
+                        </button>
                       </div>
                     </div>
                     <div className="flex-1 overflow-y-auto bg-gray-100 min-h-0">
@@ -2190,6 +2408,76 @@ export default function ToolPage() {
                   All emails processed!
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
+
+      {/* Alert */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ ...alert, isOpen: false })}
+      />
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Share Preview</h2>
+              <button
+                onClick={() => {
+                  setShowShareModal(false);
+                  setShareUrl('');
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Share this link with others to let them preview your email template. Anyone with this link can view the preview.
+              </p>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={shareUrl}
+                  readOnly
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                />
+                <button
+                  onClick={handleCopyShareLink}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                >
+                  Copy Link
+                </button>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setShowShareModal(false);
+                    setShareUrl('');
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

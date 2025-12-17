@@ -5,6 +5,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const API_URL = '/api';
 
@@ -27,6 +28,14 @@ export default function SettingsPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'warning' | 'danger',
+    onConfirm: () => {},
+    onCancel: () => {},
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -157,21 +166,29 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this SMTP configuration?')) return;
-
-    try {
-      await axios.delete(`${API_URL}/user/smtp/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      await fetchSmtpSettings();
-      setMessage({ type: 'success', text: 'SMTP configuration deleted successfully!' });
-    } catch (error: any) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.error || 'Failed to delete SMTP configuration',
-      });
-    }
+  const handleDelete = (id: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete SMTP Configuration',
+      message: 'Are you sure you want to delete this SMTP configuration?',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false, onCancel: () => {} });
+        try {
+          await axios.delete(`${API_URL}/user/smtp/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          await fetchSmtpSettings();
+          setMessage({ type: 'success', text: 'SMTP configuration deleted successfully!' });
+        } catch (error: any) {
+          setMessage({
+            type: 'error',
+            text: error.response?.data?.error || 'Failed to delete SMTP configuration',
+          });
+        }
+      },
+      onCancel: () => setConfirmDialog({ ...confirmDialog, isOpen: false }),
+    });
   };
 
   const handleTest = async () => {
@@ -548,6 +565,16 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
     </div>
   );
 }

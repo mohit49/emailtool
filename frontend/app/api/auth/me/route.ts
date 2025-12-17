@@ -23,7 +23,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ 
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        role: user.role,
+      }
+    });
   } catch (error: any) {
     console.error('Get user error:', error);
     return NextResponse.json(

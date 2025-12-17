@@ -5,6 +5,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Link from 'next/link';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 interface Recipient {
   _id: string;
@@ -30,6 +31,19 @@ export default function UsersPage() {
   const [formData, setFormData] = useState({ name: '', email: '', folder: '' });
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning',
+  });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -142,28 +156,33 @@ export default function UsersPage() {
     }
   };
 
-  const handleDeleteFolder = async (folderName: string) => {
+  const handleDeleteFolder = (folderName: string) => {
     // Count recipients in this folder
     const folderRecipients = groupedRecipients[folderName] || [];
     const recipientCount = folderRecipients.length;
     
-    if (!confirm(`Are you sure you want to delete the folder "${folderName}"? This will permanently delete ${recipientCount} recipient(s) inside this folder. This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      // Delete all recipients in this folder
-      await axios.delete(
-        `/api/user/recipients/folder/${encodeURIComponent(folderName)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setFolders(folders.filter(f => f !== folderName));
-      fetchRecipients();
-      setMessage({ type: 'success', text: `Folder "${folderName}" and ${recipientCount} recipient(s) deleted successfully` });
-    } catch (error: any) {
-      console.error('Error deleting folder:', error);
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to delete folder' });
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Folder',
+      message: `Are you sure you want to delete the folder "${folderName}"? This will permanently delete ${recipientCount} recipient(s) inside this folder. This action cannot be undone.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          // Delete all recipients in this folder
+          await axios.delete(
+            `/api/user/recipients/folder/${encodeURIComponent(folderName)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setFolders(folders.filter(f => f !== folderName));
+          fetchRecipients();
+          setMessage({ type: 'success', text: `Folder "${folderName}" and ${recipientCount} recipient(s) deleted successfully` });
+        } catch (error: any) {
+          console.error('Error deleting folder:', error);
+          setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to delete folder' });
+        }
+      },
+    });
   };
 
   const handleDragStart = (recipientId: string) => {
@@ -228,21 +247,26 @@ export default function UsersPage() {
   // Show all folders, even if empty
   const folderOrder = folders;
 
-  const handleDeleteRecipient = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this recipient?')) {
-      return;
-    }
-
-    try {
-      await axios.delete(`/api/user/recipients/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setMessage({ type: 'success', text: 'Recipient deleted successfully' });
-      fetchRecipients();
-    } catch (error: any) {
-      console.error('Error deleting recipient:', error);
-      setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to delete recipient' });
-    }
+  const handleDeleteRecipient = (id: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Recipient',
+      message: 'Are you sure you want to delete this recipient?',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          await axios.delete(`/api/user/recipients/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setMessage({ type: 'success', text: 'Recipient deleted successfully' });
+          fetchRecipients();
+        } catch (error: any) {
+          console.error('Error deleting recipient:', error);
+          setMessage({ type: 'error', text: error.response?.data?.error || 'Failed to delete recipient' });
+        }
+      },
+    });
   };
 
   const handleDownloadSample = async () => {

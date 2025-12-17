@@ -5,6 +5,8 @@ import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import Alert from '../../components/Alert';
 
 const API_URL = '/api';
 
@@ -49,6 +51,19 @@ export default function AdminDashboard() {
   });
   const [savingGoogleOAuth, setSavingGoogleOAuth] = useState(false);
   const [showGoogleOAuthPassword, setShowGoogleOAuthPassword] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'warning' | 'danger',
+    onConfirm: () => {},
+    onCancel: () => {},
+  });
+  const [alert, setAlert] = useState({
+    isOpen: false,
+    message: '',
+    type: 'info' as 'info' | 'success' | 'error',
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -174,12 +189,20 @@ export default function AdminDashboard() {
   const handleSaveSmtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!smtpSettings.title.trim() || !smtpSettings.host || !smtpSettings.user) {
-      alert('Title, Host, and User are required');
+      setAlert({
+        isOpen: true,
+        message: 'Title, Host, and User are required',
+        type: 'error',
+      });
       return;
     }
 
     if (!editingSmtp && !smtpSettings.pass) {
-      alert('Password is required for new configurations');
+      setAlert({
+        isOpen: true,
+        message: 'Password is required for new configurations',
+        type: 'error',
+      });
       return;
     }
 
@@ -212,36 +235,62 @@ export default function AdminDashboard() {
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('SMTP configuration saved successfully!');
+      setAlert({
+        isOpen: true,
+        message: 'SMTP configuration saved successfully!',
+        type: 'success',
+      });
       handleCloseSmtpModal();
       fetchSettings();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to save SMTP configuration');
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to save SMTP configuration',
+        type: 'error',
+      });
     } finally {
       setSavingSettings(false);
     }
   };
 
-  const handleDeleteSmtp = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this SMTP configuration?')) {
-      return;
-    }
-
-    try {
-      await axios.delete(`${API_URL}/admin/smtp/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert('SMTP configuration deleted successfully!');
-      fetchSettings();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to delete SMTP configuration');
-    }
+  const handleDeleteSmtp = (id: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete SMTP Configuration',
+      message: 'Are you sure you want to delete this SMTP configuration?',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          await axios.delete(`${API_URL}/admin/smtp/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setAlert({
+            isOpen: true,
+            message: 'SMTP configuration deleted successfully!',
+            type: 'success',
+          });
+          fetchSettings();
+        } catch (error: any) {
+          setAlert({
+            isOpen: true,
+            message: error.response?.data?.error || 'Failed to delete SMTP configuration',
+            type: 'error',
+          });
+        }
+      },
+      onCancel: () => setConfirmDialog({ ...confirmDialog, isOpen: false }),
+    });
   };
 
   const handleSaveGoogleOAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!googleOAuthSettings.clientId.trim()) {
-      alert('Google Client ID is required');
+      setAlert({
+        isOpen: true,
+        message: 'Google Client ID is required',
+        type: 'error',
+      });
       return;
     }
 
@@ -258,10 +307,18 @@ export default function AdminDashboard() {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      alert('Google OAuth settings saved successfully!');
+      setAlert({
+        isOpen: true,
+        message: 'Google OAuth settings saved successfully!',
+        type: 'success',
+      });
       fetchSettings();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to save Google OAuth settings');
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to save Google OAuth settings',
+        type: 'error',
+      });
     } finally {
       setSavingGoogleOAuth(false);
     }
@@ -277,7 +334,11 @@ export default function AdminDashboard() {
     } else {
       // Test with current form data
       if (!smtpSettings.host || !smtpSettings.user || !smtpSettings.pass) {
-        alert('Please fill in Host, User, and Password fields to test');
+        setAlert({
+          isOpen: true,
+          message: 'Please fill in Host, User, and Password fields to test',
+          type: 'error',
+        });
         return;
       }
       setTestingSmtp('form-data');
@@ -314,12 +375,20 @@ export default function AdminDashboard() {
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('Test email sent successfully! Check the recipient inbox.');
+      setAlert({
+        isOpen: true,
+        message: 'Test email sent successfully! Check the recipient inbox.',
+        type: 'success',
+      });
       setShowTestModal(false);
       setTestingSmtp(null);
       setTestEmailAddress('');
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to send test email');
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to send test email',
+        type: 'error',
+      });
     } finally {
       setTestingSmtp(null);
     }
@@ -335,21 +404,37 @@ export default function AdminDashboard() {
       );
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to update user');
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to update user',
+        type: 'error',
+      });
     }
   };
 
-  const handleDeleteUser = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-
-    try {
-      await axios.delete(`${API_URL}/admin/users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to delete user');
-    }
+  const handleDeleteUser = (id: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete User',
+      message: 'Are you sure you want to delete this user?',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false, onCancel: () => {} });
+        try {
+          await axios.delete(`${API_URL}/admin/users/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          fetchData();
+        } catch (error: any) {
+          setAlert({
+            isOpen: true,
+            message: error.response?.data?.error || 'Failed to delete user',
+            type: 'error',
+          });
+        }
+      },
+      onCancel: () => setConfirmDialog({ ...confirmDialog, isOpen: false }),
+    });
   };
 
   if (authLoading || loading) {
@@ -945,6 +1030,23 @@ export default function AdminDashboard() {
         </>
       )}
 
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        type={confirmDialog.type}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
+
+      {/* Alert */}
+      <Alert
+        isOpen={alert.isOpen}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ ...alert, isOpen: false })}
+      />
     </div>
   );
 }
