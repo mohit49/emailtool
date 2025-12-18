@@ -101,9 +101,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Get SMTP configuration - check if it's admin SMTP or user SMTP
-    let smtpConfig;
+    let smtpConfig: any;
+    let isAdminSmtp = false;
     if (finalSmtpId.startsWith('admin_')) {
       // Admin SMTP
+      isAdminSmtp = true;
       const adminSmtpId = finalSmtpId.replace('admin_', '');
       smtpConfig = await AdminSmtp.findOne({ _id: adminSmtpId, isActive: true });
       if (!smtpConfig) {
@@ -175,7 +177,7 @@ export async function POST(req: NextRequest) {
                 recipientName: recipientInfo.name,
                 subject,
                 fromEmail: smtpConfig.smtpFrom,
-                fromName: smtpConfig.title || undefined,
+                fromName: (isAdminSmtp ? (smtpConfig as any).title : (smtpConfig as any).name) || undefined,
                 smtpId: finalSmtpId,
                 status: 'pending',
               });
@@ -211,7 +213,7 @@ export async function POST(req: NextRequest) {
                   recipientName: recipientInfo.name,
                   subject,
                   fromEmail: smtpConfig.smtpFrom,
-                  fromName: smtpConfig.title || undefined,
+                  fromName: (isAdminSmtp ? (smtpConfig as any).title : (smtpConfig as any).name) || undefined,
                   smtpId: finalSmtpId,
                   status: 'success',
                   sentAt: new Date(),
@@ -243,7 +245,7 @@ export async function POST(req: NextRequest) {
                   recipientName: recipientInfo.name,
                   subject,
                   fromEmail: smtpConfig.smtpFrom,
-                  fromName: smtpConfig.title || undefined,
+                  fromName: (isAdminSmtp ? (smtpConfig as any).title : (smtpConfig as any).name) || undefined,
                   smtpId: finalSmtpId,
                   status: 'failed',
                   errorMessage: error.message,
