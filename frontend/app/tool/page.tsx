@@ -774,6 +774,7 @@ export default function ToolPage() {
           subject: emailSubject,
           smtpId: selectedSmtp,
           recipients: recipientEmails,
+          projectId: projectId || undefined,
         },
         {
           headers: { Authorization: `Bearer ${token}` },

@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import UserSmtp from '@/lib/models/UserSmtp';
 import AdminSmtp from '@/lib/models/AdminSmtp';
+import EmailHistory from '@/lib/models/EmailHistory';
+import Template from '@/lib/models/Template';
+import Recipient from '@/lib/models/Recipient';
 import { requireAuth } from '@/lib/utils/auth';
 import nodemailer from 'nodemailer';
+import mongoose from 'mongoose';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +16,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { templateId, html, subject, smtpId, recipients } = await req.json();
+    const { templateId, html, subject, smtpId, recipients, projectId } = await req.json();
 
     if (!html || !subject || !smtpId || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return NextResponse.json(
@@ -22,6 +26,15 @@ export async function POST(req: NextRequest) {
     }
 
     await connectDB();
+
+    // Get template info if templateId is provided
+    let templateName: string | undefined;
+    if (templateId) {
+      const template = await Template.findOne({ _id: templateId, userId: auth.userId });
+      if (template) {
+        templateName = template.name;
+      }
+    }
 
     // Get SMTP configuration - check if it's admin SMTP or user SMTP
     let smtpConfig;
@@ -61,6 +74,17 @@ export async function POST(req: NextRequest) {
     let sent = 0;
     let failed = 0;
     const errors: string[] = [];
+    const emailHistoryRecords: any[] = [];
+
+    // Get recipient details for history
+    const recipientDetails = await Recipient.find({
+      email: { $in: recipients },
+      ...(projectId ? { projectId: new mongoose.Types.ObjectId(projectId) } : { userId: auth.userId }),
+    });
+
+    const recipientMap = new Map(
+      recipientDetails.map((r: any) => [r.email.toLowerCase(), { name: r.name, email: r.email }])
+    );
 
     // Send emails in batches to avoid overwhelming the SMTP server
     const batchSize = 10;
@@ -69,6 +93,31 @@ export async function POST(req: NextRequest) {
       
       await Promise.allSettled(
         batch.map(async (email: string) => {
+          const recipientInfo = recipientMap.get(email.toLowerCase()) || { name: undefined, email };
+          let historyRecord: any = null;
+
+          // Create pending history record
+          if (projectId) {
+            try {
+              historyRecord = new EmailHistory({
+                projectId: new mongoose.Types.ObjectId(projectId),
+                userId: new mongoose.Types.ObjectId(auth.userId),
+                templateId: templateId ? new mongoose.Types.ObjectId(templateId) : undefined,
+                templateName,
+                recipientEmail: email.toLowerCase(),
+                recipientName: recipientInfo.name,
+                subject,
+                fromEmail: smtpConfig.smtpFrom,
+                fromName: smtpConfig.title || undefined,
+                smtpId,
+                status: 'pending',
+              });
+              await historyRecord.save();
+            } catch (error) {
+              console.error('Error creating email history record:', error);
+            }
+          }
+
           try {
             await transporter.sendMail({
               from: smtpConfig.smtpFrom,
@@ -77,10 +126,66 @@ export async function POST(req: NextRequest) {
               html,
             });
             sent++;
+            
+            // Update history record to success
+            if (historyRecord) {
+              historyRecord.status = 'success';
+              historyRecord.sentAt = new Date();
+              await historyRecord.save();
+            } else if (projectId) {
+              // Create success record if it wasn't created before (edge case)
+              try {
+                await EmailHistory.create({
+                  projectId: new mongoose.Types.ObjectId(projectId),
+                  userId: new mongoose.Types.ObjectId(auth.userId),
+                  templateId: templateId ? new mongoose.Types.ObjectId(templateId) : undefined,
+                  templateName,
+                  recipientEmail: email.toLowerCase(),
+                  recipientName: recipientInfo.name,
+                  subject,
+                  fromEmail: smtpConfig.smtpFrom,
+                  fromName: smtpConfig.title || undefined,
+                  smtpId,
+                  status: 'success',
+                  sentAt: new Date(),
+                });
+              } catch (error) {
+                console.error('Error creating email history record:', error);
+              }
+            }
           } catch (error: any) {
             failed++;
             errors.push(`${email}: ${error.message}`);
             console.error(`Error sending email to ${email}:`, error);
+            
+            // Update history record to failed
+            if (historyRecord) {
+              historyRecord.status = 'failed';
+              historyRecord.errorMessage = error.message;
+              historyRecord.sentAt = new Date();
+              await historyRecord.save();
+            } else if (projectId) {
+              // Create failed record if it wasn't created before (edge case)
+              try {
+                await EmailHistory.create({
+                  projectId: new mongoose.Types.ObjectId(projectId),
+                  userId: new mongoose.Types.ObjectId(auth.userId),
+                  templateId: templateId ? new mongoose.Types.ObjectId(templateId) : undefined,
+                  templateName,
+                  recipientEmail: email.toLowerCase(),
+                  recipientName: recipientInfo.name,
+                  subject,
+                  fromEmail: smtpConfig.smtpFrom,
+                  fromName: smtpConfig.title || undefined,
+                  smtpId,
+                  status: 'failed',
+                  errorMessage: error.message,
+                  sentAt: new Date(),
+                });
+              } catch (error) {
+                console.error('Error creating email history record:', error);
+              }
+            }
           }
         })
       );
