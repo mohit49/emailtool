@@ -3,6 +3,8 @@ import mongoose, { Schema, Model, Document } from 'mongoose';
 interface IProject extends Document {
   name: string;
   description?: string;
+  defaultTemplateId?: mongoose.Types.ObjectId;
+  defaultSmtpId?: string;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -15,6 +17,14 @@ const projectSchema = new Schema<IProject>({
     trim: true,
   },
   description: {
+    type: String,
+    trim: true,
+  },
+  defaultTemplateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Template',
+  },
+  defaultSmtpId: {
     type: String,
     trim: true,
   },

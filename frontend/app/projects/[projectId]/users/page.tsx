@@ -7,6 +7,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import ConfirmDialog from '../../../../components/ConfirmDialog';
 import AuthHeader from '../../../../components/AuthHeader';
+import Footer from '../../../../components/Footer';
 
 interface Recipient {
   _id: string;
@@ -850,6 +851,8 @@ export default function UsersPage() {
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
       />
+
+      <Footer />
     </div>
   );
 }

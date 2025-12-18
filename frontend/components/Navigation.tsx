@@ -29,6 +29,11 @@ export default function Navigation() {
             <Link href="/how-it-works" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
               How It Works
             </Link>
+            {user && (
+              <Link href="/third-party-integration" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
+                Integration
+              </Link>
+            )}
             {!user ? (
               <>
                 <Link
@@ -82,6 +87,11 @@ export default function Navigation() {
               <Link href="/how-it-works" className="text-gray-700 hover:text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>
                 How It Works
               </Link>
+              {user && (
+                <Link href="/third-party-integration" className="text-gray-700 hover:text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>
+                  Integration
+                </Link>
+              )}
               {!user ? (
                 <>
                   <Link href="/login" className="text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>

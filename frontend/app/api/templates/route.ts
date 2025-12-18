@@ -22,34 +22,41 @@ export async function GET(req: NextRequest) {
     const projectId = searchParams.get('projectId');
 
     if (projectId) {
-      // Verify user has access to this project
-      const userId = new mongoose.Types.ObjectId(auth.userId);
       const projId = new mongoose.Types.ObjectId(projectId);
       
-      const project = await Project.findById(projId);
-      if (!project) {
+      // For API key auth, projectId must match the token's projectId
+      if (auth.type === 'api_key' && auth.projectId && auth.projectId !== projectId) {
         return NextResponse.json(
-          { error: 'Project not found' },
-          { status: 404 }
-        );
-      }
-
-      const isCreator = project.createdBy.toString() === userId.toString();
-      const member = await ProjectMember.findOne({ userId, projectId: projId });
-
-      if (!isCreator && !member) {
-        return NextResponse.json(
-          { error: 'Access denied' },
+          { error: 'Project ID mismatch' },
           { status: 403 }
         );
       }
 
+      // Verify user has access to this project (skip for API key auth as it's already verified)
+      if (auth.type !== 'api_key') {
+        const userId = new mongoose.Types.ObjectId(auth.userId);
+        const project = await Project.findById(projId);
+        if (!project) {
+          return NextResponse.json(
+            { error: 'Project not found' },
+            { status: 404 }
+          );
+        }
+
+        const isCreator = project.createdBy.toString() === userId.toString();
+        const member = await ProjectMember.findOne({ userId, projectId: projId });
+
+        if (!isCreator && !member) {
+          return NextResponse.json(
+            { error: 'Access denied' },
+            { status: 403 }
+          );
+        }
+      }
+
       // Get templates for this project
       const templates = await Template.find({ 
-        $or: [
-          { projectId: projId },
-          { projectId: null, userId } // Include user's personal templates for backward compatibility
-        ]
+        projectId: projId
       })
         .sort({ updatedAt: -1 });
 

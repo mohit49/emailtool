@@ -19,21 +19,33 @@ export const verifyToken = (token: string): { userId: string } | null => {
 };
 
 export const getTokenFromRequest = (req: NextRequest): string | null => {
+  // Try Authorization header first
   const authHeader = req.headers.get('authorization');
-  if (!authHeader) return null;
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    if (token) return token;
+  }
   
-  const token = authHeader.split(' ')[1];
-  return token || null;
+  // Try cookie (for API key authentication)
+  const cookieToken = req.cookies.get('przio_api_token')?.value;
+  if (cookieToken) return cookieToken;
+  
+  return null;
 };
 
-export const authenticateRequest = (req: NextRequest): { userId: string } | null => {
+export const authenticateRequest = (req: NextRequest): { userId: string; projectId?: string; apiKeyId?: string; type?: string } | null => {
   const token = getTokenFromRequest(req);
   if (!token) return null;
   
-  return verifyToken(token);
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; projectId?: string; apiKeyId?: string; type?: string };
+    return decoded;
+  } catch (error) {
+    return null;
+  }
 };
 
-export const requireAuth = async (req: NextRequest): Promise<{ userId: string } | null> => {
+export const requireAuth = async (req: NextRequest): Promise<{ userId: string; projectId?: string; apiKeyId?: string; type?: string } | null> => {
   return authenticateRequest(req);
 };
 

@@ -27,6 +27,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/third-party-integration" className="hover:text-white transition-colors">
+                  Integration
+                </Link>
+              </li>
+              <li>
                 <Link href="/signup" className="hover:text-white transition-colors">
                   Sign Up
                 </Link>

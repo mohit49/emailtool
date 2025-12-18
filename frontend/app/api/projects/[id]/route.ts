@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Project from '@/lib/models/Project';
 import ProjectMember from '@/lib/models/ProjectMember';
+import Template from '@/lib/models/Template';
 import { authenticateRequest } from '@/lib/utils/auth';
 import mongoose from 'mongoose';
 
@@ -79,7 +80,7 @@ export async function PUT(
 
     const userId = new mongoose.Types.ObjectId(auth.userId);
     const projectId = new mongoose.Types.ObjectId(params.id);
-    const { name, description } = await req.json();
+    const { name, description, defaultTemplateId, defaultSmtpId } = await req.json();
 
     // Check if user is creator or ProjectAdmin
     const project = await Project.findById(projectId);
@@ -112,6 +113,29 @@ export async function PUT(
 
     if (description !== undefined) {
       project.description = description?.trim() || '';
+    }
+
+    if (defaultTemplateId !== undefined) {
+      if (defaultTemplateId) {
+        // Verify template exists and belongs to project
+        const template = await Template.findOne({
+          _id: defaultTemplateId,
+          projectId: projectId,
+        });
+        if (!template) {
+          return NextResponse.json(
+            { error: 'Template not found or does not belong to this project' },
+            { status: 404 }
+          );
+        }
+        project.defaultTemplateId = new mongoose.Types.ObjectId(defaultTemplateId);
+      } else {
+        project.defaultTemplateId = undefined;
+      }
+    }
+
+    if (defaultSmtpId !== undefined) {
+      project.defaultSmtpId = defaultSmtpId?.trim() || undefined;
     }
 
     await project.save();

@@ -5,6 +5,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
+import Footer from '../components/Footer';
 
 declare global {
   interface Window {
@@ -286,6 +287,7 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
+      <Footer />
     </div>
   );
 }

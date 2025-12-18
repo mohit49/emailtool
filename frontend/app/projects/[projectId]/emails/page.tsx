@@ -6,6 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import axios from 'axios';
 import Link from 'next/link';
 import AuthHeader from '../../../../components/AuthHeader';
+import Footer from '../../../../components/Footer';
 
 interface EmailHistory {
   _id: string;
@@ -456,6 +457,8 @@ export default function EmailDashboardPage() {
           )}
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

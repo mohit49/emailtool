@@ -7,6 +7,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import AuthHeader from '../../components/AuthHeader';
+import Footer from '../../components/Footer';
 
 const API_URL = '/api';
 
@@ -37,6 +38,12 @@ export default function SettingsPage() {
     onConfirm: () => {},
     onCancel: () => {},
   });
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [loadingApiKeys, setLoadingApiKeys] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [newApiKeyName, setNewApiKeyName] = useState('');
+  const [creatingApiKey, setCreatingApiKey] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -60,8 +67,111 @@ export default function SettingsPage() {
   useEffect(() => {
     if (user && token) {
       fetchSmtpSettings();
+      // Get project ID from localStorage
+      const storedProjectId = typeof window !== 'undefined' ? localStorage.getItem('selectedProjectId') : null;
+      if (storedProjectId) {
+        setProjectId(storedProjectId);
+        fetchApiKeys(storedProjectId);
+      }
     }
   }, [user, token, fetchSmtpSettings]);
+
+  const fetchApiKeys = async (projId: string) => {
+    if (!projId || !token) return;
+    setLoadingApiKeys(true);
+    try {
+      const response = await axios.get(`${API_URL}/projects/${projId}/api-keys`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setApiKeys(response.data.apiKeys || []);
+    } catch (error: any) {
+      console.error('Failed to fetch API keys:', error);
+      // Don't show error if user doesn't have permission
+      if (error.response?.status !== 403) {
+        setMessage({
+          type: 'error',
+          text: 'Failed to fetch API keys',
+        });
+      }
+    } finally {
+      setLoadingApiKeys(false);
+    }
+  };
+
+  const handleCreateApiKey = async () => {
+    if (!projectId || !token) {
+      setMessage({ type: 'error', text: 'No project selected' });
+      return;
+    }
+
+    setCreatingApiKey(true);
+    setMessage(null);
+    try {
+      const response = await axios.post(
+        `${API_URL}/projects/${projectId}/api-keys`,
+        { name: newApiKeyName.trim() || `API Key ${new Date().toLocaleDateString()}` },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setApiKeys([response.data.apiKey, ...apiKeys]);
+      setNewApiKeyName('');
+      setShowApiKeyModal(false);
+      setMessage({
+        type: 'success',
+        text: 'API key created successfully! Make sure to copy it now - you won\'t be able to see it again.',
+      });
+    } catch (error: any) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.error || 'Failed to create API key',
+      });
+    } finally {
+      setCreatingApiKey(false);
+    }
+  };
+
+  const handleDeleteApiKey = (keyId: string) => {
+    if (!projectId) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete API Key',
+      message: 'Are you sure you want to delete this API key? This action cannot be undone.',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog({ ...confirmDialog, isOpen: false });
+        try {
+          await axios.delete(`${API_URL}/projects/${projectId}/api-keys?keyId=${keyId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setApiKeys(apiKeys.filter(k => k._id !== keyId));
+          setMessage({ type: 'success', text: 'API key deleted successfully' });
+        } catch (error: any) {
+          setMessage({
+            type: 'error',
+            text: error.response?.data?.error || 'Failed to delete API key',
+          });
+        }
+      },
+      onCancel: () => setConfirmDialog({ ...confirmDialog, isOpen: false }),
+    });
+  };
+
+  const handleCopyApiKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setMessage({
+      type: 'success',
+      text: 'API key copied to clipboard!',
+    });
+  };
+
+  const handleCopyProjectId = () => {
+    if (projectId) {
+      navigator.clipboard.writeText(projectId);
+      setMessage({
+        type: 'success',
+        text: 'Project ID copied to clipboard!',
+      });
+    }
+  };
 
   const handleOpenModal = (config?: any) => {
     if (config) {
@@ -245,6 +355,116 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Project ID Section */}
+        {projectId && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Project Information</h2>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Project ID:</span>
+                  <span className="text-sm font-mono bg-gray-200 px-2 py-1 rounded">{projectId}</span>
+                  <button
+                    onClick={handleCopyProjectId}
+                    className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 rounded transition-colors"
+                    title="Copy Project ID"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* API Keys Section */}
+        {projectId && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900">API Keys</h2>
+              <button
+                onClick={() => setShowApiKeyModal(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors flex items-center space-x-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Generate API Key</span>
+              </button>
+            </div>
+
+            {loadingApiKeys ? (
+              <div className="text-center py-8">
+                <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-gray-600 text-sm">Loading API keys...</p>
+              </div>
+            ) : apiKeys.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No API keys yet. Click &quot;Generate API Key&quot; to create one.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {apiKeys.map((apiKey) => (
+                  <div
+                    key={apiKey._id}
+                    className={`border rounded-lg p-4 ${
+                      apiKey.isActive
+                        ? 'border-indigo-300 bg-indigo-50'
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h3 className="font-semibold text-gray-900">{apiKey.name || 'Unnamed API Key'}</h3>
+                          {apiKey.isActive && (
+                            <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <span className="text-sm text-gray-600">API Key:</span>
+                          <span className="text-xs font-mono bg-gray-200 px-2 py-1 rounded">{apiKey.key}</span>
+                          <button
+                            onClick={() => handleCopyApiKey(apiKey.key)}
+                            className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-gray-200 rounded transition-colors"
+                            title="Copy API Key"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Created: {new Date(apiKey.createdAt).toLocaleDateString()}
+                          {apiKey.lastUsedAt && (
+                            <span className="ml-4">
+                              Last used: {new Date(apiKey.lastUsedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteApiKey(apiKey._id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors ml-4"
+                        title="Delete API Key"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SMTP Settings Section */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Email Settings</h1>
@@ -298,6 +518,10 @@ export default function SettingsPage() {
                         )}
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                        <div>
+                          <span className="font-medium">SMTP ID:</span> 
+                          <span className="ml-2 font-mono text-xs bg-gray-200 px-2 py-0.5 rounded">{config._id}</span>
+                        </div>
                         <div>
                           <span className="font-medium">Host:</span> {config.smtpHost}
                         </div>
@@ -544,6 +768,80 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* Create API Key Modal */}
+      {showApiKeyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Generate API Key</h2>
+                <button
+                  onClick={() => {
+                    setShowApiKeyModal(false);
+                    setNewApiKeyName('');
+                    setMessage(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {message && (
+                <div
+                  className={`mb-4 p-3 rounded-lg ${
+                    message.type === 'success'
+                      ? 'bg-green-50 text-green-800 border border-green-200'
+                      : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              <div className="mb-4">
+                <label htmlFor="apiKeyName" className="block text-sm font-medium text-gray-700 mb-2">
+                  API Key Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  id="apiKeyName"
+                  value={newApiKeyName}
+                  onChange={(e) => setNewApiKeyName(e.target.value)}
+                  placeholder="My API Key"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  A friendly name to identify this API key
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-4 pt-4">
+                <button
+                  onClick={handleCreateApiKey}
+                  disabled={creatingApiKey}
+                  className="flex-1 px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingApiKey ? 'Generating...' : 'Generate API Key'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowApiKeyModal(false);
+                    setNewApiKeyName('');
+                    setMessage(null);
+                  }}
+                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
@@ -553,6 +851,8 @@ export default function SettingsPage() {
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
       />
+
+      <Footer />
     </div>
   );
 }

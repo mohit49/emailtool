@@ -5,6 +5,7 @@ import AdminSmtp from '@/lib/models/AdminSmtp';
 import EmailHistory from '@/lib/models/EmailHistory';
 import Template from '@/lib/models/Template';
 import Recipient from '@/lib/models/Recipient';
+import Project from '@/lib/models/Project';
 import { requireAuth } from '@/lib/utils/auth';
 import nodemailer from 'nodemailer';
 import mongoose from 'mongoose';
@@ -16,31 +17,94 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { templateId, html, subject, smtpId, recipients, projectId } = await req.json();
-
-    if (!html || !subject || !smtpId || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
+    const { templateId, html, subject, smtpId, recipients, projectId: requestProjectId } = await req.json();
+    
+    // For API key authentication, use the projectId from the token
+    // For regular authentication, use the projectId from the request
+    const projectId = auth.projectId || requestProjectId;
+    
+    // If using API key, projectId must match the token's projectId
+    if (auth.type === 'api_key' && auth.projectId && requestProjectId && auth.projectId !== requestProjectId) {
       return NextResponse.json(
-        { error: 'Missing required fields: html, subject, smtpId, recipients' },
+        { error: 'Project ID mismatch' },
+        { status: 403 }
+      );
+    }
+
+    if (!subject || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
+      return NextResponse.json(
+        { error: 'Missing required fields: subject, recipients' },
+        { status: 400 }
+      );
+    }
+
+    // Either html or templateId must be provided
+    if (!html && !templateId) {
+      return NextResponse.json(
+        { error: 'Either html or templateId is required' },
         { status: 400 }
       );
     }
 
     await connectDB();
 
-    // Get template info if templateId is provided
+    // Get project defaults if projectId is provided
+    let projectDefaults: { defaultTemplateId?: mongoose.Types.ObjectId; defaultSmtpId?: string } = {};
+    if (projectId) {
+      const project = await Project.findById(projectId).lean();
+      if (project) {
+        projectDefaults.defaultTemplateId = project.defaultTemplateId;
+        projectDefaults.defaultSmtpId = project.defaultSmtpId;
+      }
+    }
+
+    // Use project default template if templateId not provided
+    let finalTemplateId = templateId || (projectDefaults.defaultTemplateId?.toString());
+    let finalHtml = html;
     let templateName: string | undefined;
-    if (templateId) {
-      const template = await Template.findOne({ _id: templateId, userId: auth.userId });
+
+    // Get template info if templateId is provided or using default
+    if (finalTemplateId) {
+      const templateQuery: any = { _id: finalTemplateId };
+      if (auth.type === 'api_key' && projectId) {
+        // For API key auth, check projectId
+        templateQuery.projectId = new mongoose.Types.ObjectId(projectId);
+      } else {
+        // For regular auth, check userId
+        templateQuery.userId = new mongoose.Types.ObjectId(auth.userId);
+      }
+      const template = await Template.findOne(templateQuery);
       if (template) {
         templateName = template.name;
+        // If html not provided, use template HTML
+        if (!finalHtml) {
+          finalHtml = template.html;
+        }
       }
+    }
+
+    if (!finalHtml) {
+      return NextResponse.json(
+        { error: 'HTML content is required. Provide html or set a default template for the project.' },
+        { status: 400 }
+      );
+    }
+
+    // Use project default SMTP if smtpId not provided
+    let finalSmtpId = smtpId || projectDefaults.defaultSmtpId;
+
+    if (!finalSmtpId) {
+      return NextResponse.json(
+        { error: 'SMTP ID is required. Provide smtpId or set a default SMTP for the project.' },
+        { status: 400 }
+      );
     }
 
     // Get SMTP configuration - check if it's admin SMTP or user SMTP
     let smtpConfig;
-    if (smtpId.startsWith('admin_')) {
+    if (finalSmtpId.startsWith('admin_')) {
       // Admin SMTP
-      const adminSmtpId = smtpId.replace('admin_', '');
+      const adminSmtpId = finalSmtpId.replace('admin_', '');
       smtpConfig = await AdminSmtp.findOne({ _id: adminSmtpId, isActive: true });
       if (!smtpConfig) {
         return NextResponse.json(
@@ -50,7 +114,7 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // User SMTP
-      smtpConfig = await UserSmtp.findOne({ _id: smtpId, userId: auth.userId });
+      smtpConfig = await UserSmtp.findOne({ _id: finalSmtpId, userId: auth.userId });
       if (!smtpConfig) {
         return NextResponse.json(
           { error: 'SMTP configuration not found' },
@@ -76,11 +140,14 @@ export async function POST(req: NextRequest) {
     const errors: string[] = [];
     const emailHistoryRecords: any[] = [];
 
-    // Get recipient details for history
-    const recipientDetails = await Recipient.find({
-      email: { $in: recipients },
-      ...(projectId ? { projectId: new mongoose.Types.ObjectId(projectId) } : { userId: auth.userId }),
-    });
+    // Get recipient details for history (only if projectId is provided)
+    let recipientDetails: any[] = [];
+    if (projectId) {
+      recipientDetails = await Recipient.find({
+        email: { $in: recipients },
+        projectId: new mongoose.Types.ObjectId(projectId),
+      });
+    }
 
     const recipientMap = new Map(
       recipientDetails.map((r: any) => [r.email.toLowerCase(), { name: r.name, email: r.email }])
@@ -102,14 +169,14 @@ export async function POST(req: NextRequest) {
               historyRecord = new EmailHistory({
                 projectId: new mongoose.Types.ObjectId(projectId),
                 userId: new mongoose.Types.ObjectId(auth.userId),
-                templateId: templateId ? new mongoose.Types.ObjectId(templateId) : undefined,
+                templateId: finalTemplateId ? new mongoose.Types.ObjectId(finalTemplateId) : undefined,
                 templateName,
                 recipientEmail: email.toLowerCase(),
                 recipientName: recipientInfo.name,
                 subject,
                 fromEmail: smtpConfig.smtpFrom,
                 fromName: smtpConfig.title || undefined,
-                smtpId,
+                smtpId: finalSmtpId,
                 status: 'pending',
               });
               await historyRecord.save();
@@ -123,7 +190,7 @@ export async function POST(req: NextRequest) {
               from: smtpConfig.smtpFrom,
               to: email,
               subject,
-              html,
+              html: finalHtml,
             });
             sent++;
             
@@ -138,14 +205,14 @@ export async function POST(req: NextRequest) {
                 await EmailHistory.create({
                   projectId: new mongoose.Types.ObjectId(projectId),
                   userId: new mongoose.Types.ObjectId(auth.userId),
-                  templateId: templateId ? new mongoose.Types.ObjectId(templateId) : undefined,
+                  templateId: finalTemplateId ? new mongoose.Types.ObjectId(finalTemplateId) : undefined,
                   templateName,
                   recipientEmail: email.toLowerCase(),
                   recipientName: recipientInfo.name,
                   subject,
                   fromEmail: smtpConfig.smtpFrom,
                   fromName: smtpConfig.title || undefined,
-                  smtpId,
+                  smtpId: finalSmtpId,
                   status: 'success',
                   sentAt: new Date(),
                 });
@@ -170,14 +237,14 @@ export async function POST(req: NextRequest) {
                 await EmailHistory.create({
                   projectId: new mongoose.Types.ObjectId(projectId),
                   userId: new mongoose.Types.ObjectId(auth.userId),
-                  templateId: templateId ? new mongoose.Types.ObjectId(templateId) : undefined,
+                  templateId: finalTemplateId ? new mongoose.Types.ObjectId(finalTemplateId) : undefined,
                   templateName,
                   recipientEmail: email.toLowerCase(),
                   recipientName: recipientInfo.name,
                   subject,
                   fromEmail: smtpConfig.smtpFrom,
                   fromName: smtpConfig.title || undefined,
-                  smtpId,
+                  smtpId: finalSmtpId,
                   status: 'failed',
                   errorMessage: error.message,
                   sentAt: new Date(),
