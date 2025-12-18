@@ -64,19 +64,7 @@ export default function SettingsPage() {
     }
   }, [token]);
 
-  useEffect(() => {
-    if (user && token) {
-      fetchSmtpSettings();
-      // Get project ID from localStorage
-      const storedProjectId = typeof window !== 'undefined' ? localStorage.getItem('selectedProjectId') : null;
-      if (storedProjectId) {
-        setProjectId(storedProjectId);
-        fetchApiKeys(storedProjectId);
-      }
-    }
-  }, [user, token, fetchSmtpSettings]);
-
-  const fetchApiKeys = async (projId: string) => {
+  const fetchApiKeys = useCallback(async (projId: string) => {
     if (!projId || !token) return;
     setLoadingApiKeys(true);
     try {
@@ -96,7 +84,19 @@ export default function SettingsPage() {
     } finally {
       setLoadingApiKeys(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (user && token) {
+      fetchSmtpSettings();
+      // Get project ID from localStorage
+      const storedProjectId = typeof window !== 'undefined' ? localStorage.getItem('selectedProjectId') : null;
+      if (storedProjectId) {
+        setProjectId(storedProjectId);
+        fetchApiKeys(storedProjectId);
+      }
+    }
+  }, [user, token, fetchSmtpSettings, fetchApiKeys]);
 
   const handleCreateApiKey = async () => {
     if (!projectId || !token) {

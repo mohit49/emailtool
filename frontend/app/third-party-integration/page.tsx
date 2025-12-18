@@ -399,7 +399,7 @@ przio.connect().then(() => {
               <div className="ml-4 space-y-2">
                 <p className="text-gray-600"><strong>options.page</strong> (optional) - Page number, defaults to 1</p>
                 <p className="text-gray-600"><strong>options.limit</strong> (optional) - Items per page, defaults to 50</p>
-                <p className="text-gray-600"><strong>options.status</strong> (optional) - Filter by status: 'pending', 'sent', 'failed', 'success'</p>
+                <p className="text-gray-600"><strong>options.status</strong> (optional) - Filter by status: &apos;pending&apos;, &apos;sent&apos;, &apos;failed&apos;, &apos;success&apos;</p>
               </div>
             </div>
 
@@ -439,7 +439,7 @@ przio.connect().then(() => {
               <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span><strong>Never expose your API key</strong> in client-side code that's publicly accessible. For public websites, consider using a backend proxy.</span>
+              <span><strong>Never expose your API key</strong> in client-side code that&apos;s publicly accessible. For public websites, consider using a backend proxy.</span>
             </li>
             <li className="flex items-start">
               <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
