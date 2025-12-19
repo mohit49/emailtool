@@ -3,6 +3,25 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { randomUUID } from 'crypto';
 
+// Helper function to get base URL for images
+function getBaseUrl(req: NextRequest): string {
+  let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+  
+  // If env var is not set or contains localhost, use request headers
+  if (!baseUrl || baseUrl.includes('localhost')) {
+    const protocol = req.headers.get('x-forwarded-proto') || 
+                    (req.url.startsWith('https') ? 'https' : 'http');
+    const host = req.headers.get('host') || 
+                req.headers.get('x-forwarded-host') || 
+                'localhost:3000';
+    baseUrl = `${protocol}://${host}`;
+  }
+  
+  // Ensure baseUrl doesn't end with a slash
+  baseUrl = baseUrl.replace(/\/$/, '');
+  return baseUrl;
+}
+
 // In production, saves to /static/assets/templet/
 // In development, saves to /public/templates/<shareToken>/
 export async function POST(req: NextRequest) {
@@ -21,7 +40,7 @@ export async function POST(req: NextRequest) {
     const filename = `${Date.now()}-${randomUUID()}${ext}`;
     
     let uploadDir: string;
-    let url: string;
+    let relativePath: string;
 
     if (isProduction) {
       // In production, save to static/assets/templet/
@@ -29,15 +48,19 @@ export async function POST(req: NextRequest) {
       await fs.mkdir(uploadDir, { recursive: true });
       const filePath = path.join(uploadDir, filename);
       await fs.writeFile(filePath, buffer);
-      url = `/static/assets/templet/${filename}`;
+      relativePath = `/static/assets/templet/${filename}`;
     } else {
       // In development, save to public/templates/
       uploadDir = path.join(process.cwd(), 'public', 'templates', shareToken);
       await fs.mkdir(uploadDir, { recursive: true });
       const filePath = path.join(uploadDir, filename);
       await fs.writeFile(filePath, buffer);
-      url = `/templates/${shareToken}/${filename}`;
+      relativePath = `/templates/${shareToken}/${filename}`;
     }
+
+    // Get base URL and return absolute URL
+    const baseUrl = getBaseUrl(req);
+    const url = `${baseUrl}${relativePath}`;
 
     return NextResponse.json({ url });
   } catch (error: any) {
@@ -45,4 +68,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error?.message || 'Upload failed' }, { status: 500 });
   }
 }
+
 

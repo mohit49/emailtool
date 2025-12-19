@@ -43,6 +43,7 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
     };
   }, [isFullscreen]);
 
+
   useImperativeHandle(ref, () => ({
     highlightRange: (startLine: number, startCol: number, endLine: number, endCol: number) => {
       if (monacoEditorRef.current) {
@@ -52,7 +53,7 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
           // Clear existing decorations
           decorationsRef.current = editor.deltaDecorations(decorationsRef.current, []);
           
-          // Add new decoration
+          // Add new decoration - use glyphMarginClassName instead of inlineClassName to avoid interfering with text selection
           const range = {
             startLineNumber: startLine,
             startColumn: startCol,
@@ -64,14 +65,19 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
             {
               range,
               options: {
-                inlineClassName: 'bg-yellow-200',
-                hoverMessage: { value: 'Selected element' },
+                inlineClassName: 'bg-yellow-200/40', // Semi-transparent highlight
+                hoverMessage: { value: 'Selected element - Click to edit' },
+                stickiness: 1, // Stick to the right side of the range (doesn't expand with edits)
+                after: {
+                  content: ' 👈',
+                  inlineClassName: 'text-yellow-500',
+                },
               },
             },
           ]);
           
-          // Scroll to the range
-          editor.revealRangeInCenter(range);
+          // Scroll to the range but don't select it
+          editor.revealRangeInCenter(range, 1); // 1 = scrollType (smooth)
         }
       }
     },
@@ -103,9 +109,26 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
           height="100%"
           defaultLanguage="html"
           value={value}
-          onChange={onChange}
+          onChange={(newValue) => {
+            // Clear highlights when user manually changes content
+            if (monacoEditorRef.current && decorationsRef.current.length > 0) {
+              decorationsRef.current = monacoEditorRef.current.deltaDecorations(decorationsRef.current, []);
+            }
+            onChange(newValue);
+          }}
           onMount={(editor, monaco) => {
             monacoEditorRef.current = editor;
+            
+            // Set up listener to clear highlights when content changes
+            const model = editor.getModel();
+            if (model) {
+              model.onDidChangeContent(() => {
+                // Clear highlights when user starts editing
+                if (decorationsRef.current.length > 0) {
+                  decorationsRef.current = editor.deltaDecorations(decorationsRef.current, []);
+                }
+              });
+            }
           }}
           theme="vs-dark"
           loading={

@@ -35,6 +35,36 @@ import {
 
 const API_URL = '/api';
 
+// Helper function to ensure image URLs are absolute
+function ensureAbsoluteImageUrl(url: string): string {
+  if (!url || url.trim() === '') return url;
+  
+  const trimmedUrl = url.trim();
+  
+  // If already absolute (starts with http:// or https://), return as-is
+  if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+    return trimmedUrl;
+  }
+  
+  // Get base URL from environment or window location
+  let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl || baseUrl.includes('localhost')) {
+    if (typeof window !== 'undefined') {
+      baseUrl = window.location.origin;
+    } else {
+      baseUrl = 'http://localhost:3000';
+    }
+  }
+  
+  // Remove trailing slash from baseUrl
+  baseUrl = baseUrl.replace(/\/$/, '');
+  
+  // Ensure relative URL starts with /
+  const relativePath = trimmedUrl.startsWith('/') ? trimmedUrl : `/${trimmedUrl}`;
+  
+  return `${baseUrl}${relativePath}`;
+}
+
 const defaultHtmlTemplate = `<!DOCTYPE html>
 <html lang="en">
 
@@ -46,41 +76,23 @@ const defaultHtmlTemplate = `<!DOCTYPE html>
 
 <body style="margin:0; padding:0; background-color:#f2f4f7; font-family:Arial, Helvetica, sans-serif;">
 
-    <!-- Wrapper Table -->
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f2f4f7">
-        <tr>
+    <table width="700" cellpadding="0" cellspacing="0" border="0" bgcolor="#f2f4f7" class="main-email" style="width:700px; max-width:100%; margin:0 auto;">
+        <tbody><tr>
             <td align="center" style="padding:20px 10px;">
-
-                <!-- Main Email Container -->
-                <table width="600" cellpadding="0" cellspacing="0" border="0"
-                    style="width:100%; max-width:600px; background-color:#ffffff; border-radius:8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-
-                    <!-- Content Area - Drop elements here -->
-                    <tr>
-                        <td style="padding:40px 30px; text-align:center;">
-
-                            <!-- Placeholder Message -->
-                            <div class="przio-placeholder" style="position:relative; padding:60px 20px; border:2px dashed #c7d2fe; border-radius:12px; background-color:#f8fafc;">
-                                <span class="przio-placeholder-close" style="position:absolute; top:12px; right:12px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; background:#ef4444; color:white; border-radius:50%; cursor:pointer; font-size:16px; font-weight:bold; line-height:1; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Remove placeholder">×</span>
-                                <p style="margin:0 0 8px 0; font-size:24px; color:#6366f1;">📧</p>
-                                <p style="margin:0 0 8px 0; font-size:18px; font-weight:600; color:#4f46e5;">
-                                    Start Building Your Email
-                                </p>
-                                <p style="margin:0; font-size:14px; color:#6b7280; line-height:1.5;">
-                                    Drag and drop components from the toolbar below<br>
-                                    to create your email template
-                                </p>
-                            </div>
-
-                        </td>
-                    </tr>
-
-                </table>
-                <!-- End Main Container -->
-
+                <!-- Drag and Drop Placeholder -->
+                <div class="przio-placeholder" style="position:relative; padding:60px 20px; border:2px dashed #cbd5e1; border-radius:12px; background-color:#ffffff; text-align:center; max-width:660px; margin:0 auto;" contenteditable="false">
+                    <p style="margin:0 0 12px 0; font-size:32px; color:#64748b;">📧</p>
+                    <p style="margin:0 0 8px 0; font-size:20px; font-weight:600; color:#1e293b;">
+                        Start Building Your Email
+                    </p>
+                    <p style="margin:0; font-size:14px; color:#64748b; line-height:1.6;">
+                        Drag and drop components from the toolbar<br>
+                        to create your email template
+                    </p>
+                </div>
             </td>
         </tr>
-    </table>
+    </tbody></table>
 
 </body>
 
@@ -220,6 +232,8 @@ export default function ToolPage() {
     borderStyle: '',
     borderCollapse: '',
     colspan: '',
+    attrWidth: '', // HTML attribute width for TABLE/TD
+    attrHeight: '', // HTML attribute height for TABLE/TD
   });
 
   // Image placeholder - a styled div that looks like an image placeholder
@@ -277,10 +291,34 @@ export default function ToolPage() {
       wrapper.innerHTML = snippet.trim();
       const node = wrapper.firstElementChild || wrapper;
       
+      // Find the main-email element - all content must be inside this
+      const mainEmailEl = doc.querySelector('.main-email');
+      if (!mainEmailEl) {
+        console.error('main-email element not found');
+        return;
+      }
+      
+      // Helper to check if an element is inside main-email
+      const isInsideMainEmail = (el: Element | null): boolean => {
+        if (!el) return false;
+        return mainEmailEl.contains(el) || el === mainEmailEl;
+      };
+      
+      // Helper to find the insertion point inside main-email
+      const findInsertionPoint = (): Element => {
+        // Find the td inside main-email (the content area)
+        const contentTd = mainEmailEl.querySelector('td');
+        return contentTd || mainEmailEl;
+      };
+      
       let targetEl: Element | null = null;
       if (targetSelector) {
         try {
           targetEl = doc.querySelector(targetSelector);
+          // Only allow target if it's inside main-email
+          if (targetEl && !isInsideMainEmail(targetEl)) {
+            targetEl = null;
+          }
         } catch {
           targetEl = null;
         }
@@ -295,7 +333,7 @@ export default function ToolPage() {
       // If target itself is a placeholder, replace it with the new content
       if (targetEl?.classList.contains('przio-placeholder')) {
         const parent = targetEl.parentElement;
-        if (parent) {
+        if (parent && isInsideMainEmail(parent)) {
           parent.insertBefore(node.cloneNode(true), targetEl);
           targetEl.remove();
           const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
@@ -307,7 +345,7 @@ export default function ToolPage() {
       // If dropping before/after an element, check if sibling placeholders should be removed
       if (targetEl && (insertPosition === 'before' || insertPosition === 'after')) {
         const parent = targetEl.parentElement;
-        if (parent) {
+        if (parent && isInsideMainEmail(parent)) {
           // Remove any placeholder siblings in the same parent
           removePlaceholdersFromContainer(parent);
         }
@@ -315,26 +353,24 @@ export default function ToolPage() {
       
       // If dropping inside a container, remove its placeholder children
       if (targetEl && insertPosition === 'inside') {
-        removePlaceholdersFromContainer(targetEl);
-      }
-      
-      // Remove main page placeholder if no specific target
-      if (!targetSelector) {
-        const mainPlaceholder = doc.querySelector('.przio-placeholder:not(.przio-mini-placeholder):not(.przio-cell-placeholder)');
-        if (mainPlaceholder) {
-          const placeholderParent = mainPlaceholder.parentElement;
-          mainPlaceholder.remove();
-          
-          if (placeholderParent) {
-            placeholderParent.appendChild(node.cloneNode(true));
-            const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
-            setHtml(nextHtml);
-            return;
-          }
+        if (isInsideMainEmail(targetEl)) {
+          removePlaceholdersFromContainer(targetEl);
         }
       }
       
-      if (targetEl && insertPosition) {
+      // If no specific target, insert into main-email content area
+      if (!targetSelector || !targetEl) {
+        const insertionPoint = findInsertionPoint();
+        // Remove placeholder if it exists in the insertion point
+        removePlaceholdersFromContainer(insertionPoint);
+        insertionPoint.appendChild(node.cloneNode(true));
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
+        return;
+      }
+      
+      // Insert relative to target element (only if inside main-email)
+      if (targetEl && insertPosition && isInsideMainEmail(targetEl)) {
         if (insertPosition === 'before') {
           targetEl.parentElement?.insertBefore(node.cloneNode(true), targetEl);
         } else if (insertPosition === 'after') {
@@ -342,12 +378,9 @@ export default function ToolPage() {
         } else {
           targetEl.appendChild(node.cloneNode(true));
         }
-      } else {
-        doc.body.appendChild(node.cloneNode(true));
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
       }
-      
-      const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
-      setHtml(nextHtml);
     } catch (error) {
       console.error('Failed to inject snippet:', error);
     }
@@ -598,6 +631,19 @@ export default function ToolPage() {
           .przio-placeholder {
             pointer-events: none;
             user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            contenteditable: false !important;
+            cursor: default !important;
+          }
+          .przio-placeholder * {
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            contenteditable: false !important;
           }
           .przio-placeholder-close {
             pointer-events: auto !important;
@@ -1028,7 +1074,10 @@ export default function ToolPage() {
           const tableEl = element.closest('table') || (element.tagName === 'TABLE' ? element : null);
           const cellSpacing = tableEl?.getAttribute('cellspacing') || '';
           const cellPadding = tableEl?.getAttribute('cellpadding') || '';
-          parentWindow.postMessage({ type: 'przio-edit-style', selector, currentStyle, tagName, colspan, cellSpacing, cellPadding }, '*');
+          // Get width and height attributes for TABLE and TD elements
+          const attrWidth = (element as HTMLElement).getAttribute('width') || '';
+          const attrHeight = (element as HTMLElement).getAttribute('height') || '';
+          parentWindow.postMessage({ type: 'przio-edit-style', selector, currentStyle, tagName, colspan, cellSpacing, cellPadding, attrWidth, attrHeight }, '*');
         });
         if (isAnchor) {
           toolbar.querySelector('.edit-link')?.addEventListener('click', (e) => {
@@ -1116,7 +1165,37 @@ export default function ToolPage() {
 
       // Handle keyboard delete
       const handleKeyDown = (e: KeyboardEvent) => {
-        if ((e.key === 'Delete' || e.key === 'Backspace') && currentlySelected) {
+        // Check if user is editing text in a contenteditable element
+        const activeElement = iframeDoc.activeElement;
+        const isEditingText = activeElement && (
+          (activeElement as HTMLElement).contentEditable === 'true' ||
+          activeElement.classList.contains('przio-text-editable') ||
+          activeElement.closest('.przio-text-editable') !== null
+        );
+        
+        // Check if the currently selected element itself is contenteditable
+        const selectedIsEditable = currentlySelected && (
+          (currentlySelected as HTMLElement).contentEditable === 'true' ||
+          currentlySelected.classList.contains('przio-text-editable')
+        );
+        
+        // Check if there's a text selection inside a contenteditable element
+        const selection = iframeDoc.getSelection();
+        let selectionInEditable = false;
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const container = range.commonAncestorContainer;
+          // Check if the container or its parent is a contenteditable element
+          const containerElement = container.nodeType === Node.TEXT_NODE 
+            ? container.parentElement 
+            : container as Element;
+          selectionInEditable = containerElement?.closest('.przio-text-editable') !== null ||
+                                containerElement?.classList.contains('przio-text-editable') ||
+                                (containerElement as HTMLElement)?.contentEditable === 'true';
+        }
+        
+        // Only delete element if not editing text
+        if ((e.key === 'Delete' || e.key === 'Backspace') && currentlySelected && !isEditingText && !selectedIsEditable && !selectionInEditable) {
           e.preventDefault();
           const selector = generateSelector(currentlySelected);
           parentWindow.postMessage({ type: 'przio-element-action', action: 'delete', selector }, '*');
@@ -1132,19 +1211,47 @@ export default function ToolPage() {
         e.preventDefault();
         e.stopPropagation();
         
+        // Find the main-email element - only allow dropping inside it
+        const mainEmailEl = iframeDoc.querySelector('.main-email');
+        if (!mainEmailEl) {
+          dropIndicator.style.display = 'none';
+          return;
+        }
+        
         const target = e.target as Element;
         if (!target || target === iframeDoc.body) {
+          // If no target, allow dropping into main-email's content area
+          const contentTd = mainEmailEl.querySelector('td');
+          if (contentTd) {
+            currentTarget = contentTd;
+            insertPosition = 'inside';
+            const rect = contentTd.getBoundingClientRect();
+            dropIndicator.style.display = 'block';
+            dropIndicator.style.left = `${rect.left}px`;
+            dropIndicator.style.width = `${rect.width}px`;
+            dropIndicator.style.top = `${rect.bottom - 2}px`;
+            iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+            contentTd.classList.add('przio-drag-over');
+          } else {
+            dropIndicator.style.display = 'none';
+            currentTarget = mainEmailEl;
+            insertPosition = 'inside';
+          }
+          return;
+        }
+
+        // Check if target is inside main-email
+        if (!mainEmailEl.contains(target) && target !== mainEmailEl) {
           dropIndicator.style.display = 'none';
-          currentTarget = iframeDoc.body;
-          insertPosition = 'inside';
+          iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
           return;
         }
 
         // Check if target is inside a placeholder - if so, target the placeholder's parent
         const placeholderAncestor = target.closest('.przio-placeholder');
-        if (placeholderAncestor) {
+        if (placeholderAncestor && mainEmailEl.contains(placeholderAncestor)) {
           const placeholderParent = placeholderAncestor.parentElement;
-          if (placeholderParent && placeholderParent !== iframeDoc.body) {
+          if (placeholderParent && placeholderParent !== iframeDoc.body && mainEmailEl.contains(placeholderParent)) {
             currentTarget = placeholderParent;
             insertPosition = 'inside';
             
@@ -1161,16 +1268,31 @@ export default function ToolPage() {
           }
         }
 
-        // Find the nearest block-level element
+        // Find the nearest block-level element that's inside main-email
         let dropTarget: Element | null = target;
-        while (dropTarget && !blockTags.includes(dropTarget.tagName) && dropTarget !== iframeDoc.body) {
+        while (dropTarget && !blockTags.includes(dropTarget.tagName) && dropTarget !== iframeDoc.body && dropTarget !== mainEmailEl) {
           dropTarget = dropTarget.parentElement;
         }
         
-        if (!dropTarget || dropTarget === iframeDoc.body) {
-          dropIndicator.style.display = 'none';
-          currentTarget = iframeDoc.body;
-          insertPosition = 'inside';
+        // Ensure dropTarget is inside main-email
+        if (!dropTarget || dropTarget === iframeDoc.body || !mainEmailEl.contains(dropTarget) && dropTarget !== mainEmailEl) {
+          // Fallback to main-email's content area
+          const contentTd = mainEmailEl.querySelector('td');
+          if (contentTd) {
+            currentTarget = contentTd;
+            insertPosition = 'inside';
+            const rect = contentTd.getBoundingClientRect();
+            dropIndicator.style.display = 'block';
+            dropIndicator.style.left = `${rect.left}px`;
+            dropIndicator.style.width = `${rect.width}px`;
+            dropIndicator.style.top = `${rect.bottom - 2}px`;
+            iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+            contentTd.classList.add('przio-drag-over');
+          } else {
+            dropIndicator.style.display = 'none';
+            currentTarget = mainEmailEl;
+            insertPosition = 'inside';
+          }
           return;
         }
 
@@ -1222,7 +1344,12 @@ export default function ToolPage() {
         const snippetData = e.dataTransfer?.getData('text/plain');
         if (!snippetData) return;
 
-        if (currentTarget && currentTarget !== iframeDoc.body) {
+        // Ensure we only drop inside main-email
+        const mainEmailEl = iframeDoc.querySelector('.main-email');
+        if (!mainEmailEl) return;
+
+        // If currentTarget is set and is inside main-email, use it
+        if (currentTarget && currentTarget !== iframeDoc.body && (mainEmailEl.contains(currentTarget) || currentTarget === mainEmailEl)) {
           const selector = generateSelector(currentTarget);
           setDropTargetElement(selector);
           
@@ -1233,12 +1360,25 @@ export default function ToolPage() {
             position: insertPosition 
           }, '*');
         } else {
-          parentWindow.postMessage({ 
-            type: 'przio-iframe-drop', 
-            snippet: snippetData, 
-            selector: null, 
-            position: 'inside' 
-          }, '*');
+          // Fallback: drop into main-email's content area
+          const contentTd = mainEmailEl.querySelector('td');
+          if (contentTd) {
+            const selector = generateSelector(contentTd);
+            setDropTargetElement(selector);
+            parentWindow.postMessage({ 
+              type: 'przio-iframe-drop', 
+              snippet: snippetData, 
+              selector, 
+              position: 'inside' 
+            }, '*');
+          } else {
+            parentWindow.postMessage({ 
+              type: 'przio-iframe-drop', 
+              snippet: snippetData, 
+              selector: null, 
+              position: 'inside' 
+            }, '*');
+          }
         }
       };
 
@@ -1282,7 +1422,8 @@ export default function ToolPage() {
         if (snippet === '__IMAGE__') {
           const url = window.prompt('Paste an image URL or leave blank to upload a file');
           if (url && url.trim()) {
-            injectSnippet(`<img src="${url.trim()}" alt="Image" style="max-width:100%;display:block;" />`, selector, position);
+            const absoluteUrl = ensureAbsoluteImageUrl(url.trim());
+            injectSnippet(`<img src="${absoluteUrl}" alt="Image" style="max-width:100%;display:block;" />`, selector, position);
             return;
           }
           fileInputRef.current?.click();
@@ -1453,6 +1594,8 @@ export default function ToolPage() {
           borderStyle: parseCssValue('border-style'),
           borderCollapse: parseCssValue('border-collapse'),
           colspan: e.data.colspan || '',
+          attrWidth: e.data.attrWidth || '',
+          attrHeight: e.data.attrHeight || '',
         });
         
         // Format the CSS for advanced editor
@@ -1487,7 +1630,8 @@ export default function ToolPage() {
     if (value === '__IMAGE__') {
       const url = window.prompt('Paste an image URL or leave blank to upload a file');
       if (url && url.trim()) {
-        injectSnippet(`<img src="${url.trim()}" alt="Image" style="max-width:100%;display:block;" />`);
+        const absoluteUrl = ensureAbsoluteImageUrl(url.trim());
+        injectSnippet(`<img src="${absoluteUrl}" alt="Image" style="max-width:100%;display:block;" />`);
         return;
       }
       fileInputRef.current?.click();
@@ -1523,10 +1667,12 @@ export default function ToolPage() {
       
       // If we have a target image selector, update that image/placeholder
       if (targetImageSelector) {
-        updateImageSrc(targetImageSelector, data.url);
+        const absoluteUrl = ensureAbsoluteImageUrl(data.url);
+        updateImageSrc(targetImageSelector, absoluteUrl);
         setTargetImageSelector(null);
       } else {
-        injectSnippet(`<img src="${data.url}" alt="Uploaded image" style="max-width:100%;display:block;" />`);
+        const absoluteUrl = ensureAbsoluteImageUrl(data.url);
+        injectSnippet(`<img src="${absoluteUrl}" alt="Uploaded image" style="max-width:100%;display:block;" />`);
       }
     } catch (error: any) {
       window.alert(error?.message || 'Image upload failed');
@@ -3288,7 +3434,7 @@ export default function ToolPage() {
                 title="Send Email"
               >
                 <Send size={16} />
-                <span className="hidden sm:inline">Send</span>
+                <span className="hidden sm:inline">Send Email</span>
               </button>
               <button
                 onClick={() => handleSaveTemplate()}
@@ -3301,7 +3447,7 @@ export default function ToolPage() {
                 ) : (
                   <Save size={16} />
                 )}
-                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
+                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Changes'}</span>
               </button>
             </div>
           </div>
@@ -4106,7 +4252,7 @@ export default function ToolPage() {
                     <p className="text-xs text-gray-500 mb-2">Preview:</p>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
-                      src={imageUrlInput} 
+                      src={ensureAbsoluteImageUrl(imageUrlInput)} 
                       alt="Preview" 
                       className="max-h-32 max-w-full object-contain rounded"
                       onError={(e) => {
@@ -4134,7 +4280,8 @@ export default function ToolPage() {
               <button
                 onClick={() => {
                   if (imageUrlInput.trim() && targetImageSelector) {
-                    updateImageSrc(targetImageSelector, imageUrlInput.trim());
+                    const absoluteUrl = ensureAbsoluteImageUrl(imageUrlInput.trim());
+                    updateImageSrc(targetImageSelector, absoluteUrl);
                     setShowImageUrlModal(false);
                     setImageUrlInput('');
                     setTargetImageSelector(null);
@@ -4570,6 +4717,34 @@ export default function ToolPage() {
                           </div>
                         )}
                       </div>
+                      
+                      {/* Width and Height HTML Attributes for TABLE and TD */}
+                      {(targetCssTagName === 'table' || targetCssTagName === 'td' || targetCssTagName === 'th') && (
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Width Attribute</label>
+                            <input
+                              type="text"
+                              value={cssFields.attrWidth}
+                              onChange={(e) => setCssFields({ ...cssFields, attrWidth: e.target.value })}
+                              placeholder="50%"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                            />
+                            <p className="text-xs text-gray-400 mt-1">HTML width attribute (e.g., 50%, 700px)</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Height Attribute</label>
+                            <input
+                              type="text"
+                              value={cssFields.attrHeight}
+                              onChange={(e) => setCssFields({ ...cssFields, attrHeight: e.target.value })}
+                              placeholder="50%"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                            />
+                            <p className="text-xs text-gray-400 mt-1">HTML height attribute (e.g., 50%, 200px)</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -4706,6 +4881,24 @@ background-color: #ffffff;"
                         // Handle colspan attribute for TD/TH
                         if ((targetCssTagName === 'td' || targetCssTagName === 'th') && cssFields.colspan) {
                           (targetEl as HTMLTableCellElement).colSpan = parseInt(cssFields.colspan) || 1;
+                        }
+                        
+                        // Handle width and height HTML attributes for TABLE and TD/TH
+                        if (targetCssTagName === 'table' || targetCssTagName === 'td' || targetCssTagName === 'th') {
+                          if (cssFields.attrWidth !== undefined) {
+                            if (cssFields.attrWidth === '') {
+                              targetEl.removeAttribute('width');
+                            } else {
+                              targetEl.setAttribute('width', cssFields.attrWidth);
+                            }
+                          }
+                          if (cssFields.attrHeight !== undefined) {
+                            if (cssFields.attrHeight === '') {
+                              targetEl.removeAttribute('height');
+                            } else {
+                              targetEl.setAttribute('height', cssFields.attrHeight);
+                            }
+                          }
                         }
                         
                         // Handle table attributes (cellspacing, cellpadding, border)
