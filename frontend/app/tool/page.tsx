@@ -5,10 +5,33 @@ import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Link from 'next/link';
-import HTMLEditor from '../../components/HTMLEditor';
+import HTMLEditor, { HTMLEditorRef } from '../../components/HTMLEditor';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Alert from '../../components/Alert';
 import AuthHeader from '../../components/AuthHeader';
+import {
+  Table,
+  Rows3,
+  Square,
+  LayoutGrid,
+  Minus,
+  Type,
+  Heading1,
+  Heading2,
+  Heading3,
+  Heading4,
+  Heading5,
+  Heading6,
+  Bold,
+  Italic,
+  Link2,
+  MousePointerClick,
+  Image as ImageIcon,
+  MoreHorizontal,
+  Send,
+  Save,
+  X,
+} from 'lucide-react';
 
 const API_URL = '/api';
 
@@ -17,159 +40,38 @@ const defaultHtmlTemplate = `<!DOCTYPE html>
 
 <head>
     <meta charset="UTF-8">
-    <title>Welcome to Przio</title>
+    <title>Email Template</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 
-<body style="margin:0; padding:0; background-color:#f2f4f7;">
+<body style="margin:0; padding:0; background-color:#f2f4f7; font-family:Arial, Helvetica, sans-serif;">
 
-    <!-- Wrapper -->
+    <!-- Wrapper Table -->
     <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f2f4f7">
         <tr>
             <td align="center" style="padding:20px 10px;">
 
-                <!-- Main Container -->
+                <!-- Main Email Container -->
                 <table width="600" cellpadding="0" cellspacing="0" border="0"
-                    style="width:100%; max-width:600px; background-color:#ffffff; border-radius:8px;">
+                    style="width:100%; max-width:600px; background-color:#ffffff; border-radius:8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
 
-                    <!-- Gradient Header -->
+                    <!-- Content Area - Drop elements here -->
                     <tr>
-                        <td align="center" style="padding:35px 20px;
-                   background-color:#4f46e5;
-                   background-image: linear-gradient(90deg, #4f46e5, #0ea5e9);
-                   border-radius:8px 8px 0 0;">
+                        <td style="padding:40px 30px; text-align:center;">
 
-                            <h1 style="margin:0;
-                       font-family:Arial, Helvetica, sans-serif;
-                       font-size:28px;
-                       color:#ffffff;">
-                                Welcome to Przio
-                            </h1>
+                            <!-- Placeholder Message -->
+                            <div class="przio-placeholder" style="position:relative; padding:60px 20px; border:2px dashed #c7d2fe; border-radius:12px; background-color:#f8fafc;">
+                                <span class="przio-placeholder-close" style="position:absolute; top:12px; right:12px; width:28px; height:28px; display:flex; align-items:center; justify-content:center; background:#ef4444; color:white; border-radius:50%; cursor:pointer; font-size:16px; font-weight:bold; line-height:1; box-shadow:0 2px 4px rgba(0,0,0,0.2);" title="Remove placeholder">×</span>
+                                <p style="margin:0 0 8px 0; font-size:24px; color:#6366f1;">📧</p>
+                                <p style="margin:0 0 8px 0; font-size:18px; font-weight:600; color:#4f46e5;">
+                                    Start Building Your Email
+                                </p>
+                                <p style="margin:0; font-size:14px; color:#6b7280; line-height:1.5;">
+                                    Drag and drop components from the toolbar below<br>
+                                    to create your email template
+                                </p>
+                            </div>
 
-                            <p style="margin:10px 0 0;
-                      font-family:Arial, Helvetica, sans-serif;
-                      font-size:16px;
-                      color:#e0e7ff;">
-                                Your journey starts here
-                            </p>
-
-                        </td>
-                    </tr>
-
-                    <!-- Banner Placeholder -->
-                    <tr>
-                        <td align="center" style="padding:20px;">
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0"
-                                style="background-color:#eef2ff; border:1px dashed #c7d2fe;">
-                                <tr>
-                                    <td align="center" style="padding:40px 20px;">
-                                        <p style="margin:0;
-                            font-family:Arial, Helvetica, sans-serif;
-                            font-size:18px;
-                            color:#4f46e5;">
-                                            Banner Image Placeholder
-                                        </p>
-                                        <p style="margin:8px 0 0;
-                            font-family:Arial, Helvetica, sans-serif;
-                            font-size:14px;
-                            color:#6b7280;">
-                                            (Recommended size: 600 × 250)
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <!-- Body Content -->
-                    <tr>
-                        <td style="padding:10px 30px 30px;
-                     font-family:Arial, Helvetica, sans-serif;
-                     color:#333333;">
-
-                            <p style="font-size:16px; line-height:24px; margin:0 0 15px;">
-                                Hello <strong>{{User Name}}</strong>,
-                            </p>
-
-                            <p style="font-size:16px; line-height:24px; margin:0 0 15px;">
-                                We're excited to welcome you to <strong>Przio</strong>. You're now part of a growing
-                                community that values innovation, performance, and simplicity.
-                            </p>
-
-                            <p style="font-size:16px; line-height:24px; margin:0 0 20px;">
-                                This email is designed to help you get started quickly and understand what Przio
-                                can do for you.
-                            </p>
-
-                            <!-- Feature Section -->
-                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                                <tr>
-                                    <td style="padding:15px; background-color:#f9fafb; border-radius:6px;">
-
-                                        <h3 style="margin:0 0 10px;
-                             font-size:18px;
-                             font-family:Arial, Helvetica, sans-serif;
-                             color:#111827;">
-                                            What you can do with Przio
-                                        </h3>
-
-                                        <ul style="padding-left:20px; margin:0; font-size:15px; line-height:22px;">
-                                            <li>Feature placeholder one – short explanation text</li>
-                                            <li>Feature placeholder two – short explanation text</li>
-                                            <li>Feature placeholder three – short explanation text</li>
-                                        </ul>
-
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <!-- CTA Button -->
-                            <table cellpadding="0" cellspacing="0" border="0" align="center" style="margin:30px auto;">
-                                <tr>
-                                    <td align="center" style="background-color:#4f46e5;
-                         background-image: linear-gradient(90deg, #4f46e5, #0ea5e9);
-                         border-radius:5px;">
-                                        <a href="{{CTA Link}}" target="_blank" style="display:inline-block;
-                           padding:14px 28px;
-                           font-size:16px;
-                           font-family:Arial, Helvetica, sans-serif;
-                           color:#ffffff;
-                           text-decoration:none;">
-                                            Get Started with Przio
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <p style="font-size:15px; line-height:22px; margin:0 0 10px; color:#4b5563;">
-                                Need help? Our support team is always here for you.
-                            </p>
-
-                            <p style="font-size:14px; line-height:22px; margin:0; color:#6b7280;">
-                                Simply reply to this email or visit our help center for more information.
-                            </p>
-
-                        </td>
-                    </tr>
-
-                    <!-- Footer -->
-                    <tr>
-                        <td align="center" style="padding:20px;
-                   background-color:#f2f4f7;
-                   border-radius:0 0 8px 8px;">
-                            <p style="margin:0;
-                      font-family:Arial, Helvetica, sans-serif;
-                      font-size:13px;
-                      color:#6b7280;">
-                                © 2025 Przio. All rights reserved.
-                            </p>
-                            <p style="margin:5px 0 0;
-                      font-family:Arial, Helvetica, sans-serif;
-                      font-size:12px;
-                      color:#9ca3af;">
-                                {{Company Address}} | <a href="{{Unsubscribe Link}}"
-                                    style="color:#6b7280;">Unsubscribe</a>
-                            </p>
                         </td>
                     </tr>
 
@@ -215,10 +117,13 @@ export default function ToolPage() {
   const [previewZoom, setPreviewZoom] = useState(100); // Zoom percentage
   const [splitPosition, setSplitPosition] = useState(50); // Percentage
   const [isResizing, setIsResizing] = useState(false);
-  const [autoSaving, setAutoSaving] = useState(false);
+  const [draggingSnippet, setDraggingSnippet] = useState<string | null>(null);
+  const [isOverCanvas, setIsOverCanvas] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [originalHtml, setOriginalHtml] = useState(defaultHtmlTemplate);
   const [originalTemplateName, setOriginalTemplateName] = useState('');
+  const [isNewUnsavedTemplate, setIsNewUnsavedTemplate] = useState(false);
   const [folders, setFolders] = useState<Array<{ _id?: string; name: string }>>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>('');
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
@@ -274,12 +179,1364 @@ export default function ToolPage() {
   const [shareUrl, setShareUrl] = useState('');
   const [creatingShareLink, setCreatingShareLink] = useState(false);
   const isSavingRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const splitIframeRef = useRef<HTMLIFrameElement>(null);
+  const previewIframeRef = useRef<HTMLIFrameElement>(null);
+  const htmlEditorRef = useRef<HTMLEditorRef>(null);
+  const [dropTargetElement, setDropTargetElement] = useState<string | null>(null);
+  const [selectedElement, setSelectedElement] = useState<{ selector: string; tagName: string } | null>(null);
+  const [showMoreTools, setShowMoreTools] = useState(false);
+  const [showImageUrlModal, setShowImageUrlModal] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [targetImageSelector, setTargetImageSelector] = useState<string | null>(null);
+  const [showLinkEditModal, setShowLinkEditModal] = useState(false);
+  const [linkUrlInput, setLinkUrlInput] = useState('');
+  const [targetLinkSelector, setTargetLinkSelector] = useState<string | null>(null);
+  const [showCssEditModal, setShowCssEditModal] = useState(false);
+  const [cssEditInput, setCssEditInput] = useState('');
+  const [targetCssSelector, setTargetCssSelector] = useState<string | null>(null);
+  const [targetCssTagName, setTargetCssTagName] = useState<string>('');
+  const [showAdvancedCss, setShowAdvancedCss] = useState(false);
+  const [cssFields, setCssFields] = useState({
+    paddingTop: '',
+    paddingRight: '',
+    paddingBottom: '',
+    paddingLeft: '',
+    marginTop: '',
+    marginRight: '',
+    marginBottom: '',
+    marginLeft: '',
+    fontSize: '',
+    width: '',
+    height: '',
+    backgroundColor: '',
+    color: '',
+    borderSpacing: '',
+    cellSpacing: '',
+    cellPadding: '',
+    border: '',
+    borderWidth: '',
+    borderColor: '',
+    borderStyle: '',
+    borderCollapse: '',
+    colspan: '',
+  });
+
+  // Image placeholder - a styled div that looks like an image placeholder
+  const IMAGE_PLACEHOLDER = '<div class="przio-image-placeholder" style="width:100%;min-height:150px;background:linear-gradient(135deg,#e0e7ff 0%,#c7d2fe 100%);border:2px dashed #6366f1;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;"><div style="text-align:center;color:#4f46e5;"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg><p style="margin:8px 0 0;font-size:14px;font-weight:500;">Click to add image</p></div></div>';
+
+  // Mini placeholder for container elements - shows drop instruction
+  const MINI_PLACEHOLDER = '<div class="przio-placeholder przio-mini-placeholder" style="padding:20px 12px;border:2px dashed #c7d2fe;border-radius:8px;background-color:#f8fafc;text-align:center;"><p style="margin:0;font-size:12px;color:#6b7280;">Drop elements here</p></div>';
+  
+  // Cell placeholder - smaller version for table cells
+  const CELL_PLACEHOLDER = '<div class="przio-placeholder przio-cell-placeholder" style="padding:12px 8px;border:1px dashed #c7d2fe;border-radius:4px;background-color:#f8fafc;text-align:center;"><p style="margin:0;font-size:11px;color:#9ca3af;">Drop here</p></div>';
+
+  // Primary items shown in main toolbar, secondary items in dropdown
+  const DRAG_ITEMS: Array<{
+    key: string;
+    label: string;
+    snippet: string;
+    icon: React.ReactNode;
+    primary?: boolean;
+  }> = [
+    // Primary items (always visible)
+    { key: 'table', label: 'Table', snippet: `<table style="width:100%;border-collapse:collapse;"><tr><td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td><td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td></tr></table>`, icon: <Table size={16} />, primary: true },
+    { key: 'div', label: 'Container', snippet: `<div style="padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">${MINI_PLACEHOLDER}</div>`, icon: <LayoutGrid size={16} />, primary: true },
+    { key: 'p', label: 'Paragraph', snippet: '<p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#111827;">Your paragraph text here</p>', icon: <Type size={16} />, primary: true },
+    { key: 'h1', label: 'H1', snippet: '<h1 style="margin:0 0 16px 0;font-size:32px;font-weight:700;color:#111827;">Heading 1</h1>', icon: <Heading1 size={16} />, primary: true },
+    { key: 'h2', label: 'H2', snippet: '<h2 style="margin:0 0 14px 0;font-size:24px;font-weight:700;color:#111827;">Heading 2</h2>', icon: <Heading2 size={16} />, primary: true },
+    { key: 'a', label: 'Link', snippet: '<p style="margin:0 0 12px 0;"><a href="#" style="color:#4f46e5;text-decoration:underline;font-weight:500;">Click here</a></p>', icon: <Link2 size={16} />, primary: true },
+    { key: 'button', label: 'Button', snippet: '<p style="margin:0 0 12px 0;text-align:center;"><a href="#" style="display:inline-block;padding:12px 24px;background:linear-gradient(90deg,#4f46e5,#0ea5e9);color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;">Button Text</a></p>', icon: <MousePointerClick size={16} />, primary: true },
+    { key: 'image', label: 'Image', snippet: '__IMAGE_PLACEHOLDER__', icon: <ImageIcon size={16} />, primary: true },
+    { key: 'tr', label: 'Row', snippet: `<tr><td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td><td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td></tr>`, icon: <Rows3 size={16} />, primary: true },
+    { key: 'td', label: 'Cell', snippet: `<td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td>`, icon: <Square size={16} />, primary: true },
+    // Secondary items (in dropdown)
+    { key: 'hr', label: 'Divider', snippet: '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />', icon: <Minus size={16} /> },
+    { key: 'h3', label: 'H3', snippet: '<h3 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#111827;">Heading 3</h3>', icon: <Heading3 size={16} /> },
+    { key: 'h4', label: 'H4', snippet: '<h4 style="margin:0 0 10px 0;font-size:18px;font-weight:600;color:#111827;">Heading 4</h4>', icon: <Heading4 size={16} /> },
+    { key: 'h5', label: 'H5', snippet: '<h5 style="margin:0 0 8px 0;font-size:16px;font-weight:600;color:#111827;">Heading 5</h5>', icon: <Heading5 size={16} /> },
+    { key: 'h6', label: 'H6', snippet: '<h6 style="margin:0 0 8px 0;font-size:14px;font-weight:600;color:#111827;">Heading 6</h6>', icon: <Heading6 size={16} /> },
+    { key: 'bold', label: 'Bold', snippet: '<p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#111827;"><strong>Bold text here</strong></p>', icon: <Bold size={16} /> },
+    { key: 'italic', label: 'Italic', snippet: '<p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#111827;"><em>Italic text here</em></p>', icon: <Italic size={16} /> },
+  ];
+  
+  const primaryItems = DRAG_ITEMS.filter(item => item.primary);
+  const secondaryItems = DRAG_ITEMS.filter(item => !item.primary);
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
     }
   }, [user, authLoading, router]);
+
+  const injectSnippet = useCallback((snippet: string, targetSelector?: string, insertPosition?: 'before' | 'after' | 'inside') => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const wrapper = doc.createElement('div');
+      wrapper.innerHTML = snippet.trim();
+      const node = wrapper.firstElementChild || wrapper;
+      
+      let targetEl: Element | null = null;
+      if (targetSelector) {
+        try {
+          targetEl = doc.querySelector(targetSelector);
+        } catch {
+          targetEl = null;
+        }
+      }
+      
+      // Helper to remove all placeholders from a container
+      const removePlaceholdersFromContainer = (container: Element | null) => {
+        if (!container) return;
+        container.querySelectorAll('.przio-placeholder').forEach(p => p.remove());
+      };
+      
+      // If target itself is a placeholder, replace it with the new content
+      if (targetEl?.classList.contains('przio-placeholder')) {
+        const parent = targetEl.parentElement;
+        if (parent) {
+          parent.insertBefore(node.cloneNode(true), targetEl);
+          targetEl.remove();
+          const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+          setHtml(nextHtml);
+          return;
+        }
+      }
+      
+      // If dropping before/after an element, check if sibling placeholders should be removed
+      if (targetEl && (insertPosition === 'before' || insertPosition === 'after')) {
+        const parent = targetEl.parentElement;
+        if (parent) {
+          // Remove any placeholder siblings in the same parent
+          removePlaceholdersFromContainer(parent);
+        }
+      }
+      
+      // If dropping inside a container, remove its placeholder children
+      if (targetEl && insertPosition === 'inside') {
+        removePlaceholdersFromContainer(targetEl);
+      }
+      
+      // Remove main page placeholder if no specific target
+      if (!targetSelector) {
+        const mainPlaceholder = doc.querySelector('.przio-placeholder:not(.przio-mini-placeholder):not(.przio-cell-placeholder)');
+        if (mainPlaceholder) {
+          const placeholderParent = mainPlaceholder.parentElement;
+          mainPlaceholder.remove();
+          
+          if (placeholderParent) {
+            placeholderParent.appendChild(node.cloneNode(true));
+            const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+            setHtml(nextHtml);
+            return;
+          }
+        }
+      }
+      
+      if (targetEl && insertPosition) {
+        if (insertPosition === 'before') {
+          targetEl.parentElement?.insertBefore(node.cloneNode(true), targetEl);
+        } else if (insertPosition === 'after') {
+          targetEl.parentElement?.insertBefore(node.cloneNode(true), targetEl.nextSibling);
+        } else {
+          targetEl.appendChild(node.cloneNode(true));
+        }
+      } else {
+        doc.body.appendChild(node.cloneNode(true));
+      }
+      
+      const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+      setHtml(nextHtml);
+    } catch (error) {
+      console.error('Failed to inject snippet:', error);
+    }
+  }, [html]);
+
+  // Remove an element from the HTML by selector
+  const removeElement = useCallback((selector: string) => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const targetEl = doc.querySelector(selector);
+      
+      if (targetEl && targetEl !== doc.body) {
+        targetEl.remove();
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
+        setSelectedElement(null);
+      }
+    } catch (error) {
+      console.error('Failed to remove element:', error);
+    }
+  }, [html]);
+
+  // Move element up or down
+  const moveElement = useCallback((selector: string, direction: 'up' | 'down') => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const targetEl = doc.querySelector(selector);
+      
+      if (targetEl && targetEl.parentElement) {
+        const parent = targetEl.parentElement;
+        if (direction === 'up' && targetEl.previousElementSibling) {
+          parent.insertBefore(targetEl, targetEl.previousElementSibling);
+        } else if (direction === 'down' && targetEl.nextElementSibling) {
+          parent.insertBefore(targetEl.nextElementSibling, targetEl);
+        }
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
+      }
+    } catch (error) {
+      console.error('Failed to move element:', error);
+    }
+  }, [html]);
+
+  // Duplicate an element
+  const duplicateElement = useCallback((selector: string) => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const targetEl = doc.querySelector(selector);
+      
+      if (targetEl && targetEl.parentElement) {
+        const clone = targetEl.cloneNode(true);
+        targetEl.parentElement.insertBefore(clone, targetEl.nextSibling);
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
+      }
+    } catch (error) {
+      console.error('Failed to duplicate element:', error);
+    }
+  }, [html]);
+
+  // Update image src or replace placeholder with image
+  const updateImageSrc = useCallback((selector: string, newSrc: string) => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const targetEl = doc.querySelector(selector);
+      
+      if (targetEl) {
+        // Check if it's an image placeholder
+        if (targetEl.classList.contains('przio-image-placeholder')) {
+          // Replace placeholder with actual image
+          const img = doc.createElement('img');
+          img.src = newSrc;
+          img.alt = 'Uploaded image';
+          img.style.cssText = 'max-width:100%;display:block;';
+          targetEl.parentElement?.replaceChild(img, targetEl);
+        } else if (targetEl.tagName === 'IMG') {
+          // Update existing image src
+          (targetEl as HTMLImageElement).src = newSrc;
+        }
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
+      }
+    } catch (error) {
+      console.error('Failed to update image:', error);
+    }
+  }, [html]);
+
+  // Update text content of an element
+  const updateTextContent = useCallback((selector: string, newText: string) => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const targetEl = doc.querySelector(selector);
+      
+      if (targetEl) {
+        targetEl.innerHTML = newText;
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
+      }
+    } catch (error) {
+      console.error('Failed to update text:', error);
+    }
+  }, [html]);
+
+  // Update href attribute of an anchor tag
+  const updateLinkHref = useCallback((selector: string, newHref: string) => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const targetEl = doc.querySelector(selector);
+      
+      if (targetEl && targetEl.tagName === 'A') {
+        (targetEl as HTMLAnchorElement).href = newHref;
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
+      }
+    } catch (error) {
+      console.error('Failed to update link:', error);
+    }
+  }, [html]);
+
+  // Update inline style of an element
+  const updateElementStyle = useCallback((selector: string, newStyle: string) => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const targetEl = doc.querySelector(selector);
+      
+      if (targetEl) {
+        (targetEl as HTMLElement).style.cssText = newStyle;
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
+      }
+    } catch (error) {
+      console.error('Failed to update style:', error);
+    }
+  }, [html]);
+
+  // Handle image file upload for a specific selector
+  const handleImageUploadForSelector = useCallback(async (file: File, selector: string) => {
+    try {
+      setUploadingImage(true);
+      const form = new FormData();
+      form.append('file', file);
+      form.append('shareToken', projectId || 'tool');
+      const res = await fetch('/api/uploads/images', {
+        method: 'POST',
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || 'Upload failed');
+      }
+      updateImageSrc(selector, data.url);
+    } catch (error: any) {
+      window.alert(error?.message || 'Image upload failed');
+    } finally {
+      setUploadingImage(false);
+    }
+  }, [projectId, updateImageSrc]);
+
+  // Setup drag-and-drop handlers inside iframe
+  const setupIframeDragDrop = useCallback((iframe: HTMLIFrameElement | null) => {
+    if (!iframe) return;
+    
+    const setupDragHandlers = () => {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc || !iframeDoc.body) return;
+
+      // Get parent window reference for postMessage (this is the React app window)
+      const parentWindow = iframe.contentWindow?.parent || window;
+
+      // Inject styles for drag-drop and element selection
+      let styleEl = iframeDoc.getElementById('przio-drag-styles');
+      if (!styleEl) {
+        styleEl = iframeDoc.createElement('style');
+        styleEl.id = 'przio-drag-styles';
+        styleEl.textContent = `
+          /* Hover effect for editable elements */
+          .przio-editable:hover {
+            outline: 2px dashed #94a3b8 !important;
+            outline-offset: 2px;
+            cursor: pointer;
+          }
+          
+          /* Selected element */
+          .przio-selected {
+            outline: 2px solid #4f46e5 !important;
+            outline-offset: 2px;
+            position: relative;
+          }
+          
+          /* Drop zone styles */
+          .przio-drop-zone {
+            position: relative;
+          }
+          .przio-drop-zone::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(79, 70, 229, 0.1);
+            border: 2px dashed #4f46e5;
+            border-radius: 4px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+          }
+          .przio-drop-zone.przio-drag-over::after {
+            opacity: 1;
+          }
+          
+          /* Drop indicator line */
+          .przio-drop-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4f46e5, #8b5cf6);
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 10000;
+            box-shadow: 0 0 8px rgba(79, 70, 229, 0.5);
+          }
+          .przio-drop-indicator::before,
+          .przio-drop-indicator::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #4f46e5;
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+          }
+          .przio-drop-indicator::before { left: -4px; }
+          .przio-drop-indicator::after { right: -4px; }
+          
+          /* Dragging cursor */
+          body.przio-dragging * {
+            cursor: copy !important;
+          }
+          
+          /* Placeholder styles - non-interactive */
+          .przio-placeholder {
+            pointer-events: none;
+            user-select: none;
+          }
+          .przio-placeholder-close {
+            pointer-events: auto !important;
+          }
+          body.przio-dragging .przio-placeholder {
+            background: linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 100%) !important;
+            border-color: #6366f1 !important;
+          }
+          body.przio-dragging .przio-placeholder p {
+            color: #4f46e5 !important;
+          }
+          
+          /* Element action toolbar */
+          .przio-toolbar {
+            position: fixed;
+            display: flex;
+            gap: 4px;
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            padding: 8px 12px;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1);
+            z-index: 99999;
+            white-space: nowrap;
+            animation: przio-toolbar-appear 0.15s ease-out;
+          }
+          @keyframes przio-toolbar-appear {
+            from { opacity: 0; transform: scale(0.95) translateY(5px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          .przio-toolbar::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid #111827;
+          }
+          .przio-toolbar button {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s;
+          }
+          .przio-toolbar button:hover {
+            background: rgba(255,255,255,0.25);
+            transform: scale(1.05);
+          }
+          .przio-toolbar button.delete:hover {
+            background: #ef4444;
+          }
+          .przio-toolbar .tag-name {
+            color: #a5b4fc;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 8px;
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 6px;
+            margin-right: 6px;
+            display: flex;
+            align-items: center;
+          }
+          
+          /* Text editing styles */
+          .przio-text-editable {
+            cursor: text;
+          }
+          .przio-text-editable:focus {
+            outline: 2px solid #4f46e5 !important;
+            outline-offset: 2px;
+            background: rgba(79, 70, 229, 0.05);
+          }
+          
+          /* Image and placeholder hover controls */
+          .przio-image-wrapper {
+            position: relative;
+            display: inline-block;
+          }
+          .przio-image-controls {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            gap: 8px;
+            background: rgba(0,0,0,0.8);
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            z-index: 10002;
+          }
+          .przio-image-placeholder:hover .przio-image-controls,
+          img.przio-has-controls:hover + .przio-image-controls,
+          .przio-image-controls:hover {
+            display: flex;
+          }
+          .przio-image-controls button {
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            white-space: nowrap;
+          }
+          .przio-image-controls button:hover {
+            background: linear-gradient(135deg, #4338ca, #4f46e5);
+            transform: scale(1.05);
+          }
+          .przio-image-controls button.upload-btn {
+            background: linear-gradient(135deg, #059669, #10b981);
+          }
+          .przio-image-controls button.upload-btn:hover {
+            background: linear-gradient(135deg, #047857, #059669);
+          }
+          
+          /* Image placeholder specific styles */
+          .przio-image-placeholder {
+            position: relative;
+          }
+          .przio-image-placeholder:hover {
+            border-color: #4f46e5 !important;
+            background: linear-gradient(135deg,#c7d2fe 0%,#a5b4fc 100%) !important;
+          }
+        `;
+        iframeDoc.head.appendChild(styleEl);
+      }
+
+      // Remove existing elements
+      iframeDoc.querySelectorAll('.przio-drop-indicator, .przio-toolbar').forEach(el => el.remove());
+
+      // Create drop indicator element
+      const dropIndicator = iframeDoc.createElement('div');
+      dropIndicator.className = 'przio-drop-indicator';
+      dropIndicator.style.display = 'none';
+      iframeDoc.body.appendChild(dropIndicator);
+
+      let currentTarget: Element | null = null;
+      let insertPosition: 'before' | 'after' | 'inside' = 'after';
+      let currentlySelected: Element | null = null;
+      let toolbar: HTMLElement | null = null;
+
+      const blockTags = ['DIV', 'P', 'TABLE', 'TR', 'TD', 'TH', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'IMG', 'A', 'SPAN', 'STRONG', 'EM', 'B', 'I', 'HR'];
+
+      const getDropPosition = (e: DragEvent, element: Element): 'before' | 'after' | 'inside' => {
+        const rect = element.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const threshold = rect.height * 0.25;
+        
+        if (y < threshold) return 'before';
+        if (y > rect.height - threshold) return 'after';
+        return 'inside';
+      };
+
+      // Classes added by visual editor that should be skipped when generating selectors
+      const visualEditorClasses = ['przio-image-wrapper', 'przio-drop-indicator', 'przio-toolbar', 'przio-image-controls'];
+      
+      const generateSelector = (el: Element): string => {
+        const path: string[] = [];
+        let current: Element | null = el;
+        while (current && current !== iframeDoc.body) {
+          // Skip visual editor wrapper elements
+          if (visualEditorClasses.some(cls => current?.classList.contains(cls))) {
+            current = current.parentElement;
+            continue;
+          }
+          
+          let selector = current.tagName.toLowerCase();
+          if (current.id && !current.id.startsWith('przio-')) {
+            selector = `#${current.id}`;
+            path.unshift(selector);
+            break;
+          }
+          const parent = current.parentElement;
+          if (parent) {
+            // Filter out visual editor elements when counting siblings
+            const siblings = Array.from(parent.children).filter(c => 
+              c.tagName === current!.tagName && 
+              !visualEditorClasses.some(cls => c.classList.contains(cls))
+            );
+            if (siblings.length > 1) {
+              const idx = siblings.indexOf(current) + 1;
+              selector += `:nth-of-type(${idx})`;
+            }
+          }
+          path.unshift(selector);
+          current = current.parentElement;
+        }
+        return path.length ? 'body > ' + path.join(' > ') : 'body';
+      };
+
+      // Text element tags that should show blinking cursor for editing
+      // Only pure text elements - not structural elements like TD, TH, A, SPAN
+      const textEditableTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'STRONG', 'EM', 'B', 'I'];
+
+      // Add editable class and setup interactive elements
+      const markEditableElements = () => {
+        iframeDoc.querySelectorAll('*').forEach(el => {
+          // Skip placeholder and its children
+          if (el.classList.contains('przio-placeholder') || el.closest('.przio-placeholder')) {
+            return;
+          }
+          
+          if (blockTags.includes(el.tagName) && !el.classList.contains('przio-drop-indicator') && !el.classList.contains('przio-toolbar') && !el.classList.contains('przio-image-controls')) {
+            el.classList.add('przio-editable');
+            
+            // Make only pure text elements contenteditable (p, headings, bold, italic)
+            // These will show the blinking cursor for text editing
+            if (textEditableTags.includes(el.tagName) && !el.querySelector('img') && !el.classList.contains('przio-image-placeholder')) {
+              el.classList.add('przio-text-editable');
+              (el as HTMLElement).contentEditable = 'true';
+            }
+          }
+        });
+        
+        // Setup image placeholders and images with hover controls
+        setupImageControls();
+      };
+
+      // Add hover controls to images and placeholders
+      const setupImageControls = () => {
+        // Handle image placeholders
+        iframeDoc.querySelectorAll('.przio-image-placeholder').forEach(placeholder => {
+          if (placeholder.querySelector('.przio-image-controls')) return; // Already has controls
+          
+          const controls = iframeDoc.createElement('div');
+          controls.className = 'przio-image-controls';
+          const selector = generateSelector(placeholder);
+          controls.innerHTML = `
+            <button class="url-btn" data-selector="${selector}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              Add URL
+            </button>
+            <button class="upload-btn" data-selector="${selector}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Upload
+            </button>
+          `;
+          
+          controls.querySelector('.url-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            parentWindow.postMessage({ type: 'przio-image-add-url', selector }, '*');
+          });
+          
+          controls.querySelector('.upload-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            parentWindow.postMessage({ type: 'przio-image-upload', selector }, '*');
+          });
+          
+          placeholder.appendChild(controls);
+        });
+        
+        // Handle existing images
+        iframeDoc.querySelectorAll('img:not(.przio-has-controls)').forEach(img => {
+          img.classList.add('przio-has-controls');
+          const selector = generateSelector(img);
+          
+          // Create a wrapper for positioning
+          const wrapper = iframeDoc.createElement('div');
+          wrapper.style.cssText = 'position:relative;display:inline-block;';
+          wrapper.className = 'przio-image-wrapper';
+          img.parentElement?.insertBefore(wrapper, img);
+          wrapper.appendChild(img);
+          
+          const controls = iframeDoc.createElement('div');
+          controls.className = 'przio-image-controls';
+          controls.innerHTML = `
+            <button class="url-btn" data-selector="${selector}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              Change URL
+            </button>
+            <button class="upload-btn" data-selector="${selector}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Replace
+            </button>
+          `;
+          
+          controls.querySelector('.url-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            parentWindow.postMessage({ type: 'przio-image-add-url', selector }, '*');
+          });
+          
+          controls.querySelector('.upload-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            parentWindow.postMessage({ type: 'przio-image-upload', selector }, '*');
+          });
+          
+          wrapper.appendChild(controls);
+        });
+      };
+
+      markEditableElements();
+
+      // Setup placeholder close buttons
+      const setupPlaceholderCloseButtons = () => {
+        iframeDoc.querySelectorAll('.przio-placeholder-close').forEach(closeBtn => {
+          if ((closeBtn as any)._przioHandlerAttached) return;
+          (closeBtn as any)._przioHandlerAttached = true;
+          
+          closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const placeholder = closeBtn.closest('.przio-placeholder');
+            if (placeholder) {
+              const selector = generateSelector(placeholder);
+              parentWindow.postMessage({ type: 'przio-element-action', action: 'delete', selector }, '*');
+            }
+          });
+          
+          // Add hover effect
+          closeBtn.addEventListener('mouseenter', () => {
+            (closeBtn as HTMLElement).style.transform = 'scale(1.1)';
+            (closeBtn as HTMLElement).style.background = '#dc2626';
+          });
+          closeBtn.addEventListener('mouseleave', () => {
+            (closeBtn as HTMLElement).style.transform = 'scale(1)';
+            (closeBtn as HTMLElement).style.background = '#ef4444';
+          });
+        });
+      };
+      
+      setupPlaceholderCloseButtons();
+
+      // Remove toolbar
+      const removeToolbar = () => {
+        if (toolbar) {
+          toolbar.remove();
+          toolbar = null;
+        }
+      };
+      
+      // Handle text blur - save changes
+      const handleTextBlur = (e: FocusEvent) => {
+        const target = e.target as Element;
+        if (target.classList.contains('przio-text-editable')) {
+          const selector = generateSelector(target);
+          const newText = (target as HTMLElement).innerHTML;
+          parentWindow.postMessage({ type: 'przio-text-update', selector, text: newText }, '*');
+        }
+      };
+
+      // Create and show toolbar for selected element
+      const showToolbar = (element: Element) => {
+        removeToolbar();
+        
+        toolbar = iframeDoc.createElement('div');
+        toolbar.className = 'przio-toolbar';
+        
+        const tagName = element.tagName.toLowerCase();
+        const selector = generateSelector(element);
+        
+        // Check if this is an anchor tag to show edit link button
+        const isAnchor = tagName === 'a';
+        const currentHref = isAnchor ? (element as HTMLAnchorElement).href : '';
+        const currentStyle = (element as HTMLElement).style.cssText || '';
+        
+        toolbar.innerHTML = `
+          <span class="tag-name">&lt;${tagName}&gt;</span>
+          <button class="edit-style" title="Edit Styles">🎨</button>
+          ${isAnchor ? '<button class="edit-link" title="Edit Link">🔗</button>' : ''}
+          <button class="move-up" title="Move Up">↑</button>
+          <button class="move-down" title="Move Down">↓</button>
+          <button class="duplicate" title="Duplicate">⧉</button>
+          <button class="delete" title="Delete">🗑</button>
+        `;
+        
+        // Append to body first so we can measure it
+        iframeDoc.body.appendChild(toolbar);
+        
+        // Position toolbar above the element
+        const rect = element.getBoundingClientRect();
+        const toolbarRect = toolbar.getBoundingClientRect();
+        
+        // Calculate position - try above first, if not enough space, show below
+        let topPos = rect.top - toolbarRect.height - 8;
+        if (topPos < 10) {
+          topPos = rect.bottom + 8; // Show below if not enough space above
+        }
+        
+        // Center horizontally on the element
+        let leftPos = rect.left + (rect.width / 2) - (toolbarRect.width / 2);
+        // Keep within viewport
+        leftPos = Math.max(10, Math.min(leftPos, iframeDoc.documentElement.clientWidth - toolbarRect.width - 10));
+        
+        toolbar.style.position = 'fixed';
+        toolbar.style.top = `${topPos}px`;
+        toolbar.style.left = `${leftPos}px`;
+        toolbar.style.transform = 'none'; // Remove the translateX since we're calculating position
+        
+        // Add event listeners
+        toolbar.querySelector('.edit-style')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          // Get additional attributes for table elements
+          const colspan = (element as HTMLTableCellElement).colSpan || '';
+          const tableEl = element.closest('table') || (element.tagName === 'TABLE' ? element : null);
+          const cellSpacing = tableEl?.getAttribute('cellspacing') || '';
+          const cellPadding = tableEl?.getAttribute('cellpadding') || '';
+          parentWindow.postMessage({ type: 'przio-edit-style', selector, currentStyle, tagName, colspan, cellSpacing, cellPadding }, '*');
+        });
+        if (isAnchor) {
+          toolbar.querySelector('.edit-link')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            parentWindow.postMessage({ type: 'przio-edit-link', selector, currentHref }, '*');
+          });
+        }
+        toolbar.querySelector('.move-up')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          parentWindow.postMessage({ type: 'przio-element-action', action: 'move-up', selector }, '*');
+        });
+        toolbar.querySelector('.move-down')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          parentWindow.postMessage({ type: 'przio-element-action', action: 'move-down', selector }, '*');
+        });
+        toolbar.querySelector('.duplicate')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          parentWindow.postMessage({ type: 'przio-element-action', action: 'duplicate', selector }, '*');
+        });
+        toolbar.querySelector('.delete')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          parentWindow.postMessage({ type: 'przio-element-action', action: 'delete', selector }, '*');
+        });
+      };
+
+      // Handle element selection
+      const handleClick = (e: MouseEvent) => {
+        const target = e.target as Element;
+        
+        // Ignore clicks on toolbar or image controls
+        if (target.closest('.przio-toolbar') || target.closest('.przio-image-controls')) return;
+        
+        // Ignore clicks on placeholder and its children (except the close button)
+        if (target.closest('.przio-placeholder') && !target.classList.contains('przio-placeholder-close')) {
+          return;
+        }
+        
+        // For text-editable elements, show toolbar but allow text editing
+        const isTextEditable = target.classList.contains('przio-text-editable') || target.closest('.przio-text-editable');
+        
+        if (!isTextEditable) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        
+        // Clear previous selection
+        iframeDoc.querySelectorAll('.przio-selected').forEach(el => el.classList.remove('przio-selected'));
+        
+        // Find nearest editable element
+        let editableEl: Element | null = target;
+        while (editableEl && !editableEl.classList.contains('przio-editable') && editableEl !== iframeDoc.body) {
+          editableEl = editableEl.parentElement;
+        }
+        
+        // Don't show toolbar for placeholder elements
+        if (editableEl?.closest('.przio-placeholder') || editableEl?.classList.contains('przio-placeholder')) {
+          currentlySelected = null;
+          removeToolbar();
+          parentWindow.postMessage({ type: 'przio-element-deselected' }, '*');
+          return;
+        }
+        
+        if (editableEl && editableEl !== iframeDoc.body) {
+          editableEl.classList.add('przio-selected');
+          currentlySelected = editableEl;
+          showToolbar(editableEl);
+          
+          const selector = generateSelector(editableEl);
+          parentWindow.postMessage({ 
+            type: 'przio-element-selected', 
+            selector, 
+            tagName: editableEl.tagName.toLowerCase() 
+          }, '*');
+        } else {
+          currentlySelected = null;
+          removeToolbar();
+          parentWindow.postMessage({ type: 'przio-element-deselected' }, '*');
+        }
+      };
+
+      // Handle keyboard delete
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if ((e.key === 'Delete' || e.key === 'Backspace') && currentlySelected) {
+          e.preventDefault();
+          const selector = generateSelector(currentlySelected);
+          parentWindow.postMessage({ type: 'przio-element-action', action: 'delete', selector }, '*');
+        } else if (e.key === 'Escape') {
+          iframeDoc.querySelectorAll('.przio-selected').forEach(el => el.classList.remove('przio-selected'));
+          currentlySelected = null;
+          removeToolbar();
+          parentWindow.postMessage({ type: 'przio-element-deselected' }, '*');
+        }
+      };
+
+      const handleDragOver = (e: DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const target = e.target as Element;
+        if (!target || target === iframeDoc.body) {
+          dropIndicator.style.display = 'none';
+          currentTarget = iframeDoc.body;
+          insertPosition = 'inside';
+          return;
+        }
+
+        // Check if target is inside a placeholder - if so, target the placeholder's parent
+        const placeholderAncestor = target.closest('.przio-placeholder');
+        if (placeholderAncestor) {
+          const placeholderParent = placeholderAncestor.parentElement;
+          if (placeholderParent && placeholderParent !== iframeDoc.body) {
+            currentTarget = placeholderParent;
+            insertPosition = 'inside';
+            
+            // Highlight the parent container
+            const rect = placeholderParent.getBoundingClientRect();
+            dropIndicator.style.display = 'block';
+            dropIndicator.style.left = `${rect.left}px`;
+            dropIndicator.style.width = `${rect.width}px`;
+            dropIndicator.style.top = `${rect.bottom - 2}px`;
+            
+            iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+            placeholderParent.classList.add('przio-drag-over');
+            return;
+          }
+        }
+
+        // Find the nearest block-level element
+        let dropTarget: Element | null = target;
+        while (dropTarget && !blockTags.includes(dropTarget.tagName) && dropTarget !== iframeDoc.body) {
+          dropTarget = dropTarget.parentElement;
+        }
+        
+        if (!dropTarget || dropTarget === iframeDoc.body) {
+          dropIndicator.style.display = 'none';
+          currentTarget = iframeDoc.body;
+          insertPosition = 'inside';
+          return;
+        }
+
+        currentTarget = dropTarget;
+        insertPosition = getDropPosition(e, dropTarget);
+
+        // Position the indicator
+        const rect = dropTarget.getBoundingClientRect();
+        dropIndicator.style.display = 'block';
+        dropIndicator.style.left = `${rect.left}px`;
+        dropIndicator.style.width = `${rect.width}px`;
+        
+        if (insertPosition === 'before') {
+          dropIndicator.style.top = `${rect.top - 2}px`;
+        } else if (insertPosition === 'after') {
+          dropIndicator.style.top = `${rect.bottom - 2}px`;
+        } else {
+          dropIndicator.style.top = `${rect.bottom - 2}px`;
+        }
+
+        iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+        if (insertPosition === 'inside') {
+          dropTarget.classList.add('przio-drag-over');
+        }
+      };
+
+      const handleDragEnter = (e: DragEvent) => {
+        e.preventDefault();
+        iframeDoc.body.classList.add('przio-dragging');
+      };
+
+      const handleDragLeave = (e: DragEvent) => {
+        const relatedTarget = e.relatedTarget as Element;
+        if (!relatedTarget || !iframeDoc.body.contains(relatedTarget)) {
+          dropIndicator.style.display = 'none';
+          iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+          iframeDoc.body.classList.remove('przio-dragging');
+        }
+      };
+
+      const handleDrop = (e: DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        dropIndicator.style.display = 'none';
+        iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+        iframeDoc.body.classList.remove('przio-dragging');
+
+        const snippetData = e.dataTransfer?.getData('text/plain');
+        if (!snippetData) return;
+
+        if (currentTarget && currentTarget !== iframeDoc.body) {
+          const selector = generateSelector(currentTarget);
+          setDropTargetElement(selector);
+          
+          parentWindow.postMessage({ 
+            type: 'przio-iframe-drop', 
+            snippet: snippetData, 
+            selector, 
+            position: insertPosition 
+          }, '*');
+        } else {
+          parentWindow.postMessage({ 
+            type: 'przio-iframe-drop', 
+            snippet: snippetData, 
+            selector: null, 
+            position: 'inside' 
+          }, '*');
+        }
+      };
+
+      // Attach event listeners
+      iframeDoc.body.addEventListener('dragover', handleDragOver);
+      iframeDoc.body.addEventListener('dragenter', handleDragEnter);
+      iframeDoc.body.addEventListener('dragleave', handleDragLeave);
+      iframeDoc.body.addEventListener('drop', handleDrop);
+      iframeDoc.body.addEventListener('click', handleClick);
+      iframeDoc.addEventListener('keydown', handleKeyDown);
+      iframeDoc.body.addEventListener('focusout', handleTextBlur);
+
+      // Cleanup function
+      return () => {
+        iframeDoc.body.removeEventListener('dragover', handleDragOver);
+        iframeDoc.body.removeEventListener('dragenter', handleDragEnter);
+        iframeDoc.body.removeEventListener('dragleave', handleDragLeave);
+        iframeDoc.body.removeEventListener('drop', handleDrop);
+        iframeDoc.body.removeEventListener('click', handleClick);
+        iframeDoc.removeEventListener('keydown', handleKeyDown);
+        iframeDoc.body.removeEventListener('focusout', handleTextBlur);
+      };
+    };
+
+    // Setup when iframe loads
+    if (iframe.contentDocument?.readyState === 'complete') {
+      setupDragHandlers();
+    }
+    iframe.addEventListener('load', setupDragHandlers);
+    
+    return () => {
+      iframe.removeEventListener('load', setupDragHandlers);
+    };
+  }, []);
+
+  // Listen for messages from iframe (drop, select, actions)
+  useEffect(() => {
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'przio-iframe-drop') {
+        const { snippet, selector, position } = e.data;
+        if (snippet === '__IMAGE__') {
+          const url = window.prompt('Paste an image URL or leave blank to upload a file');
+          if (url && url.trim()) {
+            injectSnippet(`<img src="${url.trim()}" alt="Image" style="max-width:100%;display:block;" />`, selector, position);
+            return;
+          }
+          fileInputRef.current?.click();
+          return;
+        }
+        // Handle image placeholder
+        if (snippet === '__IMAGE_PLACEHOLDER__') {
+          injectSnippet(IMAGE_PLACEHOLDER, selector, position);
+          return;
+        }
+        injectSnippet(snippet, selector, position);
+      } else if (e.data?.type === 'przio-element-selected') {
+        setSelectedElement({ selector: e.data.selector, tagName: e.data.tagName });
+        
+        // Highlight in editor - find element position in HTML
+        if (htmlEditorRef.current && e.data.tagName) {
+          try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html || '', 'text/html');
+            const targetEl = doc.querySelector(e.data.selector);
+            
+            if (targetEl) {
+              // Get the outer HTML of the element
+              const outerHtml = targetEl.outerHTML;
+              // Find a unique identifier - first 50 chars of the element
+              const searchStr = outerHtml.substring(0, Math.min(80, outerHtml.length));
+              
+              // Find line number in the HTML source
+              const lines = html.split('\n');
+              let foundLine = -1;
+              let foundCol = -1;
+              let endLine = -1;
+              let endCol = -1;
+              
+              for (let i = 0; i < lines.length; i++) {
+                const idx = lines[i].indexOf(searchStr.substring(0, 30));
+                if (idx !== -1) {
+                  foundLine = i + 1; // Monaco uses 1-based line numbers
+                  foundCol = idx + 1;
+                  
+                  // Find the end of the opening tag
+                  const tagMatch = lines[i].substring(idx).match(/<[^>]+>/);
+                  if (tagMatch) {
+                    endLine = i + 1;
+                    endCol = idx + tagMatch[0].length + 1;
+                  }
+                  break;
+                }
+              }
+              
+              if (foundLine > 0) {
+                htmlEditorRef.current.highlightRange(foundLine, foundCol, endLine || foundLine, endCol || foundCol + 20);
+              }
+            }
+          } catch (err) {
+            console.error('Failed to highlight in editor:', err);
+          }
+        }
+      } else if (e.data?.type === 'przio-element-deselected') {
+        setSelectedElement(null);
+        // Clear highlights in editor
+        if (htmlEditorRef.current) {
+          htmlEditorRef.current.clearHighlights();
+        }
+      } else if (e.data?.type === 'przio-element-action') {
+        const { action, selector } = e.data;
+        if (action === 'delete') {
+          removeElement(selector);
+        } else if (action === 'move-up') {
+          moveElement(selector, 'up');
+        } else if (action === 'move-down') {
+          moveElement(selector, 'down');
+        } else if (action === 'duplicate') {
+          duplicateElement(selector);
+        }
+      } else if (e.data?.type === 'przio-image-add-url') {
+        // Open modal to add image URL
+        setTargetImageSelector(e.data.selector);
+        setImageUrlInput('');
+        setShowImageUrlModal(true);
+      } else if (e.data?.type === 'przio-image-upload') {
+        // Trigger file input for this specific image
+        setTargetImageSelector(e.data.selector);
+        fileInputRef.current?.click();
+      } else if (e.data?.type === 'przio-text-update') {
+        // Update text content
+        updateTextContent(e.data.selector, e.data.text);
+      } else if (e.data?.type === 'przio-edit-link') {
+        // Open modal to edit link URL
+        setTargetLinkSelector(e.data.selector);
+        setLinkUrlInput(e.data.currentHref || '');
+        setShowLinkEditModal(true);
+      } else if (e.data?.type === 'przio-edit-style') {
+        // Open modal to edit CSS styles
+        setTargetCssSelector(e.data.selector);
+        setTargetCssTagName(e.data.tagName || '');
+        setShowAdvancedCss(false);
+        
+        // Parse current style into fields
+        const styleStr = e.data.currentStyle || '';
+        
+        // Helper to parse individual CSS property
+        const parseCssValue = (property: string): string => {
+          const regex = new RegExp(`${property}\\s*:\\s*([^;]+)`, 'i');
+          const match = styleStr.match(regex);
+          return match ? match[1].trim() : '';
+        };
+        
+        // Parse shorthand padding (padding: top right bottom left OR padding: vertical horizontal)
+        const parseShorthandPadding = () => {
+          const paddingShorthand = parseCssValue('padding');
+          if (!paddingShorthand) return { top: '', right: '', bottom: '', left: '' };
+          
+          const values = paddingShorthand.split(/\s+/);
+          if (values.length === 1) {
+            return { top: values[0], right: values[0], bottom: values[0], left: values[0] };
+          } else if (values.length === 2) {
+            return { top: values[0], right: values[1], bottom: values[0], left: values[1] };
+          } else if (values.length === 3) {
+            return { top: values[0], right: values[1], bottom: values[2], left: values[1] };
+          } else if (values.length >= 4) {
+            return { top: values[0], right: values[1], bottom: values[2], left: values[3] };
+          }
+          return { top: '', right: '', bottom: '', left: '' };
+        };
+        
+        // Parse shorthand margin
+        const parseShorthandMargin = () => {
+          const marginShorthand = parseCssValue('margin');
+          if (!marginShorthand) return { top: '', right: '', bottom: '', left: '' };
+          
+          const values = marginShorthand.split(/\s+/);
+          if (values.length === 1) {
+            return { top: values[0], right: values[0], bottom: values[0], left: values[0] };
+          } else if (values.length === 2) {
+            return { top: values[0], right: values[1], bottom: values[0], left: values[1] };
+          } else if (values.length === 3) {
+            return { top: values[0], right: values[1], bottom: values[2], left: values[1] };
+          } else if (values.length >= 4) {
+            return { top: values[0], right: values[1], bottom: values[2], left: values[3] };
+          }
+          return { top: '', right: '', bottom: '', left: '' };
+        };
+        
+        const shorthandPadding = parseShorthandPadding();
+        const shorthandMargin = parseShorthandMargin();
+        
+        setCssFields({
+          paddingTop: parseCssValue('padding-top') || shorthandPadding.top,
+          paddingRight: parseCssValue('padding-right') || shorthandPadding.right,
+          paddingBottom: parseCssValue('padding-bottom') || shorthandPadding.bottom,
+          paddingLeft: parseCssValue('padding-left') || shorthandPadding.left,
+          marginTop: parseCssValue('margin-top') || shorthandMargin.top,
+          marginRight: parseCssValue('margin-right') || shorthandMargin.right,
+          marginBottom: parseCssValue('margin-bottom') || shorthandMargin.bottom,
+          marginLeft: parseCssValue('margin-left') || shorthandMargin.left,
+          fontSize: parseCssValue('font-size'),
+          width: parseCssValue('width'),
+          height: parseCssValue('height'),
+          backgroundColor: parseCssValue('background-color') || parseCssValue('background'),
+          color: parseCssValue('color'),
+          borderSpacing: parseCssValue('border-spacing'),
+          cellSpacing: e.data.cellSpacing || '',
+          cellPadding: e.data.cellPadding || '',
+          border: parseCssValue('border'),
+          borderWidth: parseCssValue('border-width'),
+          borderColor: parseCssValue('border-color'),
+          borderStyle: parseCssValue('border-style'),
+          borderCollapse: parseCssValue('border-collapse'),
+          colspan: e.data.colspan || '',
+        });
+        
+        // Format the CSS for advanced editor
+        const formattedCss = styleStr
+          .split(';')
+          .map((rule: string) => rule.trim())
+          .filter((rule: string) => rule)
+          .join(';\n') + (styleStr ? ';' : '');
+        setCssEditInput(formattedCss);
+        setShowCssEditModal(true);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [injectSnippet, removeElement, moveElement, duplicateElement, updateTextContent, updateLinkHref, updateElementStyle, IMAGE_PLACEHOLDER, html]);
+
+  // Setup iframe drag-drop when html changes
+  useEffect(() => {
+    const cleanup1 = setupIframeDragDrop(splitIframeRef.current);
+    const cleanup2 = setupIframeDragDrop(previewIframeRef.current);
+    return () => {
+      cleanup1?.();
+      cleanup2?.();
+    };
+  }, [html, setupIframeDragDrop]);
+
+  const handleDropOnCanvas = useCallback((snippet?: string) => {
+    const value = snippet || draggingSnippet;
+    setIsOverCanvas(false);
+    if (!value) return;
+
+    if (value === '__IMAGE__') {
+      const url = window.prompt('Paste an image URL or leave blank to upload a file');
+      if (url && url.trim()) {
+        injectSnippet(`<img src="${url.trim()}" alt="Image" style="max-width:100%;display:block;" />`);
+        return;
+      }
+      fileInputRef.current?.click();
+      return;
+    }
+
+    // Handle image placeholder - insert placeholder directly
+    if (value === '__IMAGE_PLACEHOLDER__') {
+      injectSnippet(IMAGE_PLACEHOLDER);
+      return;
+    }
+
+    injectSnippet(value);
+  }, [draggingSnippet, injectSnippet, IMAGE_PLACEHOLDER]);
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const form = new FormData();
+      form.append('file', file);
+      form.append('shareToken', projectId || 'tool');
+      const res = await fetch('/api/uploads/images', {
+        method: 'POST',
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || 'Upload failed');
+      }
+      
+      // If we have a target image selector, update that image/placeholder
+      if (targetImageSelector) {
+        updateImageSrc(targetImageSelector, data.url);
+        setTargetImageSelector(null);
+      } else {
+        injectSnippet(`<img src="${data.url}" alt="Uploaded image" style="max-width:100%;display:block;" />`);
+      }
+    } catch (error: any) {
+      window.alert(error?.message || 'Image upload failed');
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [injectSnippet, projectId, targetImageSelector, updateImageSrc]);
 
   const fetchSmtpConfigs = useCallback(async () => {
     try {
@@ -497,81 +1754,50 @@ export default function ToolPage() {
     }
   }, [showSendEmailModal, templates, selectedTemplate, html]);
 
-  // Auto-save functionality - saves after 2 seconds of inactivity
+  // Ref to store the save function for auto-save
+  const autoSaveNewTemplateRef = useRef<() => void>(() => {});
+
+  // Auto-save new template immediately on creation
   useEffect(() => {
-    // Only auto-save if we have content
-    if (!html.trim()) {
-      return;
+    // Only auto-save if:
+    // 1. It's a new unsaved template
+    // 2. Template name is set
+    // 3. Not currently saving
+    if (
+      isNewUnsavedTemplate &&
+      templateName.trim() &&
+      html.trim() &&
+      !isSavingRef.current &&
+      token &&
+      projectId
+    ) {
+      // Small delay to ensure state is stable
+      const timeoutId = setTimeout(() => {
+        autoSaveNewTemplateRef.current();
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
     }
+  }, [isNewUnsavedTemplate, templateName, html, token, projectId]);
 
-    // Only auto-save if we have a template name OR it's an existing template
-    if (!templateName.trim() && !selectedTemplate) {
-      return;
-    }
-
-    // Clear existing timeout
-    const timeoutId = setTimeout(() => {
-      handleSaveTemplate(true);
-    }, 2000); // Auto-save after 2 seconds of inactivity
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [html, templateName, selectedTemplate]);
-
-  const handleSaveTemplate = async (isAutoSave = false) => {
+  const handleSaveTemplate = async () => {
     // Prevent duplicate saves
     if (isSavingRef.current) {
       return;
     }
 
-    // For auto-save: check if there are actual changes
-    if (isAutoSave) {
-      // Check if content has changed
-      const htmlChanged = html.trim() !== originalHtml.trim();
-      const nameChanged = templateName.trim() !== originalTemplateName.trim();
-      
-      // Only save if there are actual changes
-      if (!htmlChanged && !nameChanged) {
-        return; // No changes, don't save
-      }
-
-      // If it's a new template without a name, generate a temporary name
-      if (!selectedTemplate && !templateName.trim() && html.trim()) {
-        const tempName = `Untitled Template ${new Date().toLocaleTimeString()}`;
-        setTemplateName(tempName);
-        setOriginalTemplateName(tempName);
-        // Wait a bit for state to update, then save
-        setTimeout(() => handleSaveTemplate(true), 100);
-        return;
-      }
-      // Only auto-save if we have content and (a name or existing template)
-      if (!html.trim() || (!templateName.trim() && !selectedTemplate)) {
-        return;
-      }
-    }
-
-    isSavingRef.current = true;
-
-    // For manual save, show alert if fields are empty
-    if (!isAutoSave && (!templateName.trim() || !html.trim())) {
+    // Show alert if fields are empty
+    if (!templateName.trim() || !html.trim()) {
       setAlert({
         isOpen: true,
         message: 'Please provide a template name and HTML content',
         type: 'error',
       });
-      isSavingRef.current = false;
       return;
     }
 
     isSavingRef.current = true;
-
-    if (isAutoSave) {
-      setAutoSaving(true);
-    } else {
-      setSaving(true);
-    }
+    setSaving(true);
 
     try {
       if (selectedTemplate) {
@@ -601,82 +1827,30 @@ export default function ToolPage() {
       }
       await fetchTemplates();
       setLastSaved(new Date());
+      setOriginalHtml(html);
+      setOriginalTemplateName(templateName);
+      setIsNewUnsavedTemplate(false); // Reset flag after saving
       
-      // Update original values after successful save (only for auto-save)
-      if (isAutoSave) {
-        setOriginalHtml(html);
-        setOriginalTemplateName(templateName);
-      }
-      
-      if (!isAutoSave) {
-        setSelectedTemplate(null);
-        setTemplateName('');
-        setOriginalHtml('');
-        setOriginalTemplateName('');
-        // Show success message
-        const successMsg = document.createElement('div');
-        successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-        successMsg.textContent = 'Template saved successfully!';
-        document.body.appendChild(successMsg);
-        setTimeout(() => {
-          document.body.removeChild(successMsg);
-        }, 3000);
-      }
+      // Show success message
+      setAlert({
+        isOpen: true,
+        message: 'Template saved successfully!',
+        type: 'success',
+      });
     } catch (error: any) {
-      if (!isAutoSave) {
-        setAlert({
-          isOpen: true,
-          message: error.response?.data?.error || 'Failed to save template',
-          type: 'error',
-        });
-      }
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to save template',
+        type: 'error',
+      });
     } finally {
       isSavingRef.current = false;
-      if (isAutoSave) {
-        setAutoSaving(false);
-      } else {
-        setSaving(false);
-      }
+      setSaving(false);
     }
   };
 
-  // Auto-save functionality - saves after 2 seconds of inactivity
-  useEffect(() => {
-    // Skip if already saving
-    if (isSavingRef.current) {
-      return;
-    }
-
-    // Only auto-save if we have content
-    if (!html.trim()) {
-      return;
-    }
-
-    // Only auto-save if we have a template name OR it's an existing template
-    if (!templateName.trim() && !selectedTemplate) {
-      return;
-    }
-
-    // Check if there are actual changes before setting timeout
-    const htmlChanged = html.trim() !== originalHtml.trim();
-    const nameChanged = templateName.trim() !== originalTemplateName.trim();
-    
-    if (!htmlChanged && !nameChanged) {
-      return; // No changes, don't set timeout
-    }
-
-    // Clear existing timeout
-    const timeoutId = setTimeout(() => {
-      if (!isSavingRef.current) {
-        handleSaveTemplate(true);
-      }
-    }, 2000); // Auto-save after 2 seconds of inactivity
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [html, templateName, selectedTemplate, originalHtml, originalTemplateName]);
+  // Update the ref to point to handleSaveTemplate
+  autoSaveNewTemplateRef.current = handleSaveTemplate;
 
   const handleLoadTemplate = (template: Template) => {
     setHtml(template.html);
@@ -684,8 +1858,13 @@ export default function ToolPage() {
     setSelectedTemplate(template._id);
     setOriginalHtml(template.html);
     setOriginalTemplateName(template.name);
+    setIsNewUnsavedTemplate(false); // Reset flag when loading existing template
     setSelectedFolder(template.folder || '');
     setLastSaved(null);
+    // Switch to split view to enable visual editor
+    if (activeTab === 'editor') {
+      setActiveTab('split');
+    }
   };
 
 
@@ -872,6 +2051,11 @@ export default function ToolPage() {
       setOriginalTemplateName('');
       setNewPageName('');
       setShowNewPageInput(false);
+      setIsNewUnsavedTemplate(true); // Mark as new template needing initial save
+      // Switch to split view to enable visual editor
+      if (activeTab === 'editor') {
+        setActiveTab('split');
+      }
     }
   };
 
@@ -1105,6 +2289,7 @@ export default function ToolPage() {
     setOriginalHtml(defaultHtmlTemplate);
     setOriginalTemplateName('');
     setLastSaved(null);
+    setIsNewUnsavedTemplate(false); // Reset flag
   };
 
   useEffect(() => {
@@ -1533,24 +2718,14 @@ export default function ToolPage() {
                     )}
                   </div>
                   <div className="flex items-center space-x-3">
-                    {autoSaving && (
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                        <span>Auto-saving...</span>
+                    {lastSaved && !saving && (
+                      <div className="text-xs text-gray-500 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Last saved {lastSaved.toLocaleTimeString()}
                       </div>
                     )}
-                    {lastSaved && !autoSaving && !saving && (
-                      <div className="text-xs text-gray-500">
-                        Saved {lastSaved.toLocaleTimeString()}
-                      </div>
-                    )}
-                    <button
-                      onClick={() => handleSaveTemplate(false)}
-                      disabled={saving || !templateName.trim() || !html.trim()}
-                      className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {saving ? 'Saving...' : 'Save Template'}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -1649,6 +2824,7 @@ export default function ToolPage() {
                       </div>
                       <div className="flex-1 overflow-hidden min-h-0">
                         <HTMLEditor
+                          ref={htmlEditorRef}
                           value={html}
                           onChange={(value) => setHtml(value || '')}
                           isFullscreen={false}
@@ -1773,10 +2949,28 @@ export default function ToolPage() {
                           </button>
                         </div>
                       </div>
-                      <div className="flex-1 overflow-y-auto bg-gray-100 min-h-0">
+                      <div
+                        className="flex-1 overflow-y-auto bg-gray-100 min-h-0"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsOverCanvas(true);
+                        }}
+                        onDragEnter={() => setIsOverCanvas(true)}
+                        onDragLeave={() => setIsOverCanvas(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          handleDropOnCanvas();
+                        }}
+                      >
+                        <div className="px-3 pt-2">
+                          <div className="bg-indigo-50 border border-indigo-100 text-sm text-gray-700 rounded-lg px-3 py-2 flex items-start gap-2">
+                            <span className="text-indigo-600 font-semibold">Tip:</span>
+                            <span>Drag components from the toolbar into this preview. Drop the Image chip to paste a URL or upload a file.</span>
+                          </div>
+                        </div>
                         <div className="h-full flex items-center justify-center p-2">
                           <div
-                            className={`bg-white shadow-lg transition-all duration-300 ${
+                            className={`bg-white shadow-lg transition-all duration-300 relative ${
                               previewMode === 'mobile' ? 'w-[375px]' :
                               previewMode === 'tablet' ? 'w-[768px]' :
                               'w-full max-w-full'
@@ -1788,7 +2982,25 @@ export default function ToolPage() {
                               transformOrigin: 'center center',
                             }}
                           >
+                            {isOverCanvas && (
+                              <div
+                                className="absolute inset-0 bg-indigo-50/80 border-2 border-dashed border-indigo-400 rounded-lg z-20 flex items-center justify-center text-indigo-700 text-sm font-medium backdrop-blur-[1px] animate-pulse"
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  handleDropOnCanvas();
+                                }}
+                              >
+                                <div className="flex items-center gap-2 px-4 py-2 bg-white/80 rounded-full shadow-sm border border-indigo-200">
+                                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16M9 3l-2 4M17 3l-2 4" />
+                                  </svg>
+                                  <span>Drop to add into email body</span>
+                                </div>
+                              </div>
+                            )}
                             <iframe
+                              ref={splitIframeRef}
                               srcDoc={html}
                               className="w-full h-full border-0"
                               title="Email Preview"
@@ -1805,6 +3017,7 @@ export default function ToolPage() {
                   </div>
                 ) : activeTab === 'editor' ? (
                   <HTMLEditor
+                    ref={htmlEditorRef}
                     value={html}
                     onChange={(value) => setHtml(value || '')}
                     isFullscreen={isFullscreen}
@@ -1898,10 +3111,28 @@ export default function ToolPage() {
                         </button>
                       </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto bg-gray-100 min-h-0">
+                    <div
+                      className="flex-1 overflow-y-auto bg-gray-100 min-h-0"
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsOverCanvas(true);
+                      }}
+                      onDragEnter={() => setIsOverCanvas(true)}
+                      onDragLeave={() => setIsOverCanvas(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDropOnCanvas();
+                      }}
+                    >
+                      <div className="px-4 pt-3">
+                        <div className="bg-indigo-50 border border-indigo-100 text-sm text-gray-700 rounded-lg px-3 py-2 flex items-start gap-2">
+                          <span className="text-indigo-600 font-semibold">Tip:</span>
+                          <span>Drag components from the toolbar into this preview. Drop the Image chip to paste a URL or upload a file.</span>
+                        </div>
+                      </div>
                       <div className="h-full flex items-center justify-center p-4">
                         <div
-                          className={`bg-white shadow-lg transition-all duration-300 ${
+                          className={`bg-white shadow-lg transition-all duration-300 relative ${
                             previewMode === 'mobile' ? 'w-[375px]' :
                             previewMode === 'tablet' ? 'w-[768px]' :
                             'w-full max-w-full'
@@ -1913,7 +3144,25 @@ export default function ToolPage() {
                             transformOrigin: 'center center',
                           }}
                         >
+                          {isOverCanvas && (
+                            <div
+                              className="absolute inset-0 bg-indigo-50/80 border-2 border-dashed border-indigo-400 rounded-lg z-20 flex items-center justify-center text-indigo-700 text-sm font-medium backdrop-blur-[1px] animate-pulse"
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                handleDropOnCanvas();
+                              }}
+                            >
+                              <div className="flex items-center gap-2 px-4 py-2 bg-white/80 rounded-full shadow-sm border border-indigo-200">
+                                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7h16M4 12h16M4 17h16M9 3l-2 4M17 3l-2 4" />
+                                </svg>
+                                <span>Drop to add into email body</span>
+                              </div>
+                            </div>
+                          )}
                           <iframe
+                            ref={previewIframeRef}
                             srcDoc={html}
                             className="w-full h-full border-0"
                             title="Email Preview"
@@ -1933,19 +3182,138 @@ export default function ToolPage() {
         </div>
       </div>
 
-      {/* Send Email Button - Fixed at center bottom */}
-      <button
-        onClick={() => {
-          setShowSendEmailModal(true);
-          setEmailSubject(`Email from ${templateName || 'Template'}`);
-        }}
-        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 z-50 flex items-center space-x-2"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-        <span>Send Email</span>
-      </button>
+      {/* Compact Drag & Drop Toolbar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
+        <div className="max-w-7xl mx-auto px-3 py-2">
+          <div className="flex items-center gap-1">
+            {/* Primary Tool Icons */}
+            {primaryItems.map(item => (
+              <button
+                key={item.key}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', item.snippet);
+                  e.dataTransfer.effectAllowed = 'copy';
+                  setDraggingSnippet(item.snippet);
+                }}
+                onDragEnd={() => setDraggingSnippet(null)}
+                onClick={() => handleDropOnCanvas(item.snippet)}
+                className="p-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-300 text-gray-600 hover:text-indigo-600 transition-all cursor-grab active:cursor-grabbing group relative"
+                title={item.label}
+              >
+                {item.icon}
+                {/* Tooltip */}
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  {item.label}
+                </span>
+              </button>
+            ))}
+
+            {/* More Tools Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowMoreTools(!showMoreTools)}
+                className={`p-2 rounded-lg border transition-all ${
+                  showMoreTools 
+                    ? 'border-indigo-400 bg-indigo-100 text-indigo-600' 
+                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-600 hover:text-gray-800'
+                }`}
+                title="More tools"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showMoreTools && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setShowMoreTools(false)}
+                  />
+                  {/* Dropup Panel */}
+                  <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 z-50 min-w-[280px]">
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                      <span className="text-sm font-semibold text-gray-700">More Components</span>
+                      <button 
+                        onClick={() => setShowMoreTools(false)}
+                        className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {secondaryItems.map(item => (
+                        <button
+                          key={item.key}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', item.snippet);
+                            e.dataTransfer.effectAllowed = 'copy';
+                            setDraggingSnippet(item.snippet);
+                            setShowMoreTools(false);
+                          }}
+                          onDragEnd={() => setDraggingSnippet(null)}
+                          onClick={() => {
+                            handleDropOnCanvas(item.snippet);
+                            setShowMoreTools(false);
+                          }}
+                          className="flex flex-col items-center gap-1 p-2 rounded-lg border border-gray-100 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-300 text-gray-600 hover:text-indigo-600 transition-all cursor-grab active:cursor-grabbing"
+                          title={item.label}
+                        >
+                          {item.icon}
+                          <span className="text-[10px] font-medium">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
+
+            {/* Spacer */}
+            <div className="flex-1"></div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowSendEmailModal(true);
+                  setEmailSubject(`Email from ${templateName || 'Template'}`);
+                }}
+                className="px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2"
+                title="Send Email"
+              >
+                <Send size={16} />
+                <span className="hidden sm:inline">Send</span>
+              </button>
+              <button
+                onClick={() => handleSaveTemplate()}
+                disabled={saving || !templateName.trim() || !html.trim()}
+                className="px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Save Changes"
+              >
+                {saving ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Save size={16} />
+                )}
+                <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save'}</span>
+              </button>
+            </div>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+        </div>
+      </div>
 
       {/* Send Email Side Panel */}
       {showSendEmailModal && (
@@ -2684,6 +4052,706 @@ export default function ToolPage() {
         type={alert.type}
         onClose={() => setAlert({ ...alert, isOpen: false })}
       />
+
+      {/* Image URL Modal */}
+      {showImageUrlModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-500 to-purple-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">Add Image URL</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowImageUrlModal(false);
+                    setImageUrlInput('');
+                    setTargetImageSelector(null);
+                  }}
+                  className="text-white/80 hover:text-white transition-colors p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-gray-600 mb-4">
+                Enter the URL of the image you want to add. Make sure the URL is publicly accessible.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Image URL
+                  </label>
+                  <input
+                    type="url"
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                    autoFocus
+                  />
+                </div>
+                {imageUrlInput && (
+                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-2">Preview:</p>
+                    <img 
+                      src={imageUrlInput} 
+                      alt="Preview" 
+                      className="max-h-32 max-w-full object-contain rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                      onLoad={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'block';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowImageUrlModal(false);
+                  setImageUrlInput('');
+                  setTargetImageSelector(null);
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (imageUrlInput.trim() && targetImageSelector) {
+                    updateImageSrc(targetImageSelector, imageUrlInput.trim());
+                    setShowImageUrlModal(false);
+                    setImageUrlInput('');
+                    setTargetImageSelector(null);
+                  }
+                }}
+                disabled={!imageUrlInput.trim()}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Add Image
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Link Edit Modal */}
+      {showLinkEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-cyan-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">Edit Link</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowLinkEditModal(false);
+                    setLinkUrlInput('');
+                    setTargetLinkSelector(null);
+                  }}
+                  className="text-white/80 hover:text-white transition-colors p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-gray-600 mb-4">
+                Enter the URL for this link. This will update the href attribute of the anchor tag.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Link URL
+                  </label>
+                  <input
+                    type="url"
+                    value={linkUrlInput}
+                    onChange={(e) => setLinkUrlInput(e.target.value)}
+                    placeholder="https://example.com"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowLinkEditModal(false);
+                  setLinkUrlInput('');
+                  setTargetLinkSelector(null);
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (linkUrlInput.trim() && targetLinkSelector) {
+                    updateLinkHref(targetLinkSelector, linkUrlInput.trim());
+                    setShowLinkEditModal(false);
+                    setLinkUrlInput('');
+                    setTargetLinkSelector(null);
+                  }
+                }}
+                disabled={!linkUrlInput.trim()}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Update Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSS Edit Modal */}
+      {showCssEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-pink-500 to-purple-600 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Edit Styles</h2>
+                    <p className="text-xs text-white/70">&lt;{targetCssTagName}&gt; element</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowCssEditModal(false);
+                    setCssEditInput('');
+                    setTargetCssSelector(null);
+                    setTargetCssTagName('');
+                    setShowAdvancedCss(false);
+                  }}
+                  className="text-white/80 hover:text-white transition-colors p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-5 flex-1 overflow-y-auto">
+              {!showAdvancedCss ? (
+                <div className="space-y-5">
+                  {/* Colors */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Background Color</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={cssFields.backgroundColor || '#ffffff'}
+                          onChange={(e) => setCssFields({ ...cssFields, backgroundColor: e.target.value })}
+                          className="w-10 h-10 rounded border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={cssFields.backgroundColor}
+                          onChange={(e) => setCssFields({ ...cssFields, backgroundColor: e.target.value })}
+                          placeholder="#ffffff"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Text Color</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="color"
+                          value={cssFields.color || '#000000'}
+                          onChange={(e) => setCssFields({ ...cssFields, color: e.target.value })}
+                          className="w-10 h-10 rounded border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={cssFields.color}
+                          onChange={(e) => setCssFields({ ...cssFields, color: e.target.value })}
+                          placeholder="#333333"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Size */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Font Size</label>
+                      <input
+                        type="text"
+                        value={cssFields.fontSize}
+                        onChange={(e) => setCssFields({ ...cssFields, fontSize: e.target.value })}
+                        placeholder="16px"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Width</label>
+                      <input
+                        type="text"
+                        value={cssFields.width}
+                        onChange={(e) => setCssFields({ ...cssFields, width: e.target.value })}
+                        placeholder="100%"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Height</label>
+                      <input
+                        type="text"
+                        value={cssFields.height}
+                        onChange={(e) => setCssFields({ ...cssFields, height: e.target.value })}
+                        placeholder="auto"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Padding */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">Padding</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div>
+                        <span className="text-xs text-gray-400">Top</span>
+                        <input
+                          type="text"
+                          value={cssFields.paddingTop}
+                          onChange={(e) => setCssFields({ ...cssFields, paddingTop: e.target.value })}
+                          placeholder="0px"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-400">Right</span>
+                        <input
+                          type="text"
+                          value={cssFields.paddingRight}
+                          onChange={(e) => setCssFields({ ...cssFields, paddingRight: e.target.value })}
+                          placeholder="0px"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-400">Bottom</span>
+                        <input
+                          type="text"
+                          value={cssFields.paddingBottom}
+                          onChange={(e) => setCssFields({ ...cssFields, paddingBottom: e.target.value })}
+                          placeholder="0px"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-400">Left</span>
+                        <input
+                          type="text"
+                          value={cssFields.paddingLeft}
+                          onChange={(e) => setCssFields({ ...cssFields, paddingLeft: e.target.value })}
+                          placeholder="0px"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Margin */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-2">Margin</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div>
+                        <span className="text-xs text-gray-400">Top</span>
+                        <input
+                          type="text"
+                          value={cssFields.marginTop}
+                          onChange={(e) => setCssFields({ ...cssFields, marginTop: e.target.value })}
+                          placeholder="0px"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-400">Right</span>
+                        <input
+                          type="text"
+                          value={cssFields.marginRight}
+                          onChange={(e) => setCssFields({ ...cssFields, marginRight: e.target.value })}
+                          placeholder="0px"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-400">Bottom</span>
+                        <input
+                          type="text"
+                          value={cssFields.marginBottom}
+                          onChange={(e) => setCssFields({ ...cssFields, marginBottom: e.target.value })}
+                          placeholder="0px"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-400">Left</span>
+                        <input
+                          type="text"
+                          value={cssFields.marginLeft}
+                          onChange={(e) => setCssFields({ ...cssFields, marginLeft: e.target.value })}
+                          placeholder="0px"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Table specific */}
+                  {(targetCssTagName === 'td' || targetCssTagName === 'th' || targetCssTagName === 'table' || targetCssTagName === 'tr') && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-medium text-gray-600">Table & Border Properties</label>
+                        <button
+                          type="button"
+                          onClick={() => setCssFields({ 
+                            ...cssFields, 
+                            border: '0', 
+                            borderWidth: '0',
+                            borderSpacing: '0',
+                            borderCollapse: 'collapse'
+                          })}
+                          className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors"
+                        >
+                          Set Border: 0
+                        </button>
+                      </div>
+                      
+                      {/* Border Settings */}
+                      <div className="grid grid-cols-4 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Border Width</label>
+                          <input
+                            type="text"
+                            value={cssFields.borderWidth}
+                            onChange={(e) => setCssFields({ ...cssFields, borderWidth: e.target.value })}
+                            placeholder="0 or 1px"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Border Style</label>
+                          <select
+                            value={cssFields.borderStyle}
+                            onChange={(e) => setCssFields({ ...cssFields, borderStyle: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                          >
+                            <option value="">Default</option>
+                            <option value="none">None</option>
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Border Color</label>
+                          <div className="flex gap-1">
+                            <input
+                              type="color"
+                              value={cssFields.borderColor || '#e5e7eb'}
+                              onChange={(e) => setCssFields({ ...cssFields, borderColor: e.target.value })}
+                              className="w-8 h-9 rounded border border-gray-300 cursor-pointer"
+                            />
+                            <input
+                              type="text"
+                              value={cssFields.borderColor}
+                              onChange={(e) => setCssFields({ ...cssFields, borderColor: e.target.value })}
+                              placeholder="#e5e7eb"
+                              className="flex-1 px-2 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Border Spacing</label>
+                          <input
+                            type="text"
+                            value={cssFields.borderSpacing}
+                            onChange={(e) => setCssFields({ ...cssFields, borderSpacing: e.target.value })}
+                            placeholder="0px"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Border shorthand (for advanced) */}
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Border (shorthand)</label>
+                        <input
+                          type="text"
+                          value={cssFields.border}
+                          onChange={(e) => setCssFields({ ...cssFields, border: e.target.value })}
+                          placeholder="0 or 1px solid #ccc"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                        />
+                      </div>
+                      
+                      {/* Table-specific attributes row */}
+                      <div className="grid grid-cols-3 gap-4">
+                        {targetCssTagName === 'table' && (
+                          <div>
+                            <label className="block text-xs text-gray-400 mb-1">Border Collapse</label>
+                            <select
+                              value={cssFields.borderCollapse}
+                              onChange={(e) => setCssFields({ ...cssFields, borderCollapse: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                            >
+                              <option value="">Default</option>
+                              <option value="collapse">Collapse</option>
+                              <option value="separate">Separate</option>
+                            </select>
+                          </div>
+                        )}
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Cell Spacing</label>
+                          <input
+                            type="text"
+                            value={cssFields.cellSpacing}
+                            onChange={(e) => setCssFields({ ...cssFields, cellSpacing: e.target.value })}
+                            placeholder="0"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Cell Padding</label>
+                          <input
+                            type="text"
+                            value={cssFields.cellPadding}
+                            onChange={(e) => setCssFields({ ...cssFields, cellPadding: e.target.value })}
+                            placeholder="0"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                          />
+                        </div>
+                        {(targetCssTagName === 'td' || targetCssTagName === 'th') && (
+                          <div>
+                            <label className="block text-xs text-gray-400 mb-1">Colspan</label>
+                            <input
+                              type="number"
+                              value={cssFields.colspan}
+                              onChange={(e) => setCssFields({ ...cssFields, colspan: e.target.value })}
+                              placeholder="1"
+                              min="1"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Advanced CSS Toggle */}
+                  <button
+                    onClick={() => setShowAdvancedCss(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-400 hover:text-purple-600 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span className="font-medium">Advanced CSS Editor</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setShowAdvancedCss(false)}
+                      className="flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Back to Basic Editor
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      CSS Styles
+                    </label>
+                    <textarea
+                      value={cssEditInput}
+                      onChange={(e) => setCssEditInput(e.target.value)}
+                      placeholder="color: #333333;
+font-size: 16px;
+padding: 10px 20px;
+background-color: #ffffff;"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all font-mono text-sm"
+                      rows={12}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 flex-shrink-0">
+              <button
+                onClick={() => {
+                  setShowCssEditModal(false);
+                  setCssEditInput('');
+                  setTargetCssSelector(null);
+                  setTargetCssTagName('');
+                  setShowAdvancedCss(false);
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (targetCssSelector) {
+                    let finalCss = '';
+                    
+                    if (showAdvancedCss) {
+                      // Use the raw CSS from textarea
+                      finalCss = cssEditInput
+                        .split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line)
+                        .join(' ')
+                        .replace(/;\s*/g, '; ')
+                        .trim();
+                    } else {
+                      // Parse existing styles to preserve properties not in our form
+                      const existingStyles: Record<string, string> = {};
+                      cssEditInput.split(';').forEach(rule => {
+                        const [prop, val] = rule.split(':').map(s => s.trim());
+                        if (prop && val) {
+                          existingStyles[prop.toLowerCase()] = val;
+                        }
+                      });
+                      
+                      // Properties handled by our form (will be replaced/removed)
+                      const formProperties = [
+                        'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+                        'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+                        'font-size', 'width', 'height', 'background-color', 'background', 'color', 
+                        'border-spacing', 'border', 'border-width', 'border-style', 'border-color', 'border-collapse'
+                      ];
+                      
+                      // Keep existing styles that are NOT handled by our form
+                      const preservedStyles: string[] = [];
+                      Object.entries(existingStyles).forEach(([prop, val]) => {
+                        if (!formProperties.includes(prop)) {
+                          preservedStyles.push(`${prop}: ${val}`);
+                        }
+                      });
+                      
+                      // Build CSS from form fields
+                      const cssProps: string[] = [...preservedStyles];
+                      if (cssFields.paddingTop) cssProps.push(`padding-top: ${cssFields.paddingTop}`);
+                      if (cssFields.paddingRight) cssProps.push(`padding-right: ${cssFields.paddingRight}`);
+                      if (cssFields.paddingBottom) cssProps.push(`padding-bottom: ${cssFields.paddingBottom}`);
+                      if (cssFields.paddingLeft) cssProps.push(`padding-left: ${cssFields.paddingLeft}`);
+                      if (cssFields.marginTop) cssProps.push(`margin-top: ${cssFields.marginTop}`);
+                      if (cssFields.marginRight) cssProps.push(`margin-right: ${cssFields.marginRight}`);
+                      if (cssFields.marginBottom) cssProps.push(`margin-bottom: ${cssFields.marginBottom}`);
+                      if (cssFields.marginLeft) cssProps.push(`margin-left: ${cssFields.marginLeft}`);
+                      if (cssFields.fontSize) cssProps.push(`font-size: ${cssFields.fontSize}`);
+                      if (cssFields.width) cssProps.push(`width: ${cssFields.width}`);
+                      if (cssFields.height) cssProps.push(`height: ${cssFields.height}`);
+                      if (cssFields.backgroundColor) cssProps.push(`background-color: ${cssFields.backgroundColor}`);
+                      if (cssFields.color) cssProps.push(`color: ${cssFields.color}`);
+                      if (cssFields.borderSpacing) cssProps.push(`border-spacing: ${cssFields.borderSpacing}`);
+                      if (cssFields.border) cssProps.push(`border: ${cssFields.border}`);
+                      if (cssFields.borderWidth) cssProps.push(`border-width: ${cssFields.borderWidth}`);
+                      if (cssFields.borderStyle) cssProps.push(`border-style: ${cssFields.borderStyle}`);
+                      if (cssFields.borderColor) cssProps.push(`border-color: ${cssFields.borderColor}`);
+                      if (cssFields.borderCollapse) cssProps.push(`border-collapse: ${cssFields.borderCollapse}`);
+                      finalCss = cssProps.join('; ') + (cssProps.length ? ';' : '');
+                    }
+                    
+                    // Apply styles and colspan in one update to avoid stale state issues
+                    try {
+                      const parser = new DOMParser();
+                      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+                      const targetEl = doc.querySelector(targetCssSelector);
+                      
+                      if (targetEl) {
+                        // Apply CSS styles
+                        (targetEl as HTMLElement).style.cssText = finalCss;
+                        
+                        // Handle colspan attribute for TD/TH
+                        if ((targetCssTagName === 'td' || targetCssTagName === 'th') && cssFields.colspan) {
+                          (targetEl as HTMLTableCellElement).colSpan = parseInt(cssFields.colspan) || 1;
+                        }
+                        
+                        // Handle table attributes (cellspacing, cellpadding, border)
+                        if (targetCssTagName === 'table') {
+                          const tableEl = targetEl as HTMLTableElement;
+                          if (cssFields.cellSpacing !== undefined) {
+                            if (cssFields.cellSpacing === '' || cssFields.cellSpacing === '0') {
+                              tableEl.removeAttribute('cellspacing');
+                              tableEl.setAttribute('cellspacing', '0');
+                            } else {
+                              tableEl.setAttribute('cellspacing', cssFields.cellSpacing);
+                            }
+                          }
+                          if (cssFields.cellPadding !== undefined) {
+                            if (cssFields.cellPadding === '' || cssFields.cellPadding === '0') {
+                              tableEl.removeAttribute('cellpadding');
+                              tableEl.setAttribute('cellpadding', '0');
+                            } else {
+                              tableEl.setAttribute('cellpadding', cssFields.cellPadding);
+                            }
+                          }
+                        }
+                        
+                        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+                        setHtml(nextHtml);
+                      } else {
+                        console.error('Element not found with selector:', targetCssSelector);
+                      }
+                    } catch (e) {
+                      console.error('Failed to apply styles:', e);
+                    }
+                    
+                    setShowCssEditModal(false);
+                    setCssEditInput('');
+                    setTargetCssSelector(null);
+                    setTargetCssTagName('');
+                    setShowAdvancedCss(false);
+                  }
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all font-medium"
+              >
+                Apply Styles
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Share Modal */}
       {showShareModal && (
