@@ -49,10 +49,6 @@ export default function PreviewPageClient({ html, shareToken }: PreviewPageClien
   }
   const [previewMode, setPreviewMode] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [previewZoom, setPreviewZoom] = useState(100);
-  const [editableHtml, setEditableHtml] = useState<string>(html || '<!doctype html><html><body></body></html>');
-  const [draggingSnippet, setDraggingSnippet] = useState<string | null>(null);
-  const [isOverCanvas, setIsOverCanvas] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState<{ x: number; y: number; elementSelector?: string } | null>(null);
@@ -79,27 +75,12 @@ export default function PreviewPageClient({ html, shareToken }: PreviewPageClien
   });
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const previewStyles = {
     mobile: { width: '375px', maxWidth: '100%' },
     tablet: { width: '768px', maxWidth: '100%' },
     desktop: { width: '100%', maxWidth: '100%' },
   };
-
-  const DRAG_ITEMS = [
-    { key: 'table', label: 'Table', snippet: '<table style="width:100%;border-collapse:collapse;"><tr><td style="border:1px solid #e5e7eb;padding:12px;">Cell</td><td style="border:1px solid #e5e7eb;padding:12px;">Cell</td></tr></table>' },
-    { key: 'tr', label: 'Row', snippet: '<tr><td style="border:1px solid #e5e7eb;padding:12px;">Cell 1</td><td style="border:1px solid #e5e7eb;padding:12px;">Cell 2</td></tr>' },
-    { key: 'td', label: 'Cell', snippet: '<td style="border:1px solid #e5e7eb;padding:12px;">Cell</td>' },
-    { key: 'p', label: 'Paragraph', snippet: '<p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#111827;">Your text</p>' },
-    { key: 'div', label: 'Div', snippet: '<div style="padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">Container</div>' },
-    { key: 'span', label: 'Span', snippet: '<span style="color:#111827;">Inline text</span>' },
-    { key: 'strong', label: 'Bold', snippet: '<strong>Bold text</strong>' },
-    { key: 'em', label: 'Italic', snippet: '<em>Italic text</em>' },
-    { key: 'h2', label: 'Heading', snippet: '<h2 style="margin:0 0 12px 0;font-size:20px;font-weight:700;color:#111827;">Heading</h2>' },
-    { key: 'hr', label: 'Divider', snippet: '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />' },
-    { key: 'image', label: 'Image', snippet: '__IMAGE__' },
-  ];
 
 
   // Fetch comments
@@ -214,70 +195,6 @@ export default function PreviewPageClient({ html, shareToken }: PreviewPageClien
       fetchComments();
     }
   }, [shareToken, fetchComments]);
-
-  useEffect(() => {
-    setEditableHtml(html || '<!doctype html><html><body></body></html>');
-  }, [html]);
-
-  const injectSnippet = useCallback((snippet: string) => {
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(editableHtml || '<!doctype html><html><body></body></html>', 'text/html');
-      const wrapper = doc.createElement('div');
-      wrapper.innerHTML = snippet.trim();
-      const node = wrapper.firstElementChild || wrapper;
-      doc.body.appendChild(node.cloneNode(true));
-      setEditableHtml('<!doctype html>' + doc.documentElement.outerHTML);
-    } catch (error) {
-      console.error('Failed to inject snippet:', error);
-    }
-  }, [editableHtml]);
-
-  const handleDropOnCanvas = useCallback((snippet?: string) => {
-    const value = snippet || draggingSnippet;
-    setIsOverCanvas(false);
-    if (!value) return;
-
-    if (value === '__IMAGE__') {
-      const url = window.prompt('Paste an image URL or leave blank to upload a file');
-      if (url && url.trim()) {
-        injectSnippet(`<img src="${url.trim()}" alt="Image" style="max-width:100%;display:block;" />`);
-        return;
-      }
-      fileInputRef.current?.click();
-      return;
-    }
-
-    injectSnippet(value);
-  }, [draggingSnippet, injectSnippet]);
-
-  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingImage(true);
-      const form = new FormData();
-      form.append('file', file);
-      form.append('shareToken', shareToken);
-      const res = await fetch('/api/uploads/images', {
-        method: 'POST',
-        body: form,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.error || 'Upload failed');
-      }
-      injectSnippet(`<img src="${data.url}" alt="Uploaded image" style="max-width:100%;display:block;" />`);
-    } catch (error: any) {
-      alert(error?.message || 'Image upload failed');
-    } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  }, [injectSnippet, shareToken]);
 
   // Initialize timeline height when shown
   useEffect(() => {
@@ -868,7 +785,7 @@ export default function PreviewPageClient({ html, shareToken }: PreviewPageClien
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [comments, deletedComments, resolvedComments, hoveredComment, user, token, editableHtml, deleteCommentDirectly, previewZoom, showAllComments, getAllComments]);
+  }, [comments, deletedComments, resolvedComments, hoveredComment, user, token, html, deleteCommentDirectly, previewZoom, showAllComments, getAllComments]);
 
   // Get element selector at a point
   const getElementSelector = useCallback((iframe: HTMLIFrameElement, x: number, y: number): string | null => {
@@ -1181,13 +1098,6 @@ export default function PreviewPageClient({ html, shareToken }: PreviewPageClien
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-        <div className="bg-indigo-50 border border-indigo-100 text-sm text-gray-700 rounded-lg px-4 py-3 flex items-start gap-2">
-          <span className="text-indigo-600 font-semibold">Tip:</span>
-          <span>Drag components from the bottom toolbar into the preview. Drop the Image chip to paste a URL or upload a file. You can still zoom, switch device sizes, and add comments while building.</span>
-        </div>
-      </div>
-
       {/* Preview Content */}
       <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ height: 'calc(100vh - 200px)', position: 'relative' }}>
         <div className="flex justify-center relative" style={{ height: '100%', position: 'relative' }}>
@@ -1380,18 +1290,7 @@ export default function PreviewPageClient({ html, shareToken }: PreviewPageClien
             </div>
           )}
           
-          <div
-            className="flex-1"
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsOverCanvas(true);
-            }}
-            onDragLeave={() => setIsOverCanvas(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              handleDropOnCanvas();
-            }}
-          >
+          <div className="flex-1">
             <div
               ref={previewContainerRef}
               className={`bg-white rounded-lg shadow-lg overflow-visible m-auto border border-gray-200 relative ${
@@ -1408,14 +1307,9 @@ export default function PreviewPageClient({ html, shareToken }: PreviewPageClien
                 height: previewMode === 'mobile' ? '667px' : previewMode === 'tablet' ? '1024px' : '800px',
                 minHeight: '400px',
               }}>
-                {isOverCanvas && (
-                  <div className="absolute inset-0 bg-indigo-50/80 border-2 border-dashed border-indigo-400 rounded-lg z-20 flex items-center justify-center text-indigo-700 text-sm font-medium">
-                    Drop to insert this element into the email body
-                  </div>
-                )}
                 <iframe
                   ref={iframeRef}
-                  srcDoc={editableHtml}
+                  srcDoc={html || '<!doctype html><html><body></body></html>'}
                   className="w-full h-full border-0"
                   style={{
                     height: '100%',
@@ -1497,41 +1391,6 @@ export default function PreviewPageClient({ html, shareToken }: PreviewPageClien
           </div>
         </div>
       )}
-
-      {/* Drag & Drop Toolbar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-gray-600 mr-2">Drag components into the preview:</span>
-          {DRAG_ITEMS.map(item => (
-            <button
-              key={item.key}
-              draggable
-              onDragStart={() => setDraggingSnippet(item.snippet)}
-              onDragEnd={() => setDraggingSnippet(null)}
-              onClick={() => handleDropOnCanvas(item.snippet)}
-              className="px-3 py-1.5 text-xs font-medium rounded-full border border-gray-200 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-300 text-gray-700 transition-colors"
-              title={`Drag or click to add a ${item.label.toLowerCase()}`}
-            >
-              {item.label}
-            </button>
-          ))}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="ml-auto px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-60"
-            disabled={uploadingImage}
-            title="Upload an image to insert into the email"
-          >
-            {uploadingImage ? 'Uploading…' : 'Upload Image'}
-          </button>
-        </div>
-      </div>
 
       {/* Delete Comment Confirmation Dialog */}
       <ConfirmDialog
