@@ -2,3 +2,6 @@
 2025-12-16 19:23:32 +00:00:  ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
 2025-12-16 19:41:29 +00:00:  ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
 2025-12-16 19:46:26 +00:00:  ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+2025-12-19 19:32:54 +00:00:  ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+2025-12-19 19:37:35 +00:00: (node:2473172) [MONGOOSE] Warning: Duplicate schema index on {"shareToken":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+2025-12-19 19:37:35 +00:00: (Use `node --trace-warnings ...` to show where the warning was created)
