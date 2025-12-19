@@ -31,6 +31,9 @@ import {
   Send,
   Save,
   X,
+  Settings,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 const API_URL = '/api';
@@ -126,7 +129,7 @@ export default function ToolPage() {
   const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'split'>('split');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [previewMode, setPreviewMode] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
-  const [previewZoom, setPreviewZoom] = useState(100); // Zoom percentage
+  const [previewZoom, setPreviewZoom] = useState(75); // Zoom percentage
   const [splitPosition, setSplitPosition] = useState(50); // Percentage
   const [isResizing, setIsResizing] = useState(false);
   const [draggingSnippet, setDraggingSnippet] = useState<string | null>(null);
@@ -163,6 +166,10 @@ export default function ToolPage() {
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(-1);
   const [templateSearch, setTemplateSearch] = useState('');
   const [showTemplateSuggestions, setShowTemplateSuggestions] = useState(false);
+  const [sidebarSearch, setSidebarSearch] = useState('');
+  const [showSidebarSearchSuggestions, setShowSidebarSearchSuggestions] = useState(false);
+  const [highlightedSidebarIndex, setHighlightedSidebarIndex] = useState(-1);
+  const [showSearchBar, setShowSearchBar] = useState(true);
   const [highlightedTemplateIndex, setHighlightedTemplateIndex] = useState(-1);
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -207,7 +214,23 @@ export default function ToolPage() {
   const [showCssEditModal, setShowCssEditModal] = useState(false);
   const [cssEditInput, setCssEditInput] = useState('');
   const [targetCssSelector, setTargetCssSelector] = useState<string | null>(null);
+  const [showTableColumnsModal, setShowTableColumnsModal] = useState(false);
+  const [tableColumnsInput, setTableColumnsInput] = useState('2');
+  const [tableDropContext, setTableDropContext] = useState<{ selector?: string; position?: 'before' | 'after' | 'inside' } | null>(null);
   const [targetCssTagName, setTargetCssTagName] = useState<string>('');
+  const [showTemplateStylingModal, setShowTemplateStylingModal] = useState(false);
+  const [templateStyling, setTemplateStyling] = useState({
+    backgroundColor: '#f2f4f7',
+    paddingTop: '',
+    paddingRight: '',
+    paddingBottom: '',
+    paddingLeft: '',
+    marginTop: '',
+    marginRight: '',
+    marginBottom: '',
+    marginLeft: '',
+  });
+  const [showNoTemplatePopup, setShowNoTemplatePopup] = useState(false);
   const [showAdvancedCss, setShowAdvancedCss] = useState(false);
   const [cssFields, setCssFields] = useState({
     paddingTop: '',
@@ -224,10 +247,10 @@ export default function ToolPage() {
     backgroundColor: '',
     color: '',
     borderSpacing: '',
-    cellSpacing: '',
-    cellPadding: '',
-    border: '',
-    borderWidth: '',
+    cellSpacing: '0',
+    cellPadding: '0',
+    border: '0',
+    borderWidth: '0',
     borderColor: '',
     borderStyle: '',
     borderCollapse: '',
@@ -245,6 +268,14 @@ export default function ToolPage() {
   // Cell placeholder - smaller version for table cells
   const CELL_PLACEHOLDER = '<div class="przio-placeholder przio-cell-placeholder" style="padding:12px 8px;border:1px dashed #c7d2fe;border-radius:4px;background-color:#f8fafc;text-align:center;"><p style="margin:0;font-size:11px;color:#9ca3af;">Drop here</p></div>';
 
+  // Helper function to generate table HTML with specified number of columns
+  const generateTableHTML = useCallback((numColumns: number): string => {
+    const columns = Array.from({ length: numColumns }, () => 
+      `<td style="border:0;padding:0;">${CELL_PLACEHOLDER}</td>`
+    ).join('');
+    return `<table cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;border:0;border-width:0;"><tr>${columns}</tr></table>`;
+  }, []);
+
   // Primary items shown in main toolbar, secondary items in dropdown
   const DRAG_ITEMS: Array<{
     key: string;
@@ -254,7 +285,7 @@ export default function ToolPage() {
     primary?: boolean;
   }> = [
     // Primary items (always visible)
-    { key: 'table', label: 'Table', snippet: `<table style="width:100%;border-collapse:collapse;"><tr><td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td><td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td></tr></table>`, icon: <Table size={16} />, primary: true },
+    { key: 'table', label: 'Table', snippet: '__TABLE__', icon: <Table size={16} />, primary: true },
     { key: 'div', label: 'Container', snippet: `<div style="padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;">${MINI_PLACEHOLDER}</div>`, icon: <LayoutGrid size={16} />, primary: true },
     { key: 'p', label: 'Paragraph', snippet: '<p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#111827;">Your paragraph text here</p>', icon: <Type size={16} />, primary: true },
     { key: 'h1', label: 'H1', snippet: '<h1 style="margin:0 0 16px 0;font-size:32px;font-weight:700;color:#111827;">Heading 1</h1>', icon: <Heading1 size={16} />, primary: true },
@@ -262,8 +293,8 @@ export default function ToolPage() {
     { key: 'a', label: 'Link', snippet: '<p style="margin:0 0 12px 0;"><a href="#" style="color:#4f46e5;text-decoration:underline;font-weight:500;">Click here</a></p>', icon: <Link2 size={16} />, primary: true },
     { key: 'button', label: 'Button', snippet: '<p style="margin:0 0 12px 0;text-align:center;"><a href="#" style="display:inline-block;padding:12px 24px;background:linear-gradient(90deg,#4f46e5,#0ea5e9);color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:14px;">Button Text</a></p>', icon: <MousePointerClick size={16} />, primary: true },
     { key: 'image', label: 'Image', snippet: '__IMAGE_PLACEHOLDER__', icon: <ImageIcon size={16} />, primary: true },
-    { key: 'tr', label: 'Row', snippet: `<tr><td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td><td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td></tr>`, icon: <Rows3 size={16} />, primary: true },
-    { key: 'td', label: 'Cell', snippet: `<td style="border:1px solid #e5e7eb;padding:12px;">${CELL_PLACEHOLDER}</td>`, icon: <Square size={16} />, primary: true },
+    { key: 'tr', label: 'Row', snippet: `<tr><td style="border:0;padding:0;">${CELL_PLACEHOLDER}</td><td style="border:0;padding:0;">${CELL_PLACEHOLDER}</td></tr>`, icon: <Rows3 size={16} />, primary: true },
+    { key: 'td', label: 'Cell', snippet: `<td style="border:0;padding:0;">${CELL_PLACEHOLDER}</td>`, icon: <Square size={16} />, primary: true },
     // Secondary items (in dropdown)
     { key: 'hr', label: 'Divider', snippet: '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;" />', icon: <Minus size={16} /> },
     { key: 'h3', label: 'H3', snippet: '<h3 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#111827;">Heading 3</h3>', icon: <Heading3 size={16} /> },
@@ -520,6 +551,72 @@ export default function ToolPage() {
       }
     } catch (error) {
       console.error('Failed to update style:', error);
+    }
+  }, [html]);
+
+  // Update main-email template styling
+  const updateMainEmailStyling = useCallback(() => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const mainEmailEl = doc.querySelector('.main-email');
+      
+      if (mainEmailEl) {
+        const style = (mainEmailEl as HTMLElement).style;
+        
+        // Set background color - update both bgcolor attribute and CSS style
+        if (templateStyling.backgroundColor) {
+          mainEmailEl.setAttribute('bgcolor', templateStyling.backgroundColor);
+          style.backgroundColor = templateStyling.backgroundColor;
+        }
+        
+        // Set padding
+        if (templateStyling.paddingTop) style.paddingTop = templateStyling.paddingTop;
+        if (templateStyling.paddingRight) style.paddingRight = templateStyling.paddingRight;
+        if (templateStyling.paddingBottom) style.paddingBottom = templateStyling.paddingBottom;
+        if (templateStyling.paddingLeft) style.paddingLeft = templateStyling.paddingLeft;
+        
+        // Set margin
+        if (templateStyling.marginTop) style.marginTop = templateStyling.marginTop;
+        if (templateStyling.marginRight) style.marginRight = templateStyling.marginRight;
+        if (templateStyling.marginBottom) style.marginBottom = templateStyling.marginBottom;
+        if (templateStyling.marginLeft) style.marginLeft = templateStyling.marginLeft;
+        
+        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+        setHtml(nextHtml);
+      }
+    } catch (error) {
+      console.error('Failed to update main-email styling:', error);
+    }
+  }, [html, templateStyling]);
+
+  // Load current main-email styles
+  const loadMainEmailStyles = useCallback(() => {
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
+      const mainEmailEl = doc.querySelector('.main-email');
+      
+      if (mainEmailEl) {
+        const style = (mainEmailEl as HTMLElement).style;
+        // Get bgcolor from attribute first, then fallback to CSS style, then default
+        const bgColor = mainEmailEl.getAttribute('bgcolor') || 
+                       style.backgroundColor || 
+                       '#f2f4f7';
+        setTemplateStyling({
+          backgroundColor: bgColor,
+          paddingTop: style.paddingTop || '',
+          paddingRight: style.paddingRight || '',
+          paddingBottom: style.paddingBottom || '',
+          paddingLeft: style.paddingLeft || '',
+          marginTop: style.marginTop || '',
+          marginRight: style.marginRight || '',
+          marginBottom: style.marginBottom || '',
+          marginLeft: style.marginLeft || '',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load main-email styles:', error);
     }
   }, [html]);
 
@@ -1434,6 +1531,13 @@ export default function ToolPage() {
           injectSnippet(IMAGE_PLACEHOLDER, selector, position);
           return;
         }
+        // Handle table - show modal to ask for number of columns
+        if (snippet === '__TABLE__') {
+          setTableColumnsInput('2');
+          setTableDropContext({ selector, position });
+          setShowTableColumnsModal(true);
+          return;
+        }
         injectSnippet(snippet, selector, position);
       } else if (e.data?.type === 'przio-element-selected') {
         setSelectedElement({ selector: e.data.selector, tagName: e.data.tagName });
@@ -1586,10 +1690,10 @@ export default function ToolPage() {
           backgroundColor: parseCssValue('background-color') || parseCssValue('background'),
           color: parseCssValue('color'),
           borderSpacing: parseCssValue('border-spacing'),
-          cellSpacing: e.data.cellSpacing || '',
-          cellPadding: e.data.cellPadding || '',
-          border: parseCssValue('border'),
-          borderWidth: parseCssValue('border-width'),
+          cellSpacing: e.data.cellSpacing || '0',
+          cellPadding: e.data.cellPadding || '0',
+          border: parseCssValue('border') || '0',
+          borderWidth: parseCssValue('border-width') || '0',
           borderColor: parseCssValue('border-color'),
           borderStyle: parseCssValue('border-style'),
           borderCollapse: parseCssValue('border-collapse'),
@@ -1610,7 +1714,7 @@ export default function ToolPage() {
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [injectSnippet, removeElement, moveElement, duplicateElement, updateTextContent, updateLinkHref, updateElementStyle, IMAGE_PLACEHOLDER, html]);
+  }, [injectSnippet, removeElement, moveElement, duplicateElement, updateTextContent, updateLinkHref, updateElementStyle, IMAGE_PLACEHOLDER, html, generateTableHTML]);
 
   // Setup iframe drag-drop when html changes
   useEffect(() => {
@@ -1626,6 +1730,12 @@ export default function ToolPage() {
     const value = snippet || draggingSnippet;
     setIsOverCanvas(false);
     if (!value) return;
+
+    // Check if template is selected before allowing drops
+    if (!selectedTemplate && !templateName.trim()) {
+      setShowNoTemplatePopup(true);
+      return;
+    }
 
     if (value === '__IMAGE__') {
       const url = window.prompt('Paste an image URL or leave blank to upload a file');
@@ -1644,8 +1754,16 @@ export default function ToolPage() {
       return;
     }
 
+    // Handle table - show modal to ask for number of columns
+    if (value === '__TABLE__') {
+      setTableColumnsInput('2');
+      setTableDropContext(null);
+      setShowTableColumnsModal(true);
+      return;
+    }
+
     injectSnippet(value);
-  }, [draggingSnippet, injectSnippet, IMAGE_PLACEHOLDER]);
+  }, [draggingSnippet, injectSnippet, IMAGE_PLACEHOLDER, selectedTemplate, templateName]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -2329,9 +2447,77 @@ export default function ToolPage() {
     return acc;
   }, {} as Record<string, Template[]>);
 
-  // Separate folders and templates without folders
-  const templatesWithoutFolder = groupedTemplates[''] || [];
-  const folderOrder = folders.map(f => f.name);
+  // Filter templates and folders based on sidebar search
+  const searchLower = sidebarSearch.toLowerCase().trim();
+  const filteredFolders = searchLower
+    ? folders.filter(folder => folder.name.toLowerCase().includes(searchLower))
+    : folders;
+  
+  const filteredGroupedTemplates = searchLower
+    ? Object.keys(groupedTemplates).reduce((acc, folder) => {
+        const folderMatches = folder.toLowerCase().includes(searchLower);
+        const filteredTemplates = groupedTemplates[folder].filter(t => 
+          t.name.toLowerCase().includes(searchLower)
+        );
+        if (folderMatches || filteredTemplates.length > 0) {
+          acc[folder] = folderMatches ? groupedTemplates[folder] : filteredTemplates;
+        }
+        return acc;
+      }, {} as Record<string, Template[]>)
+    : groupedTemplates;
+
+  // Separate folders and templates without folders (filtered)
+  const templatesWithoutFolder = filteredGroupedTemplates[''] || [];
+  const folderOrder = filteredFolders.map(f => f.name);
+
+  // Get search suggestions for dropdown
+  const getSidebarSearchSuggestions = () => {
+    if (!sidebarSearch.trim()) return [];
+    const searchLower = sidebarSearch.toLowerCase().trim();
+    const suggestions: Array<{ id: string; name: string; type: 'folder' | 'template'; folder?: string; template?: Template }> = [];
+    
+    // Add matching folders
+    filteredFolders.forEach(folder => {
+      suggestions.push({
+        id: `folder-${folder.name}`,
+        name: folder.name,
+        type: 'folder',
+      });
+    });
+    
+    // Add matching templates
+    Object.keys(filteredGroupedTemplates).forEach(folder => {
+      filteredGroupedTemplates[folder].forEach(template => {
+        suggestions.push({
+          id: `template-${template._id}`,
+          name: template.name,
+          type: 'template',
+          folder: folder || undefined,
+          template,
+        });
+      });
+    });
+    
+    return suggestions;
+  };
+
+  // Handle selecting a suggestion
+  const handleSelectSidebarSuggestion = (suggestion: { id: string; name: string; type: 'folder' | 'template'; folder?: string; template?: Template }) => {
+    if (suggestion.type === 'template' && suggestion.template) {
+      handleLoadTemplate(suggestion.template);
+      setSidebarSearch('');
+      setShowSidebarSearchSuggestions(false);
+      setHighlightedSidebarIndex(-1);
+    } else if (suggestion.type === 'folder') {
+      // Expand the folder and scroll to it
+      if (!expandedFolders.has(suggestion.name)) {
+        toggleFolder(suggestion.name);
+      }
+      setSidebarSearch('');
+      setShowSidebarSearchSuggestions(false);
+      setHighlightedSidebarIndex(-1);
+    }
+  };
 
   const handleShare = async () => {
     if (!html || !html.trim()) {
@@ -2499,7 +2685,7 @@ export default function ToolPage() {
         {!isFullscreen && (
           <div className="w-64 bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto">
             <div className="p-4">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-900">My Templates</h2>
                 <div className="flex items-center space-x-2">
                   <button
@@ -2521,6 +2707,93 @@ export default function ToolPage() {
                     </svg>
                   </button>
                 </div>
+              </div>
+              
+              {/* Search Bar - Compact with Suggestions */}
+              <div className="mb-3 relative">
+                <input
+                  type="text"
+                  value={sidebarSearch}
+                  onChange={(e) => {
+                    setSidebarSearch(e.target.value);
+                    setShowSidebarSearchSuggestions(e.target.value.trim().length > 0);
+                    setHighlightedSidebarIndex(-1);
+                  }}
+                  onFocus={() => {
+                    if (sidebarSearch.trim().length > 0) {
+                      setShowSidebarSearchSuggestions(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Delay to allow click on suggestion
+                    setTimeout(() => setShowSidebarSearchSuggestions(false), 200);
+                  }}
+                  onKeyDown={(e) => {
+                    const suggestions = getSidebarSearchSuggestions();
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setShowSidebarSearchSuggestions(true);
+                      setHighlightedSidebarIndex(prev => 
+                        prev < suggestions.length - 1 ? prev + 1 : prev
+                      );
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setHighlightedSidebarIndex(prev => prev > 0 ? prev - 1 : -1);
+                    } else if (e.key === 'Enter' && highlightedSidebarIndex >= 0) {
+                      e.preventDefault();
+                      handleSelectSidebarSuggestion(suggestions[highlightedSidebarIndex]);
+                    } else if (e.key === 'Escape') {
+                      setShowSidebarSearchSuggestions(false);
+                      setHighlightedSidebarIndex(-1);
+                    }
+                  }}
+                  placeholder="Search templates & folders..."
+                  className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                />
+                {/* Search Suggestions Dropdown */}
+                {showSidebarSearchSuggestions && sidebarSearch.trim().length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                    {getSidebarSearchSuggestions().length > 0 ? (
+                      getSidebarSearchSuggestions().map((suggestion, index) => (
+                        <div
+                          key={suggestion.id}
+                          onClick={() => handleSelectSidebarSuggestion(suggestion)}
+                          className={`px-3 py-2 cursor-pointer transition-colors ${
+                            highlightedSidebarIndex === index
+                              ? 'bg-indigo-50 border-l-2 border-indigo-500'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {suggestion.type === 'folder' ? (
+                              <svg className="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {suggestion.name}
+                              </div>
+                              {suggestion.type === 'template' && suggestion.folder && (
+                                <div className="text-xs text-gray-500 truncate">
+                                  in {suggestion.folder}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-3 py-4 text-sm text-gray-500 text-center">
+                        No matches found
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* New Folder Input */}
@@ -2596,9 +2869,9 @@ export default function ToolPage() {
                 ) : (
                   <>
                     {/* Folders with Accordion */}
-                    {folders.map((folder) => {
+                    {filteredFolders.map((folder) => {
                       const folderName = folder.name;
-                      const folderTemplates = groupedTemplates[folderName] || [];
+                      const folderTemplates = filteredGroupedTemplates[folderName] || [];
                       const isExpanded = expandedFolders.has(folderName);
                       const isDraggedOver = dragOverFolder === folderName;
 
@@ -2824,58 +3097,7 @@ export default function ToolPage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="bg-white flex flex-col h-full">
             {/* Toolbar */}
-            {!isFullscreen && (
-              <div className="border-b border-gray-200 p-4 flex-shrink-0">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex-1 flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={templateName}
-                      onChange={(e) => setTemplateName(e.target.value)}
-                      placeholder="Template name..."
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-                    />
-                    {(folders.length > 0 || selectedFolder) && (
-                      <div className="relative">
-                        <select
-                          value={selectedFolder}
-                          onChange={(e) => setSelectedFolder(e.target.value)}
-                          className="px-3 py-2 pr-8 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all appearance-none cursor-pointer hover:border-gray-400 shadow-sm"
-                        >
-                          <option value="">No Folder</option>
-                          {folders.map((folder) => (
-                            <option key={folder.name} value={folder.name}>
-                              {folder.name}
-                            </option>
-                          ))}
-                          {/* Show selected folder even if it's not in folders yet (newly created) */}
-                          {selectedFolder && !folders.some(f => f.name === selectedFolder) && (
-                            <option key={selectedFolder} value={selectedFolder}>
-                              {selectedFolder}
-                            </option>
-                          )}
-                        </select>
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    {lastSaved && !saving && (
-                      <div className="text-xs text-gray-500 flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Last saved {lastSaved.toLocaleTimeString()}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+         
 
             {/* Tabs */}
             {!isFullscreen && (
@@ -2972,7 +3194,13 @@ export default function ToolPage() {
                         <HTMLEditor
                           ref={htmlEditorRef}
                           value={html}
-                          onChange={(value) => setHtml(value || '')}
+                          onChange={(value) => {
+                            if (!selectedTemplate && !templateName.trim()) {
+                              setShowNoTemplatePopup(true);
+                              return; // Prevent editing if no template selected
+                            }
+                            setHtml(value || '');
+                          }}
                           isFullscreen={false}
                           onFullscreenChange={setIsFullscreen}
                         />
@@ -3114,7 +3342,7 @@ export default function ToolPage() {
                             <span>Drag components from the toolbar into this preview. Drop the Image chip to paste a URL or upload a file.</span>
                           </div>
                         </div>
-                        <div className="h-full flex items-center justify-center p-2">
+                        <div className="h-full flex items-center justify-center p-2 relative">
                           <div
                             className={`bg-white shadow-lg transition-all duration-300 relative ${
                               previewMode === 'mobile' ? 'w-[375px]' :
@@ -3153,10 +3381,21 @@ export default function ToolPage() {
                               style={{
                                 height: '100%',
                                 minHeight: previewMode === 'mobile' ? '667px' : previewMode === 'tablet' ? '1024px' : '100%',
-                                pointerEvents: 'auto',
+                                pointerEvents: (!selectedTemplate && !templateName.trim()) ? 'none' : 'auto',
                               }}
                             />
                           </div>
+                          {/* Settings Icon - Bottom Right */}
+                          <button
+                            onClick={() => {
+                              loadMainEmailStyles();
+                              setShowTemplateStylingModal(true);
+                            }}
+                            className="absolute bottom-4 right-4 w-12 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 z-30"
+                            title="Template Styling Settings"
+                          >
+                            <Settings size={20} />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -3165,7 +3404,13 @@ export default function ToolPage() {
                   <HTMLEditor
                     ref={htmlEditorRef}
                     value={html}
-                    onChange={(value) => setHtml(value || '')}
+                    onChange={(value) => {
+                      if (!selectedTemplate && !templateName.trim()) {
+                        setShowNoTemplatePopup(true);
+                        return; // Prevent editing if no template selected
+                      }
+                      setHtml(value || '');
+                    }}
                     isFullscreen={isFullscreen}
                     onFullscreenChange={setIsFullscreen}
                   />
@@ -3318,6 +3563,17 @@ export default function ToolPage() {
                               pointerEvents: 'auto',
                             }}
                           />
+                          {/* Settings Icon - Bottom Right */}
+                          <button
+                            onClick={() => {
+                              loadMainEmailStyles();
+                              setShowTemplateStylingModal(true);
+                            }}
+                            className="absolute bottom-4 right-4 w-12 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 z-30"
+                            title="Template Styling Settings"
+                          >
+                            <Settings size={20} />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -3329,7 +3585,7 @@ export default function ToolPage() {
       </div>
 
       {/* Compact Drag & Drop Toolbar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
+      <div className="bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
         <div className="max-w-7xl mx-auto px-3 py-2">
           <div className="flex items-center gap-1">
             {/* Primary Tool Icons */}
@@ -3551,39 +3807,54 @@ export default function ToolPage() {
                       {/* Dropdown Menu */}
                       {showTemplateDropdown && (
                         <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-96 overflow-hidden flex flex-col">
-                          {/* Search Input */}
-                          <div className="p-3 border-b border-gray-200 bg-gray-50">
-                            <input
-                              type="text"
-                              value={templateSearch}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                setTemplateSearch(e.target.value);
-                                setHighlightedTemplateIndex(-1);
-                              }}
-                              onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                                const searchLower = templateSearch.toLowerCase();
-                                const filtered = templates.filter(t => 
-                                  t.name.toLowerCase().includes(searchLower) ||
-                                  (t.folder || '').toLowerCase().includes(searchLower)
-                                );
-                                
-                                if (e.key === 'ArrowDown') {
-                                  e.preventDefault();
-                                  setHighlightedTemplateIndex(prev => 
-                                    prev < filtered.length - 1 ? prev + 1 : prev
-                                  );
-                                } else if (e.key === 'ArrowUp') {
-                                  e.preventDefault();
-                                  setHighlightedTemplateIndex(prev => prev > 0 ? prev - 1 : -1);
-                                } else if (e.key === 'Enter' && highlightedTemplateIndex >= 0) {
-                                  e.preventDefault();
-                                  handleSelectTemplateSuggestion(filtered[highlightedTemplateIndex]);
-                                }
-                              }}
-                              placeholder="Search templates..."
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                              autoFocus
-                            />
+                          {/* Search Input with Toggle */}
+                          <div className="border-b border-gray-200 bg-gray-50">
+                            <div className="flex items-center gap-1.5 px-2 py-1.5">
+                              <button
+                                onClick={() => setShowSearchBar(!showSearchBar)}
+                                className="p-1.5 bg-white border border-gray-300 hover:bg-gray-100 hover:border-gray-400 rounded transition-colors flex-shrink-0 shadow-sm"
+                                title={showSearchBar ? "Hide search" : "Show search"}
+                              >
+                                {showSearchBar ? (
+                                  <ChevronUp size={18} className="text-gray-700" />
+                                ) : (
+                                  <ChevronDown size={18} className="text-gray-700" />
+                                )}
+                              </button>
+                              {showSearchBar && (
+                                <input
+                                  type="text"
+                                  value={templateSearch}
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                    setTemplateSearch(e.target.value);
+                                    setHighlightedTemplateIndex(-1);
+                                  }}
+                                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                                    const searchLower = templateSearch.toLowerCase();
+                                    const filtered = templates.filter(t => 
+                                      t.name.toLowerCase().includes(searchLower) ||
+                                      (t.folder || '').toLowerCase().includes(searchLower)
+                                    );
+                                    
+                                    if (e.key === 'ArrowDown') {
+                                      e.preventDefault();
+                                      setHighlightedTemplateIndex(prev => 
+                                        prev < filtered.length - 1 ? prev + 1 : prev
+                                      );
+                                    } else if (e.key === 'ArrowUp') {
+                                      e.preventDefault();
+                                      setHighlightedTemplateIndex(prev => prev > 0 ? prev - 1 : -1);
+                                    } else if (e.key === 'Enter' && highlightedTemplateIndex >= 0) {
+                                      e.preventDefault();
+                                      handleSelectTemplateSuggestion(filtered[highlightedTemplateIndex]);
+                                    }
+                                  }}
+                                  placeholder="Search templates..."
+                                  className="flex-1 px-2 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-xs"
+                                  autoFocus
+                                />
+                              )}
+                            </div>
                           </div>
 
                           {/* Template List */}
@@ -4369,6 +4640,336 @@ export default function ToolPage() {
                 className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Update Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Table Columns Modal */}
+      {showTableColumnsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-500 to-purple-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Table className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">Create Table</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowTableColumnsModal(false);
+                    setTableColumnsInput('2');
+                    setTableDropContext(null);
+                  }}
+                  className="text-white/80 hover:text-white transition-colors p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-gray-600 mb-4">
+                Enter the number of columns you want in the table.
+              </p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Number of Columns
+                  </label>
+                  <input
+                    type="number"
+                    value={tableColumnsInput}
+                    onChange={(e) => setTableColumnsInput(e.target.value)}
+                    placeholder="2"
+                    min="1"
+                    max="20"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-lg"
+                    autoFocus
+                  />
+                  <p className="text-xs text-gray-400 mt-2">Enter a number between 1 and 20</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowTableColumnsModal(false);
+                  setTableColumnsInput('2');
+                  setTableDropContext(null);
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const numColumns = parseInt(tableColumnsInput, 10);
+                  if (isNaN(numColumns) || numColumns < 1 || numColumns > 20) {
+                    window.alert('Please enter a valid number between 1 and 20');
+                    return;
+                  }
+                  
+                  const tableHTML = generateTableHTML(numColumns);
+                  
+                  if (tableDropContext?.selector) {
+                    injectSnippet(tableHTML, tableDropContext.selector, tableDropContext.position);
+                  } else {
+                    injectSnippet(tableHTML);
+                  }
+                  
+                  setShowTableColumnsModal(false);
+                  setTableColumnsInput('2');
+                  setTableDropContext(null);
+                }}
+                disabled={!tableColumnsInput.trim()}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create Table
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Styling Modal */}
+      {showTemplateStylingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-500 to-pink-600 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Template Styling</h2>
+                    <p className="text-xs text-white/80">Customize main-email class template</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowTemplateStylingModal(false)}
+                  className="text-white/80 hover:text-white transition-colors p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-5 flex-1 overflow-y-auto">
+              <div className="space-y-6">
+                {/* Background Color */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Background Color
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      value={templateStyling.backgroundColor}
+                      onChange={(e) => setTemplateStyling({ ...templateStyling, backgroundColor: e.target.value })}
+                      className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={templateStyling.backgroundColor}
+                      onChange={(e) => setTemplateStyling({ ...templateStyling, backgroundColor: e.target.value })}
+                      placeholder="#f2f4f7"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Padding */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Padding</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div>
+                      <span className="text-xs text-gray-400 block mb-1">Top</span>
+                      <input
+                        type="text"
+                        value={templateStyling.paddingTop}
+                        onChange={(e) => setTemplateStyling({ ...templateStyling, paddingTop: e.target.value })}
+                        placeholder="0px"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block mb-1">Right</span>
+                      <input
+                        type="text"
+                        value={templateStyling.paddingRight}
+                        onChange={(e) => setTemplateStyling({ ...templateStyling, paddingRight: e.target.value })}
+                        placeholder="0px"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block mb-1">Bottom</span>
+                      <input
+                        type="text"
+                        value={templateStyling.paddingBottom}
+                        onChange={(e) => setTemplateStyling({ ...templateStyling, paddingBottom: e.target.value })}
+                        placeholder="0px"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block mb-1">Left</span>
+                      <input
+                        type="text"
+                        value={templateStyling.paddingLeft}
+                        onChange={(e) => setTemplateStyling({ ...templateStyling, paddingLeft: e.target.value })}
+                        placeholder="0px"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Margin */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Margin</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div>
+                      <span className="text-xs text-gray-400 block mb-1">Top</span>
+                      <input
+                        type="text"
+                        value={templateStyling.marginTop}
+                        onChange={(e) => setTemplateStyling({ ...templateStyling, marginTop: e.target.value })}
+                        placeholder="0px"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block mb-1">Right</span>
+                      <input
+                        type="text"
+                        value={templateStyling.marginRight}
+                        onChange={(e) => setTemplateStyling({ ...templateStyling, marginRight: e.target.value })}
+                        placeholder="0px"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block mb-1">Bottom</span>
+                      <input
+                        type="text"
+                        value={templateStyling.marginBottom}
+                        onChange={(e) => setTemplateStyling({ ...templateStyling, marginBottom: e.target.value })}
+                        placeholder="0px"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400 block mb-1">Left</span>
+                      <input
+                        type="text"
+                        value={templateStyling.marginLeft}
+                        onChange={(e) => setTemplateStyling({ ...templateStyling, marginLeft: e.target.value })}
+                        placeholder="0px"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3 flex-shrink-0">
+              <button
+                onClick={() => setShowTemplateStylingModal(false)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  updateMainEmailStyling();
+                  setShowTemplateStylingModal(false);
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium"
+              >
+                Apply Styles
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* No Template Popup */}
+      {showNoTemplatePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-amber-500 to-orange-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-lg font-semibold text-white">No Template Selected</h2>
+                </div>
+                <button
+                  onClick={() => setShowNoTemplatePopup(false)}
+                  className="text-white/80 hover:text-white transition-colors p-1"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <div className="text-center mb-6">
+                <p className="text-gray-600 text-lg mb-4">
+                  You haven&apos;t selected or created a template yet
+                </p>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
+                <p className="text-gray-700 text-base leading-relaxed mb-4">
+                  To start editing your email template, you need to either:
+                </p>
+                <ul className="space-y-3 text-left">
+                  <li className="flex items-start">
+                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 mt-0.5">1</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">Create a New Template</p>
+                      <p className="text-gray-600 text-sm">Click the &quot;New Template&quot; button in the sidebar to create a fresh email template from scratch</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="flex-shrink-0 w-6 h-6 bg-indigo-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3 mt-0.5">2</span>
+                    <div>
+                      <p className="font-semibold text-gray-900">Select an Existing Template</p>
+                      <p className="text-gray-600 text-sm">Browse your saved templates in the sidebar and click on one to load and edit it</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-gray-500 mb-4">
+                  Once you&apos;ve created or selected a template, you&apos;ll be able to use the visual editor and code editor to customize your email design.
+                </p>
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Your changes will be saved automatically once a template is selected</span>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setShowNoTemplatePopup(false)}
+                className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-lg hover:from-amber-700 hover:to-orange-700 transition-all font-medium"
+              >
+                Got it
               </button>
             </div>
           </div>
