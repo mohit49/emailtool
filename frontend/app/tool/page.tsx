@@ -4104,6 +4104,7 @@ export default function ToolPage() {
                 {imageUrlInput && (
                   <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                     <p className="text-xs text-gray-500 mb-2">Preview:</p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img 
                       src={imageUrlInput} 
                       alt="Preview" 

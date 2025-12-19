@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
-import Editor from '@monaco-editor/react';
+import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import Editor, { Monaco } from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 
 interface HTMLEditorProps {
   value: string;
@@ -10,8 +11,15 @@ interface HTMLEditorProps {
   onFullscreenChange: (fullscreen: boolean) => void;
 }
 
-export default function HTMLEditor({ value, onChange, isFullscreen, onFullscreenChange }: HTMLEditorProps) {
+export interface HTMLEditorRef {
+  highlightRange: (startLine: number, startCol: number, endLine: number, endCol: number) => void;
+  clearHighlights: () => void;
+}
+
+const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange, isFullscreen, onFullscreenChange }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const monacoEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const decorationsRef = useRef<string[]>([]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -35,6 +43,45 @@ export default function HTMLEditor({ value, onChange, isFullscreen, onFullscreen
     };
   }, [isFullscreen]);
 
+  useImperativeHandle(ref, () => ({
+    highlightRange: (startLine: number, startCol: number, endLine: number, endCol: number) => {
+      if (monacoEditorRef.current) {
+        const editor = monacoEditorRef.current;
+        const model = editor.getModel();
+        if (model) {
+          // Clear existing decorations
+          decorationsRef.current = editor.deltaDecorations(decorationsRef.current, []);
+          
+          // Add new decoration
+          const range = {
+            startLineNumber: startLine,
+            startColumn: startCol,
+            endLineNumber: endLine,
+            endColumn: endCol,
+          };
+          
+          decorationsRef.current = editor.deltaDecorations([], [
+            {
+              range,
+              options: {
+                inlineClassName: 'bg-yellow-200',
+                hoverMessage: { value: 'Selected element' },
+              },
+            },
+          ]);
+          
+          // Scroll to the range
+          editor.revealRangeInCenter(range);
+        }
+      }
+    },
+    clearHighlights: () => {
+      if (monacoEditorRef.current) {
+        decorationsRef.current = monacoEditorRef.current.deltaDecorations(decorationsRef.current, []);
+      }
+    },
+  }));
+
   return (
     <div
       ref={editorRef}
@@ -57,6 +104,9 @@ export default function HTMLEditor({ value, onChange, isFullscreen, onFullscreen
           defaultLanguage="html"
           value={value}
           onChange={onChange}
+          onMount={(editor, monaco) => {
+            monacoEditorRef.current = editor;
+          }}
           theme="vs-dark"
           loading={
             <div className="flex items-center justify-center h-full">
@@ -100,5 +150,9 @@ export default function HTMLEditor({ value, onChange, isFullscreen, onFullscreen
       </div>
     </div>
   );
-}
+});
+
+HTMLEditor.displayName = 'HTMLEditor';
+
+export default HTMLEditor;
 
