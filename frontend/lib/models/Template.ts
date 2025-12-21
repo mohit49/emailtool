@@ -8,6 +8,7 @@ interface ITemplate extends Document {
   folder?: string;
   isDefault?: boolean;
   defaultTemplateId?: mongoose.Types.ObjectId;
+  customTemplateId?: string; // User-defined custom template ID (unique within project)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +42,10 @@ const templateSchema = new Schema<ITemplate>({
   defaultTemplateId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'DefaultTemplate',
+  },
+  customTemplateId: {
+    type: String,
+    default: '',
   },
   createdAt: {
     type: Date,

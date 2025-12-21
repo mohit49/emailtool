@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const { name, html, folder, isDefault, defaultTemplateId, projectId } = await req.json();
+    const { name, html, folder, isDefault, defaultTemplateId, projectId, customTemplateId } = await req.json();
 
     if (!name || !html) {
       return NextResponse.json(
@@ -102,12 +102,11 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = new mongoose.Types.ObjectId(auth.userId);
+    const projectIdObj = projectId ? new mongoose.Types.ObjectId(projectId) : null;
 
     // If projectId is provided, verify access and role
     if (projectId) {
-      const projId = new mongoose.Types.ObjectId(projectId);
-      
-      const project = await Project.findById(projId);
+      const project = await Project.findById(projectIdObj);
       if (!project) {
         return NextResponse.json(
           { error: 'Project not found' },
@@ -116,7 +115,7 @@ export async function POST(req: NextRequest) {
       }
 
       const isCreator = project.createdBy.toString() === userId.toString();
-      const member = await ProjectMember.findOne({ userId, projectId: projId });
+      const member = await ProjectMember.findOne({ userId, projectId: projectIdObj });
 
       if (!isCreator && !member) {
         return NextResponse.json(
@@ -134,14 +133,31 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Validate customTemplateId uniqueness within project
+    if (customTemplateId && customTemplateId.trim()) {
+      const trimmedCustomId = customTemplateId.trim();
+      const existingTemplate = await Template.findOne({
+        customTemplateId: trimmedCustomId,
+        projectId: projectIdObj,
+      });
+      
+      if (existingTemplate) {
+        return NextResponse.json(
+          { error: `Template ID "${trimmedCustomId}" already exists in this project. Please use a unique template ID.` },
+          { status: 400 }
+        );
+      }
+    }
+
     const template = new Template({
       userId,
-      projectId: projectId ? new mongoose.Types.ObjectId(projectId) : undefined,
+      projectId: projectIdObj || undefined,
       name: name.trim(),
       html,
       folder: folder?.trim() || undefined,
       isDefault: isDefault || false,
       defaultTemplateId: defaultTemplateId || undefined,
+      customTemplateId: customTemplateId?.trim() || undefined,
     });
 
     await template.save();

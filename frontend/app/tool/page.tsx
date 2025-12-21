@@ -108,6 +108,7 @@ interface Template {
   folder?: string;
   isDefault?: boolean;
   defaultTemplateId?: string;
+  customTemplateId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -122,6 +123,7 @@ export default function ToolPage() {
   const [checkingProject, setCheckingProject] = useState(true);
   const [html, setHtml] = useState(defaultHtmlTemplate);
   const [templateName, setTemplateName] = useState('');
+  const [customTemplateId, setCustomTemplateId] = useState('');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -2068,7 +2070,13 @@ export default function ToolPage() {
         // Update existing template
         await axios.put(
           `${API_URL}/templates/${selectedTemplate}`,
-          { name: templateName, html, folder: selectedFolder || undefined, projectId: projectId || undefined },
+          { 
+            name: templateName, 
+            html, 
+            folder: selectedFolder || undefined, 
+            projectId: projectId || undefined,
+            customTemplateId: customTemplateId.trim() || undefined
+          },
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
@@ -2080,13 +2088,18 @@ export default function ToolPage() {
             html, 
             folder: selectedFolder || undefined,
             isDefault: false,
-            projectId: projectId || undefined
+            projectId: projectId || undefined,
+            customTemplateId: customTemplateId.trim() || undefined
           },
           { headers: { Authorization: `Bearer ${token}` } }
         );
         // Update selectedTemplate after creating
         if (response.data.template) {
           setSelectedTemplate(response.data.template._id);
+          // Load customTemplateId if it was saved
+          if (response.data.template.customTemplateId) {
+            setCustomTemplateId(response.data.template.customTemplateId);
+          }
         }
       }
       await fetchTemplates();
@@ -2119,6 +2132,7 @@ export default function ToolPage() {
   const handleLoadTemplate = (template: Template) => {
     setHtml(template.html);
     setTemplateName(template.name);
+    setCustomTemplateId(template.customTemplateId || '');
     setSelectedTemplate(template._id);
     setOriginalHtml(template.html);
     setOriginalTemplateName(template.name);
@@ -2310,6 +2324,7 @@ export default function ToolPage() {
     if (newPageName.trim()) {
       setTemplateName(newPageName.trim());
       setHtml(defaultHtmlTemplate);
+      setCustomTemplateId('');
       setSelectedTemplate(null);
       setOriginalHtml(defaultHtmlTemplate);
       setOriginalTemplateName('');
@@ -2568,7 +2583,8 @@ export default function ToolPage() {
 
   const handleCopyTemplateId = () => {
     if (selectedTemplate) {
-      navigator.clipboard.writeText(selectedTemplate);
+      const idToCopy = customTemplateId || selectedTemplate;
+      navigator.clipboard.writeText(idToCopy);
       setAlert({
         isOpen: true,
         message: 'Template ID copied to clipboard!',
@@ -2617,6 +2633,7 @@ export default function ToolPage() {
   const handleNewTemplate = () => {
     setHtml(defaultHtmlTemplate);
     setTemplateName('');
+    setCustomTemplateId('');
     setSelectedTemplate(null);
     setOriginalHtml(defaultHtmlTemplate);
     setOriginalTemplateName('');
@@ -3137,19 +3154,30 @@ export default function ToolPage() {
                   </div>
                   <div className="flex items-center space-x-3 mr-[10px]">
                     {selectedTemplate && (
-                      <div className="flex items-center space-x-2 bg-gray-200 px-2 py-1 rounded">
-                        <span className="text-xs text-gray-500 font-mono">
-                          Template ID: {selectedTemplate}
-                        </span>
-                        <button
-                          onClick={handleCopyTemplateId}
-                          className="p-1 text-gray-500 hover:text-indigo-600 hover:bg-gray-300 rounded transition-colors"
-                          title="Copy Template ID"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        </button>
+                      <div className="flex items-center space-x-2">
+                        <label htmlFor="templateIdInput" className="text-xs text-gray-500 font-medium whitespace-nowrap">
+                          Template ID:
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="templateIdInput"
+                            type="text"
+                            value={customTemplateId || selectedTemplate}
+                            onChange={(e) => setCustomTemplateId(e.target.value)}
+                            placeholder={selectedTemplate}
+                            className="px-2 py-1 pr-6 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-mono bg-white min-w-[120px] max-w-[200px]"
+                            title="Custom template ID (must be unique within project). Leave empty to use default MongoDB ID."
+                          />
+                          <button
+                            onClick={handleCopyTemplateId}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded transition-colors"
+                            title="Copy Template ID"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     )}
                     {activeTab === 'editor' && !isFullscreen && (

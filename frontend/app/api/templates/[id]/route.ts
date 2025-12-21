@@ -86,7 +86,7 @@ export async function PUT(
     await connectDB();
 
     const userId = new mongoose.Types.ObjectId(auth.userId);
-    const { name, html, folder, projectId } = await req.json();
+    const { name, html, folder, projectId, customTemplateId } = await req.json();
     
     const template = await Template.findById(params.id);
     if (!template) {
@@ -133,12 +133,34 @@ export async function PUT(
       }
     }
 
+    // Validate customTemplateId uniqueness within project (if being updated)
+    if (customTemplateId !== undefined && customTemplateId && customTemplateId.trim()) {
+      const trimmedCustomId = customTemplateId.trim();
+      const projectIdForQuery = template.projectId || (projectId ? new mongoose.Types.ObjectId(projectId) : null);
+      
+      const existingTemplate = await Template.findOne({
+        customTemplateId: trimmedCustomId,
+        projectId: projectIdForQuery,
+        _id: { $ne: params.id }, // Exclude current template
+      });
+      
+      if (existingTemplate) {
+        return NextResponse.json(
+          { error: `Template ID "${trimmedCustomId}" already exists in this project. Please use a unique template ID.` },
+          { status: 400 }
+        );
+      }
+    }
+
     const updateData: any = {};
     if (name) updateData.name = name.trim();
     if (html) updateData.html = html;
     if (folder !== undefined) updateData.folder = folder?.trim() || undefined;
     if (projectId !== undefined) {
       updateData.projectId = projectId ? new mongoose.Types.ObjectId(projectId) : null;
+    }
+    if (customTemplateId !== undefined) {
+      updateData.customTemplateId = customTemplateId?.trim() || undefined;
     }
 
     const updatedTemplate = await Template.findByIdAndUpdate(
