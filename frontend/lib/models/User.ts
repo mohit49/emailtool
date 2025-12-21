@@ -9,6 +9,8 @@ interface IUser extends Document {
   emailVerified: boolean;
   verificationToken?: string;
   verificationTokenExpiry?: Date;
+  resetToken?: string;
+  resetTokenExpiry?: Date;
   role: 'user' | 'admin';
   createdAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -44,6 +46,12 @@ const userSchema = new Schema<IUser>({
     type: String,
   },
   verificationTokenExpiry: {
+    type: Date,
+  },
+  resetToken: {
+    type: String,
+  },
+  resetTokenExpiry: {
     type: Date,
   },
   role: {

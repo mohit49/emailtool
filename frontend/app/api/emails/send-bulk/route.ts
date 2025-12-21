@@ -67,12 +67,11 @@ export async function POST(req: NextRequest) {
     if (finalTemplateId) {
       const templateQuery: any = { _id: finalTemplateId };
       if (auth.type === 'api_key' && projectId) {
-        // For API key auth, check projectId
         templateQuery.projectId = new mongoose.Types.ObjectId(projectId);
       } else {
-        // For regular auth, check userId
         templateQuery.userId = new mongoose.Types.ObjectId(auth.userId);
       }
+      
       const template = await Template.findOne(templateQuery);
       if (template) {
         templateName = template.name;
