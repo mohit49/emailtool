@@ -62,19 +62,49 @@ export async function POST(req: NextRequest) {
     let finalTemplateId = templateId || (projectDefaults.defaultTemplateId?.toString());
     let finalHtml = html;
     let templateName: string | undefined;
+    let templateMongoId: mongoose.Types.ObjectId | undefined; // Store the actual MongoDB _id for email history
 
     // Get template info if templateId is provided or using default
     if (finalTemplateId) {
-      const templateQuery: any = { _id: finalTemplateId };
-      if (auth.type === 'api_key' && projectId) {
-        templateQuery.projectId = new mongoose.Types.ObjectId(projectId);
-      } else {
-        templateQuery.userId = new mongoose.Types.ObjectId(auth.userId);
+      let template: any;
+      const isObjectId = mongoose.Types.ObjectId.isValid(finalTemplateId);
+
+      if (isObjectId) {
+        // Try to find by MongoDB _id
+        const templateQuery: any = { _id: finalTemplateId };
+        if (auth.type === 'api_key' && projectId) {
+          templateQuery.projectId = new mongoose.Types.ObjectId(projectId);
+        } else {
+          templateQuery.userId = new mongoose.Types.ObjectId(auth.userId);
+        }
+        template = await Template.findOne(templateQuery);
       }
-      
-      const template = await Template.findOne(templateQuery);
+
+      if (!template && !isObjectId) {
+        // If not found by _id or not an ObjectId, try to find by customTemplateId
+        const customTemplateQuery: any = { customTemplateId: finalTemplateId };
+        if (auth.type === 'api_key' && projectId) {
+          customTemplateQuery.projectId = new mongoose.Types.ObjectId(projectId);
+        } else {
+          customTemplateQuery.userId = new mongoose.Types.ObjectId(auth.userId);
+        }
+        template = await Template.findOne(customTemplateQuery);
+      }
+
+      if (!template && isObjectId) {
+        // If not found by _id, also try customTemplateId as fallback
+        const fallbackQuery: any = { customTemplateId: finalTemplateId };
+        if (auth.type === 'api_key' && projectId) {
+          fallbackQuery.projectId = new mongoose.Types.ObjectId(projectId);
+        } else {
+          fallbackQuery.userId = new mongoose.Types.ObjectId(auth.userId);
+        }
+        template = await Template.findOne(fallbackQuery);
+      }
+
       if (template) {
         templateName = template.name;
+        templateMongoId = template._id; // Store the actual MongoDB _id
         // If html not provided, use template HTML
         if (!finalHtml) {
           finalHtml = template.html;
@@ -92,34 +122,57 @@ export async function POST(req: NextRequest) {
     // Use project default SMTP if smtpId not provided
     let finalSmtpId = smtpId || projectDefaults.defaultSmtpId;
 
-    if (!finalSmtpId) {
-      return NextResponse.json(
-        { error: 'SMTP ID is required. Provide smtpId or set a default SMTP for the project.' },
-        { status: 400 }
-      );
-    }
-
     // Get SMTP configuration - check if it's admin SMTP or user SMTP
     let smtpConfig: any;
     let isAdminSmtp = false;
-    if (finalSmtpId.startsWith('admin_')) {
-      // Admin SMTP
-      isAdminSmtp = true;
-      const adminSmtpId = finalSmtpId.replace('admin_', '');
-      smtpConfig = await AdminSmtp.findOne({ _id: adminSmtpId, isActive: true });
-      if (!smtpConfig) {
-        return NextResponse.json(
-          { error: 'Admin SMTP configuration not found or inactive' },
-          { status: 404 }
-        );
+
+    if (finalSmtpId) {
+      // SMTP ID provided - use it
+      if (finalSmtpId.startsWith('admin_')) {
+        // Admin SMTP
+        isAdminSmtp = true;
+        const adminSmtpId = finalSmtpId.replace('admin_', '');
+        smtpConfig = await AdminSmtp.findOne({ _id: adminSmtpId, isActive: true });
+        if (!smtpConfig) {
+          return NextResponse.json(
+            { error: 'Admin SMTP configuration not found or inactive' },
+            { status: 404 }
+          );
+        }
+      } else {
+        // User SMTP
+        smtpConfig = await UserSmtp.findOne({ _id: finalSmtpId, userId: auth.userId });
+        if (!smtpConfig) {
+          return NextResponse.json(
+            { error: 'SMTP configuration not found' },
+            { status: 404 }
+          );
+        }
       }
     } else {
-      // User SMTP
-      smtpConfig = await UserSmtp.findOne({ _id: finalSmtpId, userId: auth.userId });
-      if (!smtpConfig) {
+      // No SMTP ID provided - try to use global PRZIO default SMTP
+      // First, try to get the default active admin SMTP
+      let defaultAdminSmtp = await AdminSmtp.findOne({ 
+        isDefault: true,
+        isActive: true 
+      });
+
+      // If no default active SMTP found, try to get any active admin SMTP as fallback
+      if (!defaultAdminSmtp) {
+        defaultAdminSmtp = await AdminSmtp.findOne({ 
+          isActive: true 
+        }).sort({ createdAt: -1 }); // Get the most recently created active one
+      }
+
+      if (defaultAdminSmtp) {
+        isAdminSmtp = true;
+        smtpConfig = defaultAdminSmtp;
+        finalSmtpId = `admin_${defaultAdminSmtp._id.toString()}`;
+      } else {
+        // No SMTP found at all
         return NextResponse.json(
-          { error: 'SMTP configuration not found' },
-          { status: 404 }
+          { error: 'SMTP ID is required. Provide smtpId, set a default SMTP for the project, or configure a global default SMTP in admin settings.' },
+          { status: 400 }
         );
       }
     }
@@ -170,7 +223,7 @@ export async function POST(req: NextRequest) {
               historyRecord = new EmailHistory({
                 projectId: new mongoose.Types.ObjectId(projectId),
                 userId: new mongoose.Types.ObjectId(auth.userId),
-                templateId: finalTemplateId ? new mongoose.Types.ObjectId(finalTemplateId) : undefined,
+                templateId: templateMongoId || undefined,
                 templateName,
                 recipientEmail: email.toLowerCase(),
                 recipientName: recipientInfo.name,
@@ -206,7 +259,7 @@ export async function POST(req: NextRequest) {
                 await EmailHistory.create({
                   projectId: new mongoose.Types.ObjectId(projectId),
                   userId: new mongoose.Types.ObjectId(auth.userId),
-                  templateId: finalTemplateId ? new mongoose.Types.ObjectId(finalTemplateId) : undefined,
+                  templateId: templateMongoId || undefined,
                   templateName,
                   recipientEmail: email.toLowerCase(),
                   recipientName: recipientInfo.name,
@@ -238,7 +291,7 @@ export async function POST(req: NextRequest) {
                 await EmailHistory.create({
                   projectId: new mongoose.Types.ObjectId(projectId),
                   userId: new mongoose.Types.ObjectId(auth.userId),
-                  templateId: finalTemplateId ? new mongoose.Types.ObjectId(finalTemplateId) : undefined,
+                  templateId: templateMongoId || undefined,
                   templateName,
                   recipientEmail: email.toLowerCase(),
                   recipientName: recipientInfo.name,
