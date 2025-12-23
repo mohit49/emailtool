@@ -80,7 +80,7 @@ export async function PUT(
 
     const userId = new mongoose.Types.ObjectId(auth.userId);
     const projectId = new mongoose.Types.ObjectId(params.id);
-    const { name, description, defaultTemplateId, defaultSmtpId } = await req.json();
+    const { name, description, projectType, defaultTemplateId, defaultSmtpId } = await req.json();
 
     // Check if user is creator or ProjectAdmin
     const project = await Project.findById(projectId);
@@ -113,6 +113,12 @@ export async function PUT(
 
     if (description !== undefined) {
       project.description = description?.trim() || '';
+    }
+
+    if (projectType !== undefined) {
+      if (projectType === 'email' || projectType === 'popup') {
+        project.projectType = projectType;
+      }
     }
 
     if (defaultTemplateId !== undefined) {

@@ -3,6 +3,7 @@ import mongoose, { Schema, Model, Document } from 'mongoose';
 interface IProject extends Document {
   name: string;
   description?: string;
+  projectType?: 'email' | 'popup';
   defaultTemplateId?: mongoose.Types.ObjectId;
   defaultSmtpId?: string;
   createdBy: mongoose.Types.ObjectId;
@@ -19,6 +20,10 @@ const projectSchema = new Schema<IProject>({
   description: {
     type: String,
     trim: true,
+  },
+  projectType: {
+    type: String,
+    enum: ['email', 'popup'],
   },
   defaultTemplateId: {
     type: mongoose.Schema.Types.ObjectId,
