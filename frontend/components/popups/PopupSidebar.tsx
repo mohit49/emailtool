@@ -18,6 +18,7 @@ interface FormData {
   html: string;
   status: 'draft' | 'deactivated' | 'activated';
   position: 'left-top' | 'right-top' | 'left-bottom' | 'right-bottom' | 'center-top' | 'center' | 'center-bottom';
+  animation: string;
 }
 
 interface PopupSidebarProps {
