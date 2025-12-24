@@ -7,8 +7,13 @@ import axios from 'axios';
 import Link from 'next/link';
 import AuthHeader from '../../../components/AuthHeader';
 import Alert from '../../../components/Alert';
-import { ChevronLeft, Save, Trash2, ChevronDown, ChevronUp, Table, Rows3, Square, LayoutGrid, Type, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Bold, Italic, Link2, MousePointerClick, Image as ImageIcon, MoreHorizontal, X, Settings, Smartphone, Tablet, Monitor } from 'lucide-react';
+import { ChevronLeft, Save, Trash2, ChevronDown, ChevronUp, Table, Rows3, Square, LayoutGrid, Type, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Bold, Italic, Link2, MousePointerClick, Image as ImageIcon, MoreHorizontal, X, Settings, Smartphone, Tablet, Monitor, ArrowUp, ArrowDown } from 'lucide-react';
 import HTMLEditor, { HTMLEditorRef } from '../../../components/HTMLEditor';
+import CustomDropdown from '../../../components/popups/CustomDropdown';
+import PopupSidebar from '../../../components/popups/PopupSidebar';
+import ElementToolbar from '../../../components/popups/ElementToolbar';
+import CssEditorModal from '../../../components/popups/CssEditorModal';
+import PopupSettingsModal from '../../../components/popups/PopupSettingsModal';
 
 const API_URL = '/api';
 
@@ -31,62 +36,6 @@ interface PopupActivity {
   updatedAt: string;
 }
 
-// Custom Dropdown Component
-const CustomDropdown = ({ value, onChange, options, className = '' }: {
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
-  className?: string;
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const selectedOption = options.find(opt => opt.value === value) || options[0];
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
-  return (
-    <div ref={dropdownRef} className={`relative ${className}`}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-3 py-2 text-sm text-left bg-white border border-gray-300 rounded-lg hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none flex items-center justify-between"
-      >
-        <span>{selectedOption.label}</span>
-        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => {
-                onChange(option.value);
-                setIsOpen(false);
-              }}
-              className={`w-full px-3 py-2 text-sm text-left hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${
-                value === option.value ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // Helper function to wrap HTML fragment for parsing
 const wrapForParsing = (html: string): string => {
   // If it already has DOCTYPE, return as is
@@ -104,7 +53,7 @@ const extractPopupContent = (html: string): string => {
   const doc = parser.parseFromString(wrapped, 'text/html');
   
   const styleEl = doc.querySelector('style');
-  const popupEl = doc.querySelector('.przio-popup');
+  const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
   
   let result = '';
   if (styleEl) {
@@ -115,6 +64,16 @@ const extractPopupContent = (html: string): string => {
   }
   
   return result.trim();
+};
+
+// Helper function to generate a random 4-character alphabet suffix
+const generateRandomSuffix = () => {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+  let result = '';
+  for (let i = 0; i < 4; i++) {
+    result += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+  }
+  return result;
 };
 
 export default function PopupActivityPage() {
@@ -180,13 +139,13 @@ export default function PopupActivityPage() {
     color: '',
     fontSize: '',
     fontWeight: '',
+    borderRadius: '',
     // Responsive CSS
     mobileCss: {},
     tabletCss: {},
     desktopCss: {},
   });
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
-  const visualEditorRef = useRef<HTMLDivElement>(null);
   const htmlEditorRef = useRef<HTMLEditorRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -273,7 +232,7 @@ export default function PopupActivityPage() {
           textAlign: currentCssSettings.textAlign || 'center',
         });
         
-        // Ensure HTML has przio-popup wrapper if it doesn't exist
+        // Ensure HTML has przio wrapper if it doesn't exist
         let popupHtml = fetchedActivity.html || '';
         const popupId = `popup-${fetchedActivity._id}`;
         
@@ -298,7 +257,7 @@ export default function PopupActivityPage() {
           positionStyles = 'position:fixed; bottom:20px; right:20px; margin:0;';
         }
         
-        if (!popupHtml || !popupHtml.includes('przio-popup')) {
+        if (!popupHtml || (!popupHtml.includes('przio-popup') && !popupHtml.includes('przio'))) {
           // Create default popup template with embedded CSS (only style and main div)
           popupHtml = `<style>
         #${popupId} {
@@ -311,14 +270,20 @@ export default function PopupActivityPage() {
             z-index: 9999;
         }
     </style>
-    <div class="przio-popup" id="${popupId}">
+    <div class="przio" id="${popupId}">
     </div>`;
         } else {
           // Ensure the popup has the correct ID and embedded CSS styles
           const parser = new DOMParser();
           const doc = parser.parseFromString(popupHtml, 'text/html');
-          const popupEl = doc.querySelector('.przio-popup');
+          const popupEl = doc.querySelector('.przio-popup') || doc.querySelector('.przio');
           if (popupEl) {
+            // Ensure class is 'przio'
+            if (popupEl.classList.contains('przio-popup')) {
+              popupEl.classList.remove('przio-popup');
+              popupEl.classList.add('przio');
+            }
+            
             if (!popupEl.id) {
               popupEl.id = popupId;
             }
@@ -464,26 +429,178 @@ export default function PopupActivityPage() {
     setFormData({ ...formData, logicOperators: updated });
   };
 
-  // Update HTML from visual editor DOM
-  const updateHtmlFromVisualEditor = useCallback(() => {
-    if (!visualEditorRef.current) return;
-    
-    const html = visualEditorRef.current.innerHTML;
-    setFormData(prev => ({ ...prev, html }));
+  // Inject snippet into popup HTML (only inside przio wrapper)
+  const injectSnippet = useCallback((snippet: string, targetSelector?: string, insertPosition?: 'before' | 'after' | 'inside') => {
+    try {
+      setFormData((prev) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(wrapForParsing(prev.html || ''), 'text/html');
+        
+        // Prepare the new element
+        const wrapper = doc.createElement('div');
+        wrapper.innerHTML = snippet.trim();
+        const node = wrapper.firstElementChild as HTMLElement;
+        
+        if (!node) return prev;
+
+        // Generate unique ID and class for the new element as per user request
+        const suffix = generateRandomSuffix();
+        const newId = `przio-el-${suffix}`;
+        const newClass = `przio-${suffix}`;
+        
+        node.id = newId;
+        node.classList.add('przio-element', newClass);
+        node.setAttribute('data-przio-id', newId);
+        node.setAttribute('data-przio-class', newClass);
+
+        // Extract inline styles and convert to embedded CSS
+        const inlineStyle = node.getAttribute('style') || '';
+        if (inlineStyle) {
+          let styleEl = doc.querySelector('style');
+          if (!styleEl) {
+            styleEl = doc.createElement('style');
+            doc.head.appendChild(styleEl);
+          }
+          styleEl.textContent = (styleEl.textContent || '') + `\n        .${newClass} { ${inlineStyle} }`;
+          node.removeAttribute('style');
+        }
+
+        // Find the przio element - all content must be inside this
+        const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
+        if (!popupEl) {
+          console.error('przio element not found');
+          return prev;
+        }
+        
+        // Helper to check if an element is inside przio
+        const isInsidePopup = (el: Element | null): boolean => {
+          if (!el) return false;
+          return popupEl.contains(el) || el === popupEl;
+        };
+        
+        let targetEl: Element | null = null;
+        if (targetSelector) {
+          try {
+            targetEl = doc.querySelector(targetSelector);
+            // Only allow target if it's inside przio
+            if (targetEl && !isInsidePopup(targetEl)) {
+              targetEl = null;
+            }
+          } catch {
+            targetEl = null;
+          }
+        }
+        
+        // If no specific target, insert into popup
+        if (!targetSelector || !targetEl || targetSelector === '.przio' || targetSelector === '.przio-popup') {
+          popupEl.appendChild(node);
+        } else {
+          // Insert relative to target element
+          if (insertPosition === 'before') {
+            targetEl.parentElement?.insertBefore(node, targetEl);
+          } else if (insertPosition === 'after') {
+            targetEl.parentElement?.insertBefore(node, targetEl.nextSibling);
+          } else {
+            targetEl.appendChild(node);
+          }
+        }
+
+        const nextHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+        return { ...prev, html: nextHtml };
+      });
+    } catch (error) {
+      console.error('Failed to inject snippet:', error);
+    }
+  }, []);
+
+  // Remove an element from the HTML by selector
+  const removeElement = useCallback((selector: string) => {
+    try {
+      setFormData((prev) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(wrapForParsing(prev.html || ''), 'text/html');
+        const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
+        const targetEl = doc.querySelector(selector);
+        
+        // Only allow removal if target is inside przio and not the popup itself
+        if (targetEl && popupEl && popupEl.contains(targetEl) && targetEl !== popupEl) {
+          // Collect all classes of target and its children to clean up CSS
+          const elementsToCleanup = [targetEl, ...Array.from(targetEl.querySelectorAll('.przio-element'))];
+          const classesToCleanup = elementsToCleanup
+            .map(el => el.getAttribute('data-przio-class'))
+            .filter(Boolean) as string[];
+
+          // Remove the element
+          targetEl.remove();
+
+          // Clean up CSS rules
+          const styleTag = doc.querySelector('style');
+          if (styleTag && classesToCleanup.length > 0) {
+            let styleContent = styleTag.textContent || '';
+            classesToCleanup.forEach(className => {
+              const classSelector = className.startsWith('przio-') ? `.${className}` : `#${className}`;
+              const ruleRegex = new RegExp(`${classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{[^}]*\\}`, 'gs');
+              styleContent = styleContent.replace(ruleRegex, '');
+            });
+            styleTag.textContent = styleContent.trim();
+          }
+
+          const nextHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+          setSelectedElement({ id: '', element: null });
+          return { ...prev, html: nextHtml };
+        }
+        return prev;
+      });
+    } catch (error) {
+      console.error('Failed to remove element:', error);
+    }
+  }, []);
+
+  // Move element up or down among siblings
+  const moveElementSibling = useCallback((selector: string, direction: 'up' | 'down') => {
+    try {
+      setFormData((prev) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(wrapForParsing(prev.html || ''), 'text/html');
+        const targetEl = doc.querySelector(selector);
+        
+        if (!targetEl || !targetEl.parentElement) return prev;
+        
+        const parent = targetEl.parentElement;
+        if (direction === 'up') {
+          const prevSibling = targetEl.previousElementSibling;
+          if (prevSibling) {
+            parent.insertBefore(targetEl, prevSibling);
+          }
+        } else {
+          const nextSibling = targetEl.nextElementSibling;
+          if (nextSibling) {
+            parent.insertBefore(nextSibling, targetEl);
+          }
+        }
+        
+        const nextHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+        return { ...prev, html: nextHtml };
+      });
+    } catch (error) {
+      console.error('Failed to move element:', error);
+    }
   }, []);
 
   // Load element CSS into editor
-  const loadElementCss = useCallback((element: HTMLElement) => {
-    const elementClass = element.getAttribute('data-przio-class') || element.id;
-    const computedStyle = window.getComputedStyle(element);
+  const loadElementCss = useCallback((selector: string) => {
+    // Try to find the CSS rule in the style tag from the current HTML state
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(wrapForParsing(formData.html || ''), 'text/html');
+    const styleTag = doc.querySelector('style');
+    const element = doc.querySelector(selector) as HTMLElement;
     
-    // Try to find the CSS rule in the style tag
-    const styleTag = visualEditorRef.current?.querySelector('style');
     let cssFromStyleTag: Record<string, string> = {};
+    const elementClass = element?.getAttribute('data-przio-class') || element?.id;
     
     if (styleTag && elementClass) {
       const styleContent = styleTag.textContent || '';
-      const classSelector = elementClass.startsWith('przio-el-') ? `.${elementClass}` : `#${elementClass}`;
+      const classSelector = elementClass.startsWith('przio-') ? `.${elementClass}` : `#${elementClass}`;
       const ruleRegex = new RegExp(`${classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 's');
       const match = styleContent.match(ruleRegex);
       
@@ -501,188 +618,58 @@ export default function PopupActivityPage() {
     }
     
     setEditingElementCss({
-      width: cssFromStyleTag['width'] || element.style.width || computedStyle.width,
-      height: cssFromStyleTag['height'] || element.style.height || computedStyle.height,
-      padding: cssFromStyleTag['padding'] || element.style.padding || computedStyle.padding,
-      margin: cssFromStyleTag['margin'] || element.style.margin || computedStyle.margin,
-      borderWidth: cssFromStyleTag['border-width'] || element.style.borderWidth || computedStyle.borderWidth,
-      borderStyle: cssFromStyleTag['border-style'] || element.style.borderStyle || computedStyle.borderStyle,
-      borderColor: cssFromStyleTag['border-color'] || element.style.borderColor || computedStyle.borderColor,
-      backgroundColor: cssFromStyleTag['background-color'] || element.style.backgroundColor || computedStyle.backgroundColor,
-      color: cssFromStyleTag['color'] || element.style.color || computedStyle.color,
-      fontSize: cssFromStyleTag['font-size'] || element.style.fontSize || computedStyle.fontSize,
-      fontWeight: cssFromStyleTag['font-weight'] || element.style.fontWeight || computedStyle.fontWeight,
+      width: cssFromStyleTag['width'] || '',
+      height: cssFromStyleTag['height'] || '',
+      padding: cssFromStyleTag['padding'] || '',
+      margin: cssFromStyleTag['margin'] || '',
+      borderWidth: cssFromStyleTag['border-width'] || '',
+      borderStyle: cssFromStyleTag['border-style'] || 'solid',
+      borderColor: cssFromStyleTag['border-color'] || '',
+      backgroundColor: cssFromStyleTag['background-color'] || '',
+      color: cssFromStyleTag['color'] || '',
+      fontSize: cssFromStyleTag['font-size'] || '',
+      fontWeight: cssFromStyleTag['font-weight'] || '',
+      borderRadius: cssFromStyleTag['border-radius'] || '',
       mobileCss: {},
       tabletCss: {},
       desktopCss: {},
     });
-  }, []);
+  }, [formData.html]);
 
   // Handle element click for selection
   const handleElementClick = useCallback((element: HTMLElement, id: string) => {
-    // Remove previous selection
-    document.querySelectorAll('.przio-selected').forEach(el => {
-      el.classList.remove('przio-selected');
-    });
-
-    // Add selection to clicked element
-    element.classList.add('przio-selected');
-    setSelectedElement({ id, element });
-
-    // Show toolbar near element
-    const rect = element.getBoundingClientRect();
-    setToolbarPosition({
-      top: rect.top - 50,
-      left: rect.left,
-    });
-    setShowElementToolbar(true);
-
-    // Load element CSS for editing
-    loadElementCss(element);
-  }, [loadElementCss]);
-
-  // Helper function to add element to popup
-  const addElementToPopup = useCallback((popupEl: Element, snippet: string) => {
-    // Generate unique ID and class for new element
-    const newId = `przio-el-${elementCounter}`;
-    const newClass = `przio-el-${elementCounter}`;
-    setElementCounter(prev => prev + 1);
-
-    // Create new element from snippet
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = snippet;
-    const newElement = tempDiv.firstElementChild as HTMLElement;
-    
-    if (!newElement) {
-      console.error('Failed to create element from snippet');
-      return;
-    }
-
-    // Remove any existing placeholders before adding new element
-    const placeholders = popupEl.querySelectorAll('.przio-placeholder');
-    placeholders.forEach(placeholder => placeholder.remove());
-
-    // Add unique ID and class
-    newElement.id = newId;
-    newElement.classList.add('przio-element', newClass);
-    newElement.setAttribute('data-przio-id', newId);
-    newElement.setAttribute('data-przio-class', newClass);
-    
-    // Extract inline styles and convert to embedded CSS
-    const inlineStyle = newElement.getAttribute('style') || '';
-    if (inlineStyle) {
-      // Add CSS rule to the style tag
-      const styleTag = visualEditorRef.current?.querySelector('style');
-      if (styleTag) {
-        const cssRule = `.${newClass} { ${inlineStyle} }`;
-        styleTag.textContent = (styleTag.textContent || '') + '\n        ' + cssRule;
-        console.log('📝 Added embedded CSS for', newClass);
-      }
-      // Remove inline style
-      newElement.removeAttribute('style');
-    }
-    
-    // Make element clickable for selection
-    newElement.style.cursor = 'pointer';
-    newElement.addEventListener('click', (clickEvent) => {
-      clickEvent.stopPropagation();
-      handleElementClick(newElement, newId);
-    });
-
-    // Append to popup
-    popupEl.appendChild(newElement);
-
-    // Update HTML state
-    updateHtmlFromVisualEditor();
-    
-    console.log('✅ Element added successfully:', newId, 'with class:', newClass);
-  }, [elementCounter, handleElementClick, updateHtmlFromVisualEditor]);
+    // This is now handled via postMessage for iframe consistency
+  }, []);
 
   // Direct drop handler for visual editor
   const handleDirectDrop = useCallback((e: React.DragEvent) => {
     const snippet = draggingSnippetRef.current;
-    console.log('handleDirectDrop called, snippet:', snippet?.substring(0, 50));
-    
-    if (!snippet) {
-      console.log('No snippet found');
-      return;
-    }
-
-    // Get the .przio-popup element from visual editor
-    const popupEl = visualEditorRef.current?.querySelector('.przio-popup');
-    console.log('Found popup element:', !!popupEl);
-    
-    if (!popupEl) {
-      console.log('No .przio-popup element found, creating initial popup structure');
-      
-      // Create initial popup structure
-      const popupId = `popup-${activityId}`;
-      const initialHtml = `<style>
-        #${popupId} {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            margin: 0;
-            padding: 40px;
-            background-color: #ffffff;
-            border-radius: 12px;
-            max-width: 500px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            z-index: 9999;
-        }
-      </style>
-      <div class="przio-popup" id="${popupId}"></div>`;
-      
-      setFormData(prev => ({ ...prev, html: initialHtml }));
-      
-      // Wait for next render to add element
-      setTimeout(() => {
-        const newPopupEl = visualEditorRef.current?.querySelector('.przio-popup');
-        console.log('After timeout, found popup:', !!newPopupEl);
-        if (newPopupEl) {
-          addElementToPopup(newPopupEl, snippet);
-        }
-      }, 100);
-      return;
-    }
-
-    console.log('Adding element to existing popup');
-    // Add element to existing popup
-    addElementToPopup(popupEl, snippet);
-    
+    if (!snippet) return;
+    injectSnippet(snippet, '.przio', 'inside');
     setDraggingSnippet(null);
     draggingSnippetRef.current = null;
-  }, [activityId, addElementToPopup]);
+  }, [injectSnippet]);
 
   // Delete selected element
   const deleteSelectedElement = useCallback(() => {
-    if (!selectedElement.element) return;
-    
-    selectedElement.element.remove();
+    if (!selectedElement.id) return;
+    removeElement(selectedElement.id);
     setSelectedElement({ id: '', element: null });
     setShowElementToolbar(false);
-    updateHtmlFromVisualEditor();
-  }, [selectedElement, updateHtmlFromVisualEditor]);
+  }, [selectedElement, removeElement]);
 
   // Open CSS editor
   const openCssEditor = useCallback(() => {
-    if (!selectedElement.element) return;
+    if (!selectedElement.id) return;
     setShowCssEditor(true);
   }, [selectedElement]);
 
   // Apply CSS changes to element
   const applyCssChanges = useCallback(() => {
-    if (!selectedElement.element) return;
+    if (!selectedElement.id) return;
 
-    const element = selectedElement.element;
-    const elementClass = element.getAttribute('data-przio-class') || element.id;
+    const selector = selectedElement.id;
     
-    if (!elementClass) {
-      console.error('No class or ID found for element');
-      return;
-    }
-
     // Build CSS string from editing state
     let cssProperties = '';
     if (editingElementCss.width) cssProperties += `width: ${editingElementCss.width}; `;
@@ -696,294 +683,101 @@ export default function PopupActivityPage() {
     if (editingElementCss.color) cssProperties += `color: ${editingElementCss.color}; `;
     if (editingElementCss.fontSize) cssProperties += `font-size: ${editingElementCss.fontSize}; `;
     if (editingElementCss.fontWeight) cssProperties += `font-weight: ${editingElementCss.fontWeight}; `;
+    if (editingElementCss.borderRadius) cssProperties += `border-radius: ${editingElementCss.borderRadius}; `;
 
-    // Find or create the style tag
-    const styleTag = visualEditorRef.current?.querySelector('style');
-    if (styleTag) {
-      let styleContent = styleTag.textContent || '';
+    setFormData(prev => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(wrapForParsing(prev.html || ''), 'text/html');
+      const styleTag = doc.querySelector('style');
+      const targetElement = doc.querySelector(selector);
       
-      // Check if rule for this class already exists
-      const classSelector = elementClass.startsWith('przio-el-') ? `.${elementClass}` : `#${elementClass}`;
-      const ruleRegex = new RegExp(`${classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{[^}]*\\}`, 'gs');
-      
-      if (styleContent.match(ruleRegex)) {
-        // Update existing rule
-        styleContent = styleContent.replace(ruleRegex, `${classSelector} { ${cssProperties} }`);
-      } else {
-        // Add new rule
-        styleContent += `\n        ${classSelector} { ${cssProperties} }`;
+      if (styleTag && targetElement) {
+        let styleContent = styleTag.textContent || '';
+        const elementClass = targetElement.getAttribute('data-przio-class') || targetElement.id;
+        const classSelector = elementClass ? (elementClass.startsWith('przio-') ? `.${elementClass}` : `#${elementClass}`) : selector;
+        
+        const ruleRegex = new RegExp(`${classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{[^}]*\\}`, 'gs');
+        
+        if (styleContent.match(ruleRegex)) {
+          styleContent = styleContent.replace(ruleRegex, `${classSelector} { ${cssProperties} }`);
+        } else {
+          styleContent += `\n        ${classSelector} { ${cssProperties} }`;
+        }
+        styleTag.textContent = styleContent;
       }
       
-      styleTag.textContent = styleContent;
-      console.log('📝 Updated embedded CSS for', classSelector);
-    }
+      const nextHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+      return { ...prev, html: nextHtml };
+    });
 
-    // Remove inline styles from element
-    element.removeAttribute('style');
-    // Keep cursor pointer
-    element.style.cursor = 'pointer';
-
-    updateHtmlFromVisualEditor();
     setShowCssEditor(false);
-  }, [selectedElement, editingElementCss, updateHtmlFromVisualEditor]);
+  }, [selectedElement, editingElementCss]);
 
   // Re-attach event listeners to elements after HTML changes
+  // This useEffect is no longer needed because we use iframe-based editor
   useEffect(() => {
-    console.log('🔄 useEffect running - activeTab:', activeTab, 'has visualEditorRef:', !!visualEditorRef.current);
-    console.log('📄 formData.html exists:', !!formData.html, 'length:', formData.html?.length);
-    
-    if (!visualEditorRef.current || activeTab !== 'preview') {
-      console.warn('⚠️ Exiting useEffect - no ref or wrong tab');
-      return;
-    }
-
-    let cleanupFn: (() => void) | null = null;
-
-    // Small delay to ensure dangerouslySetInnerHTML has rendered
-    const timer = setTimeout(() => {
-      console.log('⏰ Timer fired, looking for popup...');
-      const popupEl = visualEditorRef.current?.querySelector('.przio-popup');
-      console.log('🔍 Found popup element in useEffect:', !!popupEl);
-      
-      if (popupEl) {
-        console.log('✅ Popup element found! ID:', popupEl.id);
-      } else {
-        console.error('❌ Popup element NOT found! HTML:', visualEditorRef.current?.innerHTML.substring(0, 200));
-        return;
-      }
-
-      // Add drag and drop handlers to the popup element
-      const handlePopupDragOver = (e: DragEvent) => {
-        console.log('🎯 Drag over popup!');
-        e.preventDefault();
-        e.stopPropagation();
-        popupEl.classList.add('przio-drag-over');
-      };
-
-      const handlePopupDragLeave = (e: DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        popupEl.classList.remove('przio-drag-over');
-      };
-
-      const handlePopupDrop = (e: DragEvent) => {
-        console.log('🎉 Drop on popup!');
-        e.preventDefault();
-        e.stopPropagation();
-        popupEl.classList.remove('przio-drag-over');
-        
-        // Create synthetic React event
-        const syntheticEvent = {
-          preventDefault: () => {},
-          stopPropagation: () => {},
-        } as React.DragEvent;
-        
-        handleDirectDrop(syntheticEvent);
-      };
-
-      // Make popup itself selectable and interactive
-      const handlePopupClick = (e: MouseEvent) => {
-        const target = e.target as HTMLElement;
-        
-        // If clicking directly on the popup (not on a child element)
-        if (target === popupEl) {
-          // Remove previous selection
-          document.querySelectorAll('.przio-selected').forEach(el => {
-            el.classList.remove('przio-selected');
-          });
-          
-          // Select the popup
-          popupEl.classList.add('przio-selected');
-          setSelectedElement({ id: popupEl.id, element: popupEl as HTMLElement });
-          
-          // Show visual feedback
-          const rect = popupEl.getBoundingClientRect();
-          setToolbarPosition({
-            top: rect.top - 50,
-            left: rect.left,
-          });
-          setShowElementToolbar(true);
-          
-          // Load popup CSS
-          loadElementCss(popupEl as HTMLElement);
-        }
-      };
-
-      console.log('🔗 Attaching event listeners to popup');
-      // Attach handlers
-      (popupEl as HTMLElement).addEventListener('dragover', handlePopupDragOver);
-      (popupEl as HTMLElement).addEventListener('dragleave', handlePopupDragLeave);
-      (popupEl as HTMLElement).addEventListener('drop', handlePopupDrop);
-      (popupEl as HTMLElement).addEventListener('click', handlePopupClick);
-      
-      // Make popup look interactive and ensure it can receive events
-      (popupEl as HTMLElement).style.cursor = 'pointer';
-      (popupEl as HTMLElement).style.pointerEvents = 'auto';
-      
-      // Log popup dimensions and position
-      const rect = popupEl.getBoundingClientRect();
-      console.log('📐 Popup dimensions:', {
-        width: rect.width,
-        height: rect.height,
-        top: rect.top,
-        left: rect.left,
-        visible: rect.width > 0 && rect.height > 0
-      });
-
-      // Find all przio-element elements and attach click handlers
-      const elements = popupEl.querySelectorAll('.przio-element');
-      console.log('🎨 Found elements to attach handlers:', elements.length);
-      
-      elements.forEach((el) => {
-        const htmlEl = el as HTMLElement;
-        const id = htmlEl.getAttribute('data-przio-id') || htmlEl.id;
-        
-        // Remove existing listener if any
-        const newEl = htmlEl.cloneNode(true) as HTMLElement;
-        htmlEl.parentNode?.replaceChild(newEl, htmlEl);
-        
-        // Add click handler
-        newEl.style.cursor = 'pointer';
-        newEl.addEventListener('click', (clickEvent) => {
-          clickEvent.stopPropagation();
-          handleElementClick(newEl, id);
-        });
-      });
-
-      console.log('✨ Event listeners attached successfully');
-
-      // Store cleanup function
-      cleanupFn = () => {
-        console.log('🧹 Cleaning up event listeners');
-        (popupEl as HTMLElement).removeEventListener('dragover', handlePopupDragOver);
-        (popupEl as HTMLElement).removeEventListener('dragleave', handlePopupDragLeave);
-        (popupEl as HTMLElement).removeEventListener('drop', handlePopupDrop);
-        (popupEl as HTMLElement).removeEventListener('click', handlePopupClick);
-      };
-    }, 50);
-    
-    return () => {
-      clearTimeout(timer);
-      if (cleanupFn) cleanupFn();
-    };
-  }, [formData.html, activeTab, handleElementClick, handleDirectDrop, loadElementCss]);
-
-  // Inject snippet into popup HTML (only inside przio-popup wrapper)
-  const injectSnippet = useCallback((snippet: string, targetSelector?: string, insertPosition?: 'before' | 'after' | 'inside') => {
-    try {
-      setFormData((prev) => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(wrapForParsing(prev.html || ''), 'text/html');
-        const wrapper = doc.createElement('div');
-        wrapper.innerHTML = snippet.trim();
-        const node = wrapper.firstElementChild || wrapper;
-        
-        // Find the przio-popup element - all content must be inside this
-        const popupEl = doc.querySelector('.przio-popup');
-        if (!popupEl) {
-          console.error('przio-popup element not found');
-          return prev;
-        }
-        
-        // Helper to check if an element is inside przio-popup
-        const isInsidePopup = (el: Element | null): boolean => {
-          if (!el) return false;
-          return popupEl.contains(el) || el === popupEl;
-        };
-        
-        let targetEl: Element | null = null;
-        if (targetSelector) {
-          try {
-            targetEl = doc.querySelector(targetSelector);
-            // Only allow target if it's inside przio-popup
-            if (targetEl && !isInsidePopup(targetEl)) {
-              targetEl = null;
-            }
-          } catch {
-            targetEl = null;
-          }
-        }
-        
-        // If no specific target, insert into popup
-        if (!targetSelector || !targetEl) {
-          popupEl.appendChild(node.cloneNode(true));
-          const nextHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
-          return { ...prev, html: nextHtml };
-        }
-        
-        // Insert relative to target element (only if inside przio-popup)
-        if (targetEl && insertPosition && isInsidePopup(targetEl)) {
-          if (insertPosition === 'before') {
-            targetEl.parentElement?.insertBefore(node.cloneNode(true), targetEl);
-          } else if (insertPosition === 'after') {
-            targetEl.parentElement?.insertBefore(node.cloneNode(true), targetEl.nextSibling);
-          } else {
-            targetEl.appendChild(node.cloneNode(true));
-          }
-          const nextHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
-          return { ...prev, html: nextHtml };
-        }
-        
-        return prev;
-      });
-    } catch (error) {
-      console.error('Failed to inject snippet:', error);
-    }
-  }, []);
-
-  // Remove an element from the HTML by selector
-  const removeElement = useCallback((selector: string) => {
-    try {
-      setFormData((prev) => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(wrapForParsing(prev.html || ''), 'text/html');
-        const popupEl = doc.querySelector('.przio-popup');
-        const targetEl = doc.querySelector(selector);
-        
-        // Only allow removal if target is inside przio-popup and not the popup itself
-        if (targetEl && popupEl && popupEl.contains(targetEl) && targetEl !== popupEl) {
-          targetEl.remove();
-          const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
-          setSelectedElement({ id: '', element: null });
-          return { ...prev, html: nextHtml };
-        }
-        return prev;
-      });
-    } catch (error) {
-      console.error('Failed to remove element:', error);
-    }
-  }, []);
+    // If we want to do any top-level synchronization, we can do it here
+  }, [formData.html]);
 
   // Setup iframe drag-drop handlers
   const setupIframeDragDrop = useCallback((iframe: HTMLIFrameElement | null) => {
     if (!iframe) return;
     
+    console.log('🏗️ Setting up iframe drag-drop handlers');
+    
     const setupDragHandlers = () => {
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!iframeDoc || !iframeDoc.body) return;
+      if (!iframeDoc || !iframeDoc.body) {
+        console.warn('⚠️ Iframe document or body not available');
+        return;
+      }
 
+      console.log('✅ Iframe document ready, attaching handlers');
       const parentWindow = iframe.contentWindow?.parent || window;
 
-      // Inject styles for drag-drop
+      // Inject styles for drag-drop and selection
       let styleEl = iframeDoc.getElementById('przio-drag-styles');
       if (!styleEl) {
         styleEl = iframeDoc.createElement('style');
         styleEl.id = 'przio-drag-styles';
         styleEl.textContent = `
           .przio-editable:hover { outline: 2px dashed #94a3b8 !important; outline-offset: 2px; cursor: pointer; }
-          .przio-selected { outline: 2px solid #4f46e5 !important; outline-offset: 2px; position: relative; }
-          .przio-drop-zone { position: relative; }
-          .przio-drop-zone::after { content: ''; position: absolute; inset: 0; background: rgba(79, 70, 229, 0.1); border: 2px dashed #4f46e5; border-radius: 4px; pointer-events: none; opacity: 0; transition: opacity 0.15s ease; }
-          .przio-drop-zone.przio-drag-over::after { opacity: 1; }
-          .przio-popup.przio-drag-over { outline: 2px dashed #4f46e5; outline-offset: 4px; background-color: rgba(79, 70, 229, 0.05) !important; }
-          .przio-popup > *:not(.przio-placeholder).przio-drag-over { outline: 2px dashed #4f46e5; outline-offset: 2px; background-color: rgba(79, 70, 229, 0.1) !important; }
+          .przio-selected { outline: 2px solid #4f46e5 !important; outline-offset: 2px; position: relative; z-index: 100000 !important; }
+          .przio.przio-drag-over, .przio-popup.przio-drag-over { 
+            outline: 2px dashed #4f46e5 !important; 
+            outline-offset: 4px; 
+            background-color: rgba(79, 70, 229, 0.05) !important; 
+            min-height: 100px !important;
+          }
+          .przio:empty::before {
+            content: 'Drag components here';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100px;
+            color: #6366f1;
+            font-size: 14px;
+            font-weight: 500;
+            border: 2px dashed #e0e7ff;
+            border-radius: 8px;
+            background: #f8fafc;
+          }
+          .przio > *:not(.przio-placeholder).przio-drag-over { 
+            outline: 2px dashed #4f46e5 !important; 
+            outline-offset: 2px; 
+            background-color: rgba(79, 70, 229, 0.1) !important; 
+          }
+          /* Disable pointer events on the background site-iframe during drag */
+          body.przio-dragging .site-iframe {
+            pointer-events: none !important;
+          }
         `;
         iframeDoc.head.appendChild(styleEl);
       }
 
-      // Mark editable elements (only inside przio-popup)
+      // Mark editable elements (only inside przio)
       const markEditableElements = () => {
-        const popupEl = iframeDoc.querySelector('.przio-popup');
+        const popupEl = iframeDoc.querySelector('.przio') || iframeDoc.querySelector('.przio-popup');
         if (!popupEl) return;
         
         popupEl.querySelectorAll('*').forEach(el => {
@@ -991,6 +785,13 @@ export default function PopupActivityPage() {
             el.classList.add('przio-editable');
             if (['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(el.tagName)) {
               (el as HTMLElement).contentEditable = 'true';
+              // Sync contentEditable changes back
+              el.addEventListener('blur', () => {
+                parentWindow.postMessage({ 
+                  type: 'przio-content-updated', 
+                  html: popupEl.innerHTML 
+                }, '*');
+              });
             }
           }
         });
@@ -998,84 +799,67 @@ export default function PopupActivityPage() {
 
       // Setup drop handlers
       const setupDropHandlers = () => {
-        const popupEl = iframeDoc.querySelector('.przio-popup');
-        if (!popupEl) return;
+        const popupEl = (iframeDoc.querySelector('.przio') || iframeDoc.querySelector('.przio-popup')) as HTMLElement;
+        const docBody = iframeDoc.body;
 
-        // Allow drops on the popup element itself
-        popupEl.addEventListener('dragover', (e) => {
+        if (!popupEl) {
+          console.warn('❌ Popup element (.przio) not found in iframe');
+          return;
+        }
+
+        // Global drag handlers on body
+        docBody.addEventListener('dragover', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const target = e.target as Element;
+          docBody.classList.add('przio-dragging');
           
-          // Allow drop on popup itself or any child
-          if (target === popupEl || popupEl.contains(target)) {
-            // Add visual feedback
-            if (target !== popupEl) {
-              target.classList.add('przio-drag-over');
-            } else {
-              popupEl.classList.add('przio-drag-over');
-            }
+          // Find the deepest element under the cursor
+          const target = iframeDoc.elementFromPoint(e.clientX, e.clientY);
+          
+          // Clear all previous drag-over highlights
+          iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+          
+          if (target && (target === popupEl || popupEl.contains(target))) {
+            target.classList.add('przio-drag-over');
           }
         }, false);
 
-        popupEl.addEventListener('dragleave', (e) => {
-          const target = e.target as Element;
-          if (target) {
-            target.classList.remove('przio-drag-over');
+        docBody.addEventListener('dragleave', (e) => {
+          if (e.relatedTarget === null || (e.relatedTarget as Node).nodeType === undefined) {
+            docBody.classList.remove('przio-dragging');
+            iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
           }
-          popupEl.classList.remove('przio-drag-over');
         }, false);
 
-        popupEl.addEventListener('drop', (e) => {
+        docBody.addEventListener('drop', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const target = e.target as Element;
+          docBody.classList.remove('przio-dragging');
           
-          // Remove all drag-over classes
-          popupEl.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
-          popupEl.classList.remove('przio-drag-over');
+          const target = iframeDoc.elementFromPoint(e.clientX, e.clientY);
+          iframeDoc.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
           
-          // Try to get snippet from dataTransfer (may not work across iframe boundary)
-          let snippet = '';
-          try {
-            snippet = (e as any).dataTransfer?.getData('text/plain') || '';
-            // Also try JSON format
-            if (!snippet) {
-              const jsonData = (e as any).dataTransfer?.getData('application/json');
-              if (jsonData) {
-                try {
-                  const parsed = JSON.parse(jsonData);
-                  snippet = parsed.snippet || '';
-                } catch (err) {
-                  // Ignore parse errors
-                }
-              }
-            }
-          } catch (err) {
-            // dataTransfer might not be accessible, request from parent
-            console.log('dataTransfer not accessible, requesting from parent');
-          }
-          
-          // If dropping directly on popup or any child, send message to parent
-          // Parent will use draggingSnippetRef if snippet is empty
-          if (target === popupEl || popupEl.contains(target)) {
-            // If dropping on popup itself, use empty selector
-            // If dropping on a child, use that child's selector
-            let selector = '';
+          if (target && (target === popupEl || popupEl.contains(target) || target === docBody)) {
+            let selector = '.przio';
             let position: 'inside' | 'before' | 'after' = 'inside';
             
-            if (target && target !== popupEl && popupEl.contains(target)) {
+            // If dropping on a specific element inside the popup
+            if (target && target !== docBody && (target === popupEl || popupEl.contains(target))) {
               selector = generateSelector(target);
-              position = 'inside';
-            } else {
-              // Dropping directly on popup
-              selector = '.przio-popup';
-              position = 'inside';
+              
+              // Smart nesting logic:
+              // If dropping on a DIV, we probably want to drop INSIDE it.
+              // If dropping on a text element (P, H1-H6, etc.), we probably want to drop AFTER it.
+              if (target.tagName === 'DIV' || target === popupEl) {
+                position = 'inside';
+              } else {
+                position = 'after';
+              }
             }
             
+            console.log('📤 Sending drop message to parent', { selector, position, targetTag: target?.tagName });
             parentWindow.postMessage({ 
               type: 'przio-iframe-drop', 
-              snippet: snippet || null, // Send null if not available, parent will use ref
               selector, 
               position 
             }, '*');
@@ -1084,22 +868,64 @@ export default function PopupActivityPage() {
 
         // Click to select
         popupEl.addEventListener('click', (e) => {
-          const target = e.target as Element;
+          const target = e.target as HTMLElement;
+          console.log('鼠标 Click on:', target.tagName, target.className);
           
           if (target && target !== popupEl && popupEl.contains(target) && target.classList.contains('przio-editable')) {
             iframeDoc.querySelectorAll('.przio-selected').forEach(el => el.classList.remove('przio-selected'));
             target.classList.add('przio-selected');
             const selector = generateSelector(target);
+            const rect = target.getBoundingClientRect();
+            
             parentWindow.postMessage({ 
               type: 'przio-element-selected', 
               selector, 
-              tagName: target.tagName 
+              tagName: target.tagName,
+              rect: {
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height
+              }
+            }, '*');
+          } else if (target === popupEl) {
+            iframeDoc.querySelectorAll('.przio-selected').forEach(el => el.classList.remove('przio-selected'));
+            popupEl.classList.add('przio-selected');
+            const rect = popupEl.getBoundingClientRect();
+            
+            parentWindow.postMessage({ 
+              type: 'przio-element-selected', 
+              selector: '.przio', 
+              tagName: 'DIV',
+              rect: {
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height
+              }
             }, '*');
           }
         });
       };
 
       const generateSelector = (el: Element): string => {
+        // 1. Try to find unique przio-xxxx class
+        const przioClass = Array.from(el.classList).find(c => 
+          c.startsWith('przio-') && 
+          c !== 'przio' && 
+          c !== 'przio-popup' && 
+          c !== 'przio-element' && 
+          c !== 'przio-editable' && 
+          c !== 'przio-selected' && 
+          c !== 'przio-drag-over'
+        );
+        
+        if (przioClass) return `.${przioClass}`;
+
+        // 2. Try ID
+        if (el.id) return `#${el.id}`;
+
+        // 3. Fallback to full path
         const path: string[] = [];
         let current: Element | null = el;
         while (current && current !== iframeDoc.body) {
@@ -1127,11 +953,15 @@ export default function PopupActivityPage() {
       setupDropHandlers();
     };
 
-    if (iframe.contentDocument?.readyState === 'complete') {
+    // Check if iframe is already loaded
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (iframeDoc && iframeDoc.readyState === 'complete' && iframeDoc.body && iframeDoc.body.innerHTML !== '') {
+      console.log('iframe already complete, setting up handlers immediately');
       setupDragHandlers();
-    } else {
-      iframe.addEventListener('load', setupDragHandlers);
     }
+    
+    // Also listen for load event (useful for srcDoc updates)
+    iframe.addEventListener('load', setupDragHandlers);
 
     return () => {
       iframe.removeEventListener('load', setupDragHandlers);
@@ -1142,28 +972,49 @@ export default function PopupActivityPage() {
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
       if (e.data?.type === 'przio-iframe-drop') {
-        let { snippet, selector, position } = e.data;
-        // If snippet is not provided (iframe dataTransfer issue), use the ref value
-        if (!snippet && draggingSnippetRef.current) {
-          snippet = draggingSnippetRef.current;
-        }
+        let { selector, position } = e.data;
+        const snippet = draggingSnippetRef.current;
+        
+        console.log('📥 Parent received drop message', { snippet: snippet?.substring(0, 30), selector, position });
+        
         if (!snippet) {
-          console.warn('No snippet available for drop');
+          console.warn('⚠️ No snippet available for drop in parent');
           return;
         }
         injectSnippet(snippet, selector, position);
+      } else if (e.data?.type === 'przio-element-selected') {
+        const { selector, rect } = e.data;
+        console.log('📥 Element selected in iframe:', selector, rect);
+        
+        setSelectedElement({ id: selector, element: null }); 
+        
+        if (rect && previewIframeRef.current) {
+          const iframeRect = previewIframeRef.current.getBoundingClientRect();
+          setToolbarPosition({
+            top: iframeRect.top + rect.top - 55, // Adjusted offset
+            left: iframeRect.left + rect.left,
+          });
+          setShowElementToolbar(true);
+        }
+        
+        loadElementCss(selector);
+      } else if (e.data?.type === 'przio-content-updated') {
+        // Handle contentEditable updates if needed
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [injectSnippet]);
+  }, [injectSnippet, loadElementCss]);
 
-  // Setup iframe when HTML changes
+  // Setup iframe when HTML changes or tab changes
   useEffect(() => {
-    const cleanup = setupIframeDragDrop(previewIframeRef.current);
+    const iframe = previewIframeRef.current;
+    if (!iframe) return;
+    
+    const cleanup = setupIframeDragDrop(iframe);
     return () => cleanup?.();
-  }, [formData.html, setupIframeDragDrop]);
+  }, [formData.html, activeTab, setupIframeDragDrop]);
 
   // Handle split view resizing
   useEffect(() => {
@@ -1217,7 +1068,7 @@ export default function PopupActivityPage() {
     const parser = new DOMParser();
     const popupDoc = parser.parseFromString(wrapForParsing(formData.html || ''), 'text/html');
     const styleEl = popupDoc.querySelector('style');
-    const popupElement = popupDoc.querySelector('.przio-popup');
+    const popupElement = popupDoc.querySelector('.przio') || popupDoc.querySelector('.przio-popup');
     
     // Extract style and popup HTML
     let popupHTML = '';
@@ -1256,7 +1107,7 @@ export default function PopupActivityPage() {
             left: 0;
         }
         /* Popup styles - ensure it appears on top */
-        .przio-popup {
+        .przio, .przio-popup {
             z-index: 99999 !important;
             position: fixed !important;
         }
@@ -1286,7 +1137,7 @@ export default function PopupActivityPage() {
     setFormData((prev) => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(wrapForParsing(prev.html || ''), 'text/html');
-      const popupEl = doc.querySelector('.przio-popup');
+      const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
       
       if (!popupEl) return prev;
       
@@ -1488,168 +1339,18 @@ export default function PopupActivityPage() {
         <div className="flex-1 overflow-hidden flex">
           {/* Left Column - Settings */}
           {!isSidebarCollapsed && (
-            <div className="w-64 overflow-y-auto bg-white border-r border-gray-200 p-3 space-y-3 flex-shrink-0">
-            {/* Popup Name */}
-            <div>
-              <button
-                onClick={() => setIsBasicSettingsCollapsed(!isBasicSettingsCollapsed)}
-                className="w-full flex items-center justify-between text-sm font-semibold text-gray-900 mb-2 hover:text-indigo-600 transition-colors"
-              >
-                <span>Basic Settings</span>
-                {isBasicSettingsCollapsed ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronUp className="w-4 h-4" />
-                )}
-              </button>
-              {!isBasicSettingsCollapsed && (
-                <>
-                  <div className="mb-2">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Popup Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                      placeholder="Enter name"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Status
-                    </label>
-                    <CustomDropdown
-                      value={formData.status}
-                      onChange={(value) => setFormData({ ...formData, status: value as 'draft' | 'deactivated' | 'activated' })}
-                      options={[
-                        { value: 'draft', label: 'Draft' },
-                        { value: 'deactivated', label: 'Deactivated' },
-                        { value: 'activated', label: 'Activated' },
-                      ]}
-                      className="w-full"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* URL Conditions */}
-            <div>
-              <h2 className="text-sm font-semibold text-gray-900 mb-2">Enable Popup on Page</h2>
-
-                {/* Domain Name - Single field at top */}
-                <div className="mb-3">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Domain Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.domain}
-                    onChange={(e) => {
-                      const domain = e.target.value;
-                      setFormData({ ...formData, domain });
-                      // Update preview URL if it's empty or matches the old domain pattern
-                      if (!previewUrl || previewUrl.includes(formData.domain)) {
-                        const newUrl = domain 
-                          ? (domain.startsWith('http://') || domain.startsWith('https://') 
-                              ? domain 
-                              : `https://${domain}`)
-                          : '';
-                        setPreviewUrl(newUrl);
-                      }
-                    }}
-                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                    placeholder="example.com"
-                    required
-                  />
-                </div>
-
-                {/* URL Conditions */}
-                <div className="space-y-2">
-                  {formData.urlConditions.map((condition, index) => (
-                    <div key={index}>
-                      {/* AND/OR Selector - Show between conditions */}
-                      {index > 0 && (
-                        <div className="mb-2 flex items-center justify-center">
-                          <CustomDropdown
-                            value={formData.logicOperators[index - 1] || 'OR'}
-                            onChange={(value: string) => updateLogicOperator(index - 1, value as 'AND' | 'OR')}
-                            options={[
-                              { value: 'OR', label: 'OR' },
-                              { value: 'AND', label: 'AND' },
-                            ]}
-                            className="px-2"
-                          />
-                        </div>
-                      )}
-
-                      <div className="border border-gray-200 rounded p-2 bg-gray-50">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-gray-700">#{index + 1}</span>
-                          <button
-                            onClick={() => removeUrlCondition(index)}
-                            className="text-red-600 hover:text-red-700 text-xs font-medium"
-                          >
-                            ×
-                          </button>
-                        </div>
-
-                        {/* Condition Type - Enhanced Select */}
-                        <div className="mb-2">
-                          <label className="block text-xs font-medium text-gray-600 mb-0.5">
-                            Type
-                          </label>
-                          <CustomDropdown
-                            value={condition.type}
-                            onChange={(value: string) => updateUrlCondition(index, 'type', value)}
-                            options={[
-                              { value: 'contains', label: 'Contains' },
-                              { value: 'equals', label: 'Equals' },
-                              { value: 'landing', label: 'Landing Page' },
-                              { value: 'startsWith', label: 'Starts With' },
-                              { value: 'doesNotContain', label: 'Does Not Contain' },
-                            ]}
-                            className="w-full"
-                          />
-                        </div>
-
-                        {/* URL Value (hidden for landing page) */}
-                        {condition.type !== 'landing' && (
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-0.5">
-                              URL Value *
-                            </label>
-                            <input
-                              type="text"
-                              value={condition.value}
-                              onChange={(e) => updateUrlCondition(index, 'value', e.target.value)}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                              placeholder={
-                                condition.type === 'contains' ? '/products' :
-                                condition.type === 'equals' ? 'https://example.com/page' :
-                                condition.type === 'startsWith' ? '/blog' :
-                                '/exclude'
-                              }
-                              required
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  onClick={addUrlCondition}
-                  className="mt-2 w-full px-2 py-1.5 text-xs text-indigo-600 border border-indigo-300 rounded hover:bg-indigo-50 transition-colors font-medium"
-                >
-                  + Add Condition
-                </button>
-            </div>
-          </div>
+            <PopupSidebar
+              formData={formData}
+              setFormData={setFormData}
+              isBasicSettingsCollapsed={isBasicSettingsCollapsed}
+              setIsBasicSettingsCollapsed={setIsBasicSettingsCollapsed}
+              previewUrl={previewUrl}
+              setPreviewUrl={setPreviewUrl}
+              addUrlCondition={addUrlCondition}
+              updateUrlCondition={updateUrlCondition}
+              removeUrlCondition={removeUrlCondition}
+              updateLogicOperator={updateLogicOperator}
+            />
           )}
 
           {/* Collapse/Expand Button */}
@@ -1665,305 +1366,165 @@ export default function PopupActivityPage() {
             )}
           </button>
 
-          {/* Right Column - Visual Editor */}
+          {/* Right Column - Visual Editor & Code Editor */}
           <div className="flex-1 overflow-hidden flex flex-col bg-white">
-            {/* Toolbar */}
-            <div className="flex-shrink-0 border-b border-gray-200 bg-gray-50 p-2">
-              <div className="flex items-center gap-2 overflow-x-auto">
-                {DRAG_ITEMS.filter(item => item.primary).map((item) => (
+            {/* Tabs Header */}
+            <div className="flex items-center justify-between px-4 bg-gray-50 border-b border-gray-200 h-12 flex-shrink-0">
+              <div className="flex gap-1">
+                {[
+                  { id: 'editor', label: 'EDITOR', icon: <Type size={14} /> },
+                  { id: 'split', label: 'SPLIT', icon: <Rows3 size={14} /> },
+                  { id: 'preview', label: 'PREVIEW', icon: <Monitor size={14} /> }
+                ].map((tab) => (
                   <button
-                    key={item.key}
-                    draggable
-                    onDragStart={(e) => {
-                      console.log('🚀 Drag started:', item.label);
-                      setDraggingSnippet(item.snippet);
-                      draggingSnippetRef.current = item.snippet;
-                      e.dataTransfer.setData('text/plain', item.snippet);
-                      e.dataTransfer.effectAllowed = 'copy';
-                      // Also store in a way accessible to iframe
-                      try {
-                        e.dataTransfer.setData('application/json', JSON.stringify({ snippet: item.snippet }));
-                      } catch (err) {
-                        // Fallback if setData fails
-                      }
-                      console.log('✅ draggingSnippetRef set to:', item.snippet.substring(0, 50));
-                    }}
-                    onDragEnd={() => {
-                      console.log('🛑 Drag ended');
-                      setDraggingSnippet(null);
-                      draggingSnippetRef.current = null;
-                      setIsOverCanvas(false);
-                    }}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors whitespace-nowrap"
-                    title={item.label}
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                      activeTab === tab.id
+                        ? 'bg-white text-indigo-600 border-x border-t border-gray-200 -mb-px shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                    }`}
                   >
-                    {item.icon}
-                    <span>{item.label}</span>
+                    {tab.icon}
+                    {tab.label}
                   </button>
                 ))}
-                <div className="border-l border-gray-300 mx-2 h-6"></div>
-                
-                {/* Position Dropdown */}
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-600 whitespace-nowrap">Position:</label>
-                  <CustomDropdown
-                    value={formData.position}
-                    onChange={(value: string) => {
-                      const newPosition = value as typeof formData.position;
-                      setFormData({ ...formData, position: newPosition });
-                      applyPositionToHTML(newPosition);
-                    }}
-                    options={[
-                      { value: 'center', label: 'Center' },
-                      { value: 'center-top', label: 'Center Top' },
-                      { value: 'center-bottom', label: 'Center Bottom' },
-                      { value: 'left-top', label: 'Left Top' },
-                      { value: 'right-top', label: 'Right Top' },
-                      { value: 'left-bottom', label: 'Left Bottom' },
-                      { value: 'right-bottom', label: 'Right Bottom' },
-                    ]}
-                    className="min-w-[150px]"
-                  />
-                </div>
-
-                <div className="border-l border-gray-300 mx-2 h-6"></div>
-
-                {/* Device Icons */}
-                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-lg p-1">
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex bg-gray-200 p-1 rounded-lg">
                   <button
                     onClick={() => setPreviewMode('mobile')}
-                    className={`p-2 rounded transition-colors ${
-                      previewMode === 'mobile'
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                    title="Mobile View"
+                    className={`p-1.5 rounded-md transition-all ${previewMode === 'mobile' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
                   >
-                    <Smartphone size={18} />
+                    <Smartphone size={16} />
                   </button>
                   <button
                     onClick={() => setPreviewMode('tablet')}
-                    className={`p-2 rounded transition-colors ${
-                      previewMode === 'tablet'
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                    title="Tablet View"
+                    className={`p-1.5 rounded-md transition-all ${previewMode === 'tablet' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
                   >
-                    <Tablet size={18} />
+                    <Tablet size={16} />
                   </button>
                   <button
                     onClick={() => setPreviewMode('desktop')}
-                    className={`p-2 rounded transition-colors ${
-                      previewMode === 'desktop'
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                    title="Desktop View"
+                    className={`p-1.5 rounded-md transition-all ${previewMode === 'desktop' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
                   >
-                    <Monitor size={18} />
-                  </button>
-                </div>
-
-                <div className="border-l border-gray-300 mx-2 h-6"></div>
-                <div className="relative">
-                  <button
-                    onClick={() => setShowPopupSettings(true)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors"
-                  >
-                    <Settings size={16} />
-                    <span>Popup Settings</span>
-                  </button>
-                </div>
-                <div className="border-l border-gray-300 mx-2 h-6"></div>
-                <div className="relative">
-                  <button
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 transition-colors"
-                  >
-                    <MoreHorizontal size={16} />
-                    <span>More</span>
+                    <Monitor size={16} />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Tab Switcher */}
-            <div className="flex-shrink-0 border-b border-gray-200 bg-white">
-              <div className="flex items-center gap-1 px-4 py-2">
-                <button
-                  onClick={() => setActiveTab('editor')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === 'editor'
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Code Editor
-                </button>
-                <button
-                  onClick={() => setActiveTab('preview')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === 'preview'
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Visual Editor
-                </button>
-                <button
-                  onClick={() => setActiveTab('split')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === 'split'
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Split View
-                </button>
-              </div>
-            </div>
-
-            {/* Editor/Preview Content */}
+            {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
               {activeTab === 'editor' && (
-                <div className="absolute inset-0">
+                <div className="h-full">
                   <HTMLEditor
-                    ref={htmlEditorRef}
                     value={formData.html}
-                    onChange={(value) => setFormData({ ...formData, html: value || '' })}
+                    onChange={(val) => setFormData(prev => ({ ...prev, html: val || '' }))}
                     isFullscreen={false}
                     onFullscreenChange={() => {}}
+                    ref={htmlEditorRef}
                   />
-                </div>
-              )}
-
-              {activeTab === 'preview' && (
-                <div className="absolute inset-0 overflow-auto bg-gray-100 p-4">
-                  {/* Show instruction if empty, otherwise show visual editor */}
-                  {!formData.html || !formData.html.includes('przio-popup') ? (
-                    <div 
-                      className="mx-auto bg-white rounded-lg shadow-lg overflow-hidden flex items-center justify-center"
-                      style={{
-                        width: getPreviewWidth(),
-                        maxWidth: '100%',
-                        transition: 'width 0.3s ease',
-                        minHeight: '600px',
-                      }}
-                      onDragOver={(e) => {
-                        console.log('📦 Drag over instruction area');
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onDrop={(e) => {
-                        console.log('📦 Drop on instruction area');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleDirectDrop(e);
-                      }}
-                    >
-                      <div className="text-center max-w-md p-8 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-dashed border-indigo-300">
-                        <div className="text-6xl mb-4">📦</div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Start Building Your Popup</h3>
-                        <p className="text-gray-600 mb-4">
-                          Drag and drop a <span className="font-semibold text-indigo-600">Container</span> element from the toolbar above to get started.
-                        </p>
-                        <div className="text-sm text-gray-500 bg-white rounded-lg p-3 border border-indigo-200">
-                          💡 Tip: Add a Container first, then drag other elements inside it!
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="mx-auto bg-white rounded-lg shadow-lg overflow-hidden"
-                      style={{
-                        width: getPreviewWidth(),
-                        maxWidth: '100%',
-                        transition: 'width 0.3s ease',
-                        minHeight: '600px',
-                      }}
-                      onDragOver={(e) => {
-                        console.log('📦 Drag over wrapper div');
-                        e.preventDefault();
-                        // Don't stopPropagation - let it reach the popup
-                      }}
-                      onDrop={(e) => {
-                        console.log('📦 Drop on wrapper div');
-                        e.preventDefault();
-                        handleDirectDrop(e);
-                      }}
-                    >
-                      {/* Direct Visual Editor */}
-                      <div
-                        ref={visualEditorRef}
-                        className="relative p-8"
-                        style={{ minHeight: '600px' }}
-                        dangerouslySetInnerHTML={{ __html: formData.html }}
-                      />
-                    </div>
-                  )}
                 </div>
               )}
 
               {activeTab === 'split' && (
-                <div className="absolute inset-0 flex split-container">
-                  <div
-                    className="overflow-hidden border-r border-gray-200"
-                    style={{ width: `${splitPosition}%` }}
+                <div className="h-full flex split-container relative">
+                  <div 
+                    style={{ width: `${splitPosition}%` }} 
+                    className="h-full border-r border-gray-200 overflow-hidden"
                   >
                     <HTMLEditor
-                      ref={htmlEditorRef}
                       value={formData.html}
-                      onChange={(value) => setFormData({ ...formData, html: value || '' })}
+                      onChange={(val) => setFormData(prev => ({ ...prev, html: val || '' }))}
                       isFullscreen={false}
                       onFullscreenChange={() => {}}
+                      ref={htmlEditorRef}
                     />
                   </div>
+                  
+                  {/* Resize Handle */}
                   <div
-                    className="relative cursor-col-resize bg-gray-200 hover:bg-indigo-300 transition-colors flex-shrink-0"
-                    style={{ width: '4px' }}
                     onMouseDown={() => setIsResizing(true)}
+                    className="absolute top-0 bottom-0 w-1 bg-gray-200 hover:bg-indigo-400 cursor-col-resize z-20 group transition-colors"
+                    style={{ left: `calc(${splitPosition}% - 2px)` }}
                   >
-                    <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-center">
-                      <div className="w-1 h-12 bg-gray-400 rounded"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-8 bg-white border border-gray-300 rounded shadow-sm opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                      <div className="w-0.5 h-3 bg-gray-400 rounded-full mx-0.5"></div>
+                      <div className="w-0.5 h-3 bg-gray-400 rounded-full mx-0.5"></div>
                     </div>
                   </div>
-                  <div
-                    className="overflow-hidden bg-gray-100 flex flex-col"
-                    style={{ width: `${100 - splitPosition}%` }}
+
+                  <div 
+                    style={{ width: `${100 - splitPosition}%` }} 
+                    className="h-full bg-gray-100 flex flex-col"
                   >
-                    {/* Preview URL Input */}
-                    <div className="flex-shrink-0 p-3 bg-white border-b border-gray-200 flex items-center gap-2">
-                      <label className="text-sm text-gray-700 whitespace-nowrap font-medium">Preview URL:</label>
-                      <input
-                        type="text"
-                        value={previewUrl}
-                        onChange={(e) => setPreviewUrl(e.target.value)}
-                        onBlur={(e) => {
-                          // Auto-add https:// if no protocol
-                          const url = e.target.value.trim();
-                          if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
-                            setPreviewUrl(`https://${url}`);
-                          }
-                        }}
-                        placeholder="https://example.com"
-                        className="flex-1 px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                      />
-                    </div>
-                    <div className="flex-1 overflow-auto p-4 bg-gray-100">
-                      <div
-                        className="mx-auto bg-white rounded-lg shadow-lg"
-                        style={{
-                          width: getPreviewWidth(),
-                          maxWidth: '100%',
-                          transition: 'width 0.3s ease',
-                          minHeight: '600px',
+                    <div className="flex-1 flex items-center justify-center overflow-auto p-4">
+                      <div 
+                        className="bg-white shadow-xl transition-all overflow-hidden relative"
+                        style={{ 
+                          width: getPreviewWidth(), 
+                          height: previewMode === 'desktop' ? '100%' : '667px',
+                          maxHeight: '100%'
                         }}
                       >
-                        {/* Direct DOM Preview - No iframe */}
+                        <iframe
+                          ref={previewIframeRef}
+                          srcDoc={getPreviewHTML()}
+                          className="w-full h-full border-0"
+                          title="Preview"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'preview' && (
+                <div className="h-full flex">
+                  {/* Visual Builder Sidebar (only in preview mode) */}
+                  <div className="w-48 bg-gray-50 border-r border-gray-200 flex-shrink-0 flex flex-col">
+                    <div className="p-3 border-b border-gray-200 bg-white">
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Elements</h3>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                      {DRAG_ITEMS.map((item) => (
                         <div
-                          className="relative p-8"
-                          style={{ minHeight: '600px' }}
-                          dangerouslySetInnerHTML={{ __html: formData.html }}
+                          key={item.key}
+                          draggable
+                          onDragStart={(e) => {
+                            setDraggingSnippet(item.snippet);
+                            draggingSnippetRef.current = item.snippet;
+                            e.dataTransfer.setData('text/plain', item.snippet);
+                            // Also set a custom drag image or data if needed
+                          }}
+                          className="flex flex-col items-center justify-center p-3 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:text-indigo-600 cursor-grab active:cursor-grabbing transition-all shadow-sm group"
+                        >
+                          <div className="text-gray-400 group-hover:text-indigo-500 mb-1 transition-colors">
+                            {item.icon}
+                          </div>
+                          <span className="text-[10px] font-medium text-gray-600 group-hover:text-indigo-600">{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Canvas Area */}
+                  <div className="flex-1 bg-gray-100 flex flex-col">
+                    <div className="flex-1 flex items-center justify-center overflow-auto p-8">
+                      <div 
+                        className="bg-white shadow-2xl transition-all overflow-hidden relative"
+                        style={{ 
+                          width: getPreviewWidth(), 
+                          height: previewMode === 'desktop' ? '100%' : '667px',
+                          maxHeight: '100%'
+                        }}
+                      >
+                        <iframe
+                          ref={previewIframeRef}
+                          srcDoc={getPreviewHTML()}
+                          className="w-full h-full border-0"
+                          title="Visual Editor"
                         />
                       </div>
                     </div>
@@ -1971,414 +1532,36 @@ export default function PopupActivityPage() {
                 </div>
               )}
             </div>
-
-            {/* Hidden file input for image upload */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file || !projectId) return;
-                setUploadingImage(true);
-                try {
-                  const uploadFormData = new FormData();
-                  uploadFormData.append('image', file);
-                  const response = await axios.post(`${API_URL}/uploads/images`, uploadFormData, {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                      'Content-Type': 'multipart/form-data',
-                    },
-                  });
-                  const imageUrl = response.data.url;
-                  injectSnippet(`<img src="${imageUrl}" alt="Image" style="max-width:100%;display:block;" />`);
-                } catch (error: any) {
-                  console.error('Image upload failed:', error);
-                  window.alert(error?.response?.data?.error || 'Image upload failed');
-                } finally {
-                  setUploadingImage(false);
-                  if (fileInputRef.current) fileInputRef.current.value = '';
-                }
-              }}
-            />
           </div>
         </div>
       </div>
 
-      {/* Floating Element Toolbar */}
-      {showElementToolbar && (
-        <div
-          className="fixed bg-white border border-gray-300 rounded-lg shadow-xl flex items-center gap-2 px-3 py-2"
-          style={{
-            top: `${toolbarPosition.top}px`,
-            left: `${toolbarPosition.left}px`,
-            zIndex: 999999,
-          }}
-        >
-          <button
-            onClick={openCssEditor}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-            title="Edit CSS"
-          >
-            <Settings size={16} />
-            <span>Edit CSS</span>
-          </button>
-          <div className="w-px h-6 bg-gray-300"></div>
-          <button
-            onClick={deleteSelectedElement}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Delete Element"
-          >
-            <Trash2 size={16} />
-            <span>Delete</span>
-          </button>
-          <div className="w-px h-6 bg-gray-300"></div>
-          <button
-            onClick={() => {
-              console.log('❌ Deselecting element');
-              setShowElementToolbar(false);
-              setSelectedElement({ id: '', element: null });
-              // Remove all selected classes
-              document.querySelectorAll('.przio-selected').forEach(el => {
-                el.classList.remove('przio-selected');
-              });
-              if (visualEditorRef.current) {
-                visualEditorRef.current.querySelectorAll('.przio-selected').forEach(el => {
-                  el.classList.remove('przio-selected');
-                });
-              }
-            }}
-            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-            title="Close"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
+      <ElementToolbar
+        toolbarPosition={toolbarPosition}
+        selectedElementId={selectedElement.id}
+        moveElementSibling={moveElementSibling}
+        openCssEditor={openCssEditor}
+        deleteSelectedElement={deleteSelectedElement}
+        onClose={() => {
+          setShowElementToolbar(false);
+          setSelectedElement({ id: '', element: null });
+        }}
+      />
 
-      {/* CSS Editor Modal */}
-      {showCssEditor && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="text-xl font-semibold text-gray-900">Edit Element CSS</h2>
-              <button
-                onClick={() => setShowCssEditor(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="px-6 py-6 space-y-6">
-              {/* Layout & Dimensions */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Layout & Dimensions</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
-                    <input
-                      type="text"
-                      value={editingElementCss.width}
-                      onChange={(e) => setEditingElementCss({ ...editingElementCss, width: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                      placeholder="auto, 100px, 50%"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Height</label>
-                    <input
-                      type="text"
-                      value={editingElementCss.height}
-                      onChange={(e) => setEditingElementCss({ ...editingElementCss, height: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                      placeholder="auto, 100px, 50%"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Padding</label>
-                    <input
-                      type="text"
-                      value={editingElementCss.padding}
-                      onChange={(e) => setEditingElementCss({ ...editingElementCss, padding: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                      placeholder="10px, 10px 20px"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Margin</label>
-                    <input
-                      type="text"
-                      value={editingElementCss.margin}
-                      onChange={(e) => setEditingElementCss({ ...editingElementCss, margin: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                      placeholder="10px, 10px 20px"
-                    />
-                  </div>
-                </div>
-              </div>
+      <CssEditorModal
+        isOpen={showCssEditor}
+        onClose={() => setShowCssEditor(false)}
+        editingElementCss={editingElementCss}
+        setEditingElementCss={setEditingElementCss}
+        applyCssChanges={applyCssChanges}
+      />
 
-              {/* Border */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Border</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
-                    <input
-                      type="text"
-                      value={editingElementCss.borderWidth}
-                      onChange={(e) => setEditingElementCss({ ...editingElementCss, borderWidth: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                      placeholder="1px, 2px"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Style</label>
-                    <select
-                      value={editingElementCss.borderStyle}
-                      onChange={(e) => setEditingElementCss({ ...editingElementCss, borderStyle: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                    >
-                      <option value="solid">Solid</option>
-                      <option value="dashed">Dashed</option>
-                      <option value="dotted">Dotted</option>
-                      <option value="double">Double</option>
-                      <option value="none">None</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editingElementCss.borderColor}
-                        onChange={(e) => setEditingElementCss({ ...editingElementCss, borderColor: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                        placeholder="#000000"
-                      />
-                      <input
-                        type="color"
-                        value={editingElementCss.borderColor}
-                        onChange={(e) => setEditingElementCss({ ...editingElementCss, borderColor: e.target.value })}
-                        className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Colors & Typography */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Colors & Typography</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Background Color</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editingElementCss.backgroundColor}
-                        onChange={(e) => setEditingElementCss({ ...editingElementCss, backgroundColor: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                        placeholder="#ffffff"
-                      />
-                      <input
-                        type="color"
-                        value={editingElementCss.backgroundColor}
-                        onChange={(e) => setEditingElementCss({ ...editingElementCss, backgroundColor: e.target.value })}
-                        className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Text Color</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editingElementCss.color}
-                        onChange={(e) => setEditingElementCss({ ...editingElementCss, color: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                        placeholder="#000000"
-                      />
-                      <input
-                        type="color"
-                        value={editingElementCss.color}
-                        onChange={(e) => setEditingElementCss({ ...editingElementCss, color: e.target.value })}
-                        className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Font Size</label>
-                    <input
-                      type="text"
-                      value={editingElementCss.fontSize}
-                      onChange={(e) => setEditingElementCss({ ...editingElementCss, fontSize: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                      placeholder="14px, 1rem"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Font Weight</label>
-                    <select
-                      value={editingElementCss.fontWeight}
-                      onChange={(e) => setEditingElementCss({ ...editingElementCss, fontWeight: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                    >
-                      <option value="">Default</option>
-                      <option value="300">Light (300)</option>
-                      <option value="400">Normal (400)</option>
-                      <option value="500">Medium (500)</option>
-                      <option value="600">Semi-bold (600)</option>
-                      <option value="700">Bold (700)</option>
-                      <option value="800">Extra-bold (800)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Responsive Options Info */}
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-indigo-900 mb-2">📱 Responsive Design</h3>
-                <p className="text-sm text-indigo-700">
-                  These styles will apply to all screen sizes. Responsive CSS (mobile, tablet, desktop specific) will be available in the next update.
-                </p>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3 sticky bottom-0 bg-white">
-              <button
-                onClick={() => setShowCssEditor(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={applyCssChanges}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Apply Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Popup Settings Modal */}
-      {showPopupSettings && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="text-xl font-semibold text-gray-900">Popup CSS Settings</h2>
-              <button
-                onClick={() => setShowPopupSettings(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="px-6 py-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Padding
-                </label>
-                <input
-                  type="text"
-                  value={popupCssSettings.padding}
-                  onChange={(e) => setPopupCssSettings({ ...popupCssSettings, padding: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="40px 20px"
-                />
-                <p className="mt-1 text-xs text-gray-500">e.g., 40px 20px or 20px</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Border
-                </label>
-                <input
-                  type="text"
-                  value={popupCssSettings.border}
-                  onChange={(e) => setPopupCssSettings({ ...popupCssSettings, border: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="2px dashed #cbd5e1"
-                />
-                <p className="mt-1 text-xs text-gray-500">e.g., 2px dashed #cbd5e1 or 1px solid #000</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Border Radius
-                </label>
-                <input
-                  type="text"
-                  value={popupCssSettings.borderRadius}
-                  onChange={(e) => setPopupCssSettings({ ...popupCssSettings, borderRadius: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="8px"
-                />
-                <p className="mt-1 text-xs text-gray-500">e.g., 8px or 12px</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Background Color
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={popupCssSettings.backgroundColor}
-                    onChange={(e) => setPopupCssSettings({ ...popupCssSettings, backgroundColor: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                    placeholder="#f9fafb"
-                  />
-                  <input
-                    type="color"
-                    value={popupCssSettings.backgroundColor}
-                    onChange={(e) => setPopupCssSettings({ ...popupCssSettings, backgroundColor: e.target.value })}
-                    className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
-                  />
-                </div>
-                <p className="mt-1 text-xs text-gray-500">e.g., #f9fafb or rgb(249, 250, 251)</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Text Align
-                </label>
-                <CustomDropdown
-                  value={popupCssSettings.textAlign}
-                  onChange={(value: string) => setPopupCssSettings({ ...popupCssSettings, textAlign: value })}
-                  options={[
-                    { value: 'left', label: 'Left' },
-                    { value: 'center', label: 'Center' },
-                    { value: 'right', label: 'Right' },
-                    { value: 'justify', label: 'Justify' },
-                  ]}
-                  className="w-full"
-                />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowPopupSettings(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowPopupSettings(false);
-                  // CSS will be applied automatically via useEffect
-                }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Apply
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PopupSettingsModal
+        isOpen={showPopupSettings}
+        onClose={() => setShowPopupSettings(false)}
+        popupCssSettings={popupCssSettings}
+        setPopupCssSettings={setPopupCssSettings}
+      />
 
       <Alert
         isOpen={alert.isOpen}
