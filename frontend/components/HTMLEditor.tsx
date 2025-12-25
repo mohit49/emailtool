@@ -201,7 +201,6 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
             tabSize: 2,
             formatOnPaste: true,
             formatOnType: true,
-            formatOnSave: true,
             suggestOnTriggerCharacters: true,
             quickSuggestions: true,
             acceptSuggestionOnEnter: 'on',

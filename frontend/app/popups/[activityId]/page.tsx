@@ -2924,7 +2924,7 @@ export default function PopupActivityPage() {
                         <span className="text-sm font-medium text-gray-700">Enable Cookie Based</span>
                       </label>
                       <p className="mt-1 text-xs text-gray-500 ml-8">
-                        If user closes the popup, it won't show again until the cookie expires
+                        If user closes the popup, it won&apos;t show again until the cookie expires
                       </p>
                       
                       {triggerSettings.cookieEnabled && (
@@ -2941,7 +2941,7 @@ export default function PopupActivityPage() {
                             min="1"
                           />
                           <p className="mt-1 text-xs text-gray-500">
-                            Popup won't show again for this many days after being closed
+                            Popup won&apos;t show again for this many days after being closed
                           </p>
                         </div>
                       )}
@@ -2966,7 +2966,7 @@ export default function PopupActivityPage() {
                         <span className="text-sm font-medium text-gray-700">Enable Session Based</span>
                       </label>
                       <p className="mt-1 text-xs text-gray-500 ml-8">
-                        If user closes the popup, it won't show again during this browser session. The popup will appear again when the user opens a new browser session.
+                        If user closes the popup, it won&apos;t show again during this browser session. The popup will appear again when the user opens a new browser session.
                       </p>
                     </div>
                   </div>
