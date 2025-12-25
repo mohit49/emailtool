@@ -154,6 +154,127 @@
   }
 
   /**
+   * Cookie utility functions
+   */
+  function setCookie(name, value, days) {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+  }
+
+  function getCookie(name) {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  }
+
+  function deleteCookie(name) {
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+  }
+
+  /**
+   * Session storage utility functions
+   */
+  function setSessionStorage(key, value) {
+    try {
+      sessionStorage.setItem(key, value);
+    } catch (e) {
+      log('SessionStorage not available:', e);
+    }
+  }
+
+  function getSessionStorage(key) {
+    try {
+      return sessionStorage.getItem(key);
+    } catch (e) {
+      log('SessionStorage not available:', e);
+      return null;
+    }
+  }
+
+  /**
+   * Check if popup was closed (cookie or session based)
+   */
+  function wasPopupClosed(activity) {
+    const popupId = activity._id;
+    const cookieEnabled = activity.popupSettings?.cookieEnabled;
+    const sessionEnabled = activity.popupSettings?.sessionEnabled;
+
+    if (cookieEnabled) {
+      const cookieName = `przio-popup-closed-${popupId}`;
+      if (getCookie(cookieName) !== null) {
+        return true;
+      }
+    }
+    
+    if (sessionEnabled) {
+      const sessionKey = `przio-popup-closed-${popupId}`;
+      if (getSessionStorage(sessionKey) !== null) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Mark popup as closed (save to cookie or session)
+   */
+  function markPopupAsClosed(activity) {
+    const popupId = activity._id;
+    const cookieEnabled = activity.popupSettings?.cookieEnabled;
+    const sessionEnabled = activity.popupSettings?.sessionEnabled;
+    const cookieExpiry = activity.popupSettings?.cookieExpiry || 30; // Default 30 days
+
+    if (cookieEnabled) {
+      const cookieName = `przio-popup-closed-${popupId}`;
+      setCookie(cookieName, 'true', cookieExpiry);
+      log('Popup closed, saved to cookie:', cookieName);
+    }
+    
+    if (sessionEnabled) {
+      const sessionKey = `przio-popup-closed-${popupId}`;
+      setSessionStorage(sessionKey, 'true');
+      log('Popup closed, saved to session:', sessionKey);
+    }
+  }
+
+  /**
+   * Check if element exists in DOM
+   */
+  function waitForElement(selector, callback, timeout = 30000) {
+    const element = document.querySelector(selector);
+    if (element) {
+      callback(element);
+      return;
+    }
+
+    const observer = new MutationObserver((mutations, obs) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        obs.disconnect();
+        callback(element);
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Timeout after specified time
+    setTimeout(() => {
+      observer.disconnect();
+      log('Element not found within timeout:', selector);
+    }, timeout);
+  }
+
+  /**
    * Check if popup should be shown based on URL conditions
    */
   function shouldShowPopup(activity) {
@@ -171,6 +292,161 @@
       // OR (default)
       return results.some(result => result === true);
     }
+  }
+
+  /**
+   * Check trigger conditions for popup
+   */
+  function checkTrigger(activity, callback) {
+    const trigger = activity.popupSettings?.trigger || 'pageLoad';
+    const cookieEnabled = activity.popupSettings?.cookieEnabled;
+    const sessionEnabled = activity.popupSettings?.sessionEnabled;
+
+    // Check if popup was already closed (cookie/session) - works with any trigger
+    if (cookieEnabled || sessionEnabled) {
+      if (wasPopupClosed(activity)) {
+        log('Popup was closed previously, skipping:', activity.name);
+        return;
+      }
+    }
+
+    switch (trigger) {
+      case 'pageLoad':
+        // Show immediately
+        callback();
+        break;
+
+      case 'timeout':
+        const timeout = activity.popupSettings?.timeout || 3000; // Default 3 seconds
+        setTimeout(() => {
+          callback();
+        }, timeout);
+        break;
+
+      case 'elementExists':
+        const selector = activity.popupSettings?.elementSelector;
+        if (!selector) {
+          error('Element selector required for elementExists trigger');
+          return;
+        }
+        waitForElement(selector, () => {
+          log('Element found, showing popup:', selector);
+          callback();
+        });
+        break;
+
+      case 'scrollPercentage':
+        setupScrollPercentage(activity, callback);
+        break;
+
+      case 'exitIntent':
+        setupExitIntent(activity, callback);
+        break;
+
+      default:
+        // Default to pageLoad
+        callback();
+    }
+  }
+
+  /**
+   * Setup scroll percentage detection
+   */
+  function setupScrollPercentage(activity, callback) {
+    const scrollPercentage = activity.popupSettings?.scrollPercentage || 50;
+    let hasShown = false;
+
+    const checkScroll = () => {
+      if (hasShown) return;
+
+      // Calculate scroll percentage
+      const windowHeight = window.innerHeight;
+      const documentHeight = Math.max(
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.clientHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
+      );
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollableHeight = documentHeight - windowHeight;
+      const currentScrollPercentage = scrollableHeight > 0 
+        ? Math.round((scrollTop / scrollableHeight) * 100)
+        : 0;
+
+      if (currentScrollPercentage >= scrollPercentage) {
+        log(`Scroll percentage reached: ${currentScrollPercentage}% >= ${scrollPercentage}%`);
+        hasShown = true;
+        callback();
+        // Remove scroll listener after showing
+        window.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      }
+    };
+
+    // Check immediately in case page is already scrolled
+    checkScroll();
+
+    // Listen for scroll events
+    window.addEventListener('scroll', checkScroll, { passive: true });
+    // Also listen for resize in case content height changes
+    window.addEventListener('resize', checkScroll);
+  }
+
+  /**
+   * Setup exit intent detection with inactivity timeout
+   */
+  function setupExitIntent(activity, callback) {
+    const inactivityTimeout = (activity.popupSettings?.inactivityTimeout || 30) * 1000; // Convert to milliseconds
+    let inactivityTimer = null;
+    let mouseLeaveTimer = null;
+    let hasShown = false;
+
+    // Track user activity
+    const resetInactivityTimer = () => {
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+      }
+      inactivityTimer = setTimeout(() => {
+        if (!hasShown) {
+          log('User inactive, showing exit intent popup');
+          hasShown = true;
+          callback();
+          // Clean up listeners after showing
+          document.removeEventListener('mousemove', resetInactivityTimer);
+          document.removeEventListener('keypress', resetInactivityTimer);
+          document.removeEventListener('scroll', resetInactivityTimer);
+          document.removeEventListener('click', resetInactivityTimer);
+          document.removeEventListener('mouseleave', handleMouseLeave);
+        }
+      }, inactivityTimeout);
+    };
+
+    // Handle mouse leave (traditional exit intent)
+    const handleMouseLeave = (e) => {
+      if (e.clientY <= 0 && !hasShown) {
+        // Mouse left the top of the window
+        log('Exit intent detected (mouse leave)');
+        hasShown = true;
+        callback();
+        // Clean up
+        document.removeEventListener('mousemove', resetInactivityTimer);
+        document.removeEventListener('keypress', resetInactivityTimer);
+        document.removeEventListener('scroll', resetInactivityTimer);
+        document.removeEventListener('click', resetInactivityTimer);
+        document.removeEventListener('mouseleave', handleMouseLeave);
+      }
+    };
+
+    // Start inactivity timer
+    resetInactivityTimer();
+
+    // Listen for user activity
+    document.addEventListener('mousemove', resetInactivityTimer);
+    document.addEventListener('keypress', resetInactivityTimer);
+    document.addEventListener('scroll', resetInactivityTimer);
+    document.addEventListener('click', resetInactivityTimer);
+    document.addEventListener('mouseleave', handleMouseLeave);
   }
 
   /**
@@ -388,6 +664,8 @@
         btn.addEventListener('click', () => {
           container.remove();
           injectedPopups.delete(popupId);
+          // Mark popup as closed if using cookie or session trigger
+          markPopupAsClosed(activity);
         });
       });
 
@@ -420,12 +698,17 @@
     const activities = await fetchActivities();
 
     for (const activity of activities) {
-      if (shouldShowPopup(activity)) {
+      // First check URL conditions
+      if (!shouldShowPopup(activity)) {
+        log('Skipping popup (URL conditions not met):', activity.name);
+        continue;
+      }
+
+      // Then check trigger conditions
+      checkTrigger(activity, () => {
         log('Showing popup:', activity.name);
         injectPopup(activity);
-      } else {
-        log('Skipping popup (conditions not met):', activity.name);
-      }
+      });
     }
   }
 

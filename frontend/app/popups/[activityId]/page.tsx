@@ -285,6 +285,16 @@ export default function PopupActivityPage() {
     closeButtonSize: '32px',
     closeButtonPosition: 'top-right' as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right',
   });
+  const [triggerSettings, setTriggerSettings] = useState({
+    trigger: 'pageLoad' as 'exitIntent' | 'pageLoad' | 'timeout' | 'elementExists' | 'scrollPercentage',
+    timeout: 3000, // milliseconds
+    elementSelector: '',
+    inactivityTimeout: 30, // seconds
+    scrollPercentage: 50, // percentage (0-100)
+    cookieEnabled: false,
+    cookieExpiry: 30, // days
+    sessionEnabled: false,
+  });
   const [alert, setAlert] = useState({
     isOpen: false,
     message: '',
@@ -308,7 +318,7 @@ export default function PopupActivityPage() {
   const [showPopupSettings, setShowPopupSettings] = useState(false);
   const [showCssEditor, setShowCssEditor] = useState(false);
   const [showPositionSettings, setShowPositionSettings] = useState(false);
-  const [showAnimationSettings, setShowAnimationSettings] = useState<'position' | 'animation' | 'closeIcon'>('position');
+  const [showAnimationSettings, setShowAnimationSettings] = useState<'position' | 'animation' | 'closeIcon' | 'trigger'>('position');
   const [showImageModal, setShowImageModal] = useState(false);
   const [showLayersPanel, setShowLayersPanel] = useState(false);
   const [layersPanelPosition, setLayersPanelPosition] = useState({ x: 100, y: 100 });
@@ -586,6 +596,23 @@ export default function PopupActivityPage() {
           closeButtonPosition: (fetchedActivity.popupSettings as any)?.closeButtonPosition || 'top-right',
         };
         setCloseIconSettings(savedCloseIconSettings);
+
+        // Load trigger settings
+        const savedTrigger = (fetchedActivity.popupSettings as any)?.trigger || 'pageLoad';
+        // Handle legacy cookie/session triggers - convert to new format
+        const isLegacyCookie = savedTrigger === 'cookie';
+        const isLegacySession = savedTrigger === 'session';
+        const savedTriggerSettings = {
+          trigger: isLegacyCookie || isLegacySession ? 'pageLoad' : savedTrigger,
+          timeout: (fetchedActivity.popupSettings as any)?.timeout || 3000,
+          elementSelector: (fetchedActivity.popupSettings as any)?.elementSelector || '',
+          inactivityTimeout: (fetchedActivity.popupSettings as any)?.inactivityTimeout || 30,
+          scrollPercentage: (fetchedActivity.popupSettings as any)?.scrollPercentage || 50,
+          cookieEnabled: isLegacyCookie || (fetchedActivity.popupSettings as any)?.cookieEnabled || false,
+          cookieExpiry: (fetchedActivity.popupSettings as any)?.cookieExpiry || 30,
+          sessionEnabled: isLegacySession || (fetchedActivity.popupSettings as any)?.sessionEnabled || false,
+        };
+        setTriggerSettings(savedTriggerSettings);
         
         setFormData({
           name: fetchedActivity.name,
@@ -1992,6 +2019,14 @@ export default function PopupActivityPage() {
             closeButtonColor: closeIconSettings.closeButtonColor,
             closeButtonSize: closeIconSettings.closeButtonSize,
             closeButtonPosition: closeIconSettings.closeButtonPosition,
+            trigger: triggerSettings.trigger,
+            timeout: triggerSettings.trigger === 'timeout' ? triggerSettings.timeout : undefined,
+            elementSelector: triggerSettings.trigger === 'elementExists' ? triggerSettings.elementSelector : undefined,
+            inactivityTimeout: triggerSettings.trigger === 'exitIntent' ? triggerSettings.inactivityTimeout : undefined,
+            scrollPercentage: triggerSettings.trigger === 'scrollPercentage' ? triggerSettings.scrollPercentage : undefined,
+            cookieEnabled: triggerSettings.cookieEnabled,
+            cookieExpiry: triggerSettings.cookieEnabled ? triggerSettings.cookieExpiry : undefined,
+            sessionEnabled: triggerSettings.sessionEnabled,
           },
         },
         {
@@ -2449,6 +2484,16 @@ export default function PopupActivityPage() {
                 >
                   Close Icon
                 </button>
+                <button
+                  onClick={() => setShowAnimationSettings('trigger')}
+                  className={`px-4 py-2 font-medium transition-colors ${
+                    showAnimationSettings === 'trigger'
+                      ? 'text-indigo-600 border-b-2 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Trigger
+                </button>
               </div>
 
               {showAnimationSettings === 'position' ? (
@@ -2641,7 +2686,7 @@ export default function PopupActivityPage() {
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : showAnimationSettings === 'closeIcon' ? (
                 /* Close Icon Tab */
                 <div className="space-y-6">
                   {/* Show Close Button Toggle */}
@@ -2727,6 +2772,204 @@ export default function PopupActivityPage() {
                         <p className="mt-1 text-xs text-gray-500">e.g., 32px, 24px, or 40px</p>
                       </div>
                     </>
+                  )}
+                </div>
+              ) : (
+                /* Trigger Tab */
+                <div className="space-y-6">
+                  {/* Trigger Type Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Popup Trigger Type
+                    </label>
+                    <select
+                      value={triggerSettings.trigger}
+                      onChange={(e) => setTriggerSettings(prev => ({ ...prev, trigger: e.target.value as any }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="pageLoad">On Page Load (Immediate)</option>
+                      <option value="timeout">After Timeout (Delay)</option>
+                      <option value="elementExists">When Element Exists</option>
+                      <option value="scrollPercentage">After Scroll Percentage</option>
+                      <option value="exitIntent">Exit Intent (Inactivity)</option>
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Choose when the popup should appear
+                    </p>
+                  </div>
+
+                  {/* Timeout Settings */}
+                  {triggerSettings.trigger === 'timeout' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Delay (milliseconds)
+                      </label>
+                      <input
+                        type="number"
+                        value={triggerSettings.timeout}
+                        onChange={(e) => setTriggerSettings(prev => ({ ...prev, timeout: parseInt(e.target.value) || 3000 }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        placeholder="3000"
+                        min="0"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Popup will show after this delay (e.g., 3000 = 3 seconds)
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Element Exists Settings */}
+                  {triggerSettings.trigger === 'elementExists' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        CSS Selector
+                      </label>
+                      <input
+                        type="text"
+                        value={triggerSettings.elementSelector}
+                        onChange={(e) => setTriggerSettings(prev => ({ ...prev, elementSelector: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        placeholder="#my-element or .my-class"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Popup will show when this element appears in the DOM (e.g., #my-element, .my-class)
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Cookie and Session Options - Available for all triggers */}
+                  <div className="border-t border-gray-200 pt-6 space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-700">Remember Close State</h3>
+                    
+                    {/* Cookie Based Option */}
+                    <div>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={triggerSettings.cookieEnabled}
+                          onChange={(e) => {
+                            setTriggerSettings(prev => ({ 
+                              ...prev, 
+                              cookieEnabled: e.target.checked,
+                              // Disable session if cookie is enabled
+                              sessionEnabled: e.target.checked ? false : prev.sessionEnabled
+                            }));
+                          }}
+                          className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Enable Cookie Based</span>
+                      </label>
+                      <p className="mt-1 text-xs text-gray-500 ml-8">
+                        If user closes the popup, it won't show again until the cookie expires
+                      </p>
+                      
+                      {triggerSettings.cookieEnabled && (
+                        <div className="mt-3 ml-8">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Cookie Expiry (days)
+                          </label>
+                          <input
+                            type="number"
+                            value={triggerSettings.cookieExpiry}
+                            onChange={(e) => setTriggerSettings(prev => ({ ...prev, cookieExpiry: parseInt(e.target.value) || 30 }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            placeholder="30"
+                            min="1"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Popup won't show again for this many days after being closed
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Session Based Option */}
+                    <div>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={triggerSettings.sessionEnabled}
+                          onChange={(e) => {
+                            setTriggerSettings(prev => ({ 
+                              ...prev, 
+                              sessionEnabled: e.target.checked,
+                              // Disable cookie if session is enabled
+                              cookieEnabled: e.target.checked ? false : prev.cookieEnabled
+                            }));
+                          }}
+                          className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Enable Session Based</span>
+                      </label>
+                      <p className="mt-1 text-xs text-gray-500 ml-8">
+                        If user closes the popup, it won't show again during this browser session. The popup will appear again when the user opens a new browser session.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Scroll Percentage Settings */}
+                  {triggerSettings.trigger === 'scrollPercentage' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Scroll Percentage (%)
+                      </label>
+                      <div className="space-y-3">
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={triggerSettings.scrollPercentage}
+                          onChange={(e) => setTriggerSettings(prev => ({ ...prev, scrollPercentage: parseInt(e.target.value) || 50 }))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                        />
+                        <div className="flex items-center justify-between">
+                          <input
+                            type="number"
+                            value={triggerSettings.scrollPercentage}
+                            onChange={(e) => {
+                              const value = Math.max(0, Math.min(100, parseInt(e.target.value) || 50));
+                              setTriggerSettings(prev => ({ ...prev, scrollPercentage: value }));
+                            }}
+                            className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            min="0"
+                            max="100"
+                          />
+                          <span className="text-sm text-gray-500">%</span>
+                        </div>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Popup will show when user scrolls to this percentage of the page (0% = top, 100% = bottom)
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Exit Intent Settings */}
+                  {triggerSettings.trigger === 'exitIntent' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Inactivity Timeout (seconds)
+                      </label>
+                      <input
+                        type="number"
+                        value={triggerSettings.inactivityTimeout}
+                        onChange={(e) => setTriggerSettings(prev => ({ ...prev, inactivityTimeout: parseInt(e.target.value) || 30 }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        placeholder="30"
+                        min="1"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Popup will show after user is inactive (no mouse movement, clicks, keyboard input, or scrolling) for this duration. Also triggers when mouse leaves the top of the window.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Info for Page Load */}
+                  {triggerSettings.trigger === 'pageLoad' && (
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <p className="text-sm text-gray-700">
+                        <strong>Page Load:</strong> Popup will appear immediately when the page loads (after URL conditions are met).
+                      </p>
+                    </div>
                   )}
                 </div>
               )}

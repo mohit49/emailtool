@@ -16,9 +16,14 @@ export interface IPopupActivity extends Document {
   status: 'draft' | 'deactivated' | 'activated';
   popupSettings?: {
     enabled: boolean;
-    trigger: 'exitIntent' | 'pageLoad' | 'timeout' | 'elementExists';
-    timeout?: number;
-    elementSelector?: string;
+    trigger: 'exitIntent' | 'pageLoad' | 'timeout' | 'elementExists' | 'scrollPercentage';
+    timeout?: number; // For setTimeout trigger (in milliseconds)
+    elementSelector?: string; // For elementExists trigger (CSS selector)
+    inactivityTimeout?: number; // For exit intent trigger (seconds of inactivity)
+    scrollPercentage?: number; // For scrollPercentage trigger (0-100)
+    cookieEnabled?: boolean; // Enable cookie-based close state remembering
+    cookieExpiry?: number; // Cookie expiry in days (if cookieEnabled is true)
+    sessionEnabled?: boolean; // Enable session-based close state remembering
     position?: 'left-top' | 'right-top' | 'left-bottom' | 'right-bottom' | 'center-top' | 'center' | 'center-bottom';
     backdropEnabled?: boolean;
     backdropColor?: string;
