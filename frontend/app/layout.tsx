@@ -6,9 +6,9 @@ import { AuthProvider } from './providers/AuthProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Free Email Testing Tool - Test, Create & Send Emails | PRZIO',
-  description: 'Free email testing tool to test, preview, and send HTML email templates. Create and send free emails with our powerful email editor. Perfect for testing email campaigns, bulk email sending, and collaborative email design.',
-  keywords: 'free email testing tool, free email sending tool, create and send free email, free email editor tool, email testing, email template, HTML email, email preview, email design, collaborative preview, email comments, bulk email sending, email campaign testing',
+  title: 'Email Testing Tool & Popup Builder - Create, Test & Send Emails & Popups | PRZIO',
+  description: 'Free email testing tool and popup builder platform. Test, preview, and send HTML email templates. Create engaging popups and nudges with drag-and-drop editor. Perfect for email campaigns, popup marketing, exit intent popups, and website engagement tools.',
+  keywords: 'email testing tool, popup builder, nudge builder, email template editor, popup creator, exit intent popup, website popup builder, email testing, HTML email editor, popup marketing, email campaign tool, drag and drop popup builder, conversion popup, lead generation popup, email preview tool, popup designer, email builder, website engagement tool, popup trigger, scroll popup, timeout popup, cookie-based popup, session popup',
 }
 
 export default function RootLayout({
