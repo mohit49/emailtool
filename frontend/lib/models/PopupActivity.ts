@@ -44,6 +44,7 @@ export interface IPopupActivity extends Document {
     showCloseButton?: boolean;
     closeButtonColor?: string;
     closeButtonSize?: string;
+    closeButtonPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
     zIndex?: number;
     backdropZIndex?: number;
   };

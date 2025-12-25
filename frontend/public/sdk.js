@@ -18,6 +18,68 @@
   const API_BASE_URL = window.location.origin + '/api/sdk';
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+  /**
+   * Check if SDK is running in an iframe within a preview page
+   * This prevents popups from showing in preview/split mode
+   */
+  function isInPreviewIframe() {
+    try {
+      // Check for preview query parameter (most reliable method)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('przio-preview') === 'true') {
+        return true;
+      }
+
+      // Check if running in an iframe
+      if (window.self === window.top) {
+        return false; // Not in an iframe
+      }
+
+      // Try to access parent window URL to check if it's a preview page
+      try {
+        const parentUrl = window.top.location.href;
+        // Check for popup preview pages
+        if (parentUrl.includes('/popups/') || 
+            parentUrl.includes('/preview/') ||
+            parentUrl.includes('/tool')) {
+          return true;
+        }
+      } catch (e) {
+        // Cross-origin iframe - can't access parent
+        // Check referrer as fallback (might be set by preview page)
+        const referrer = document.referrer;
+        if (referrer && (referrer.includes('/popups/') || 
+                         referrer.includes('/preview/') ||
+                         referrer.includes('/tool'))) {
+          return true;
+        }
+        // If cross-origin and no referrer match, allow SDK to run
+        // (might be legitimate embedding)
+        return false;
+      }
+
+      return false;
+    } catch (e) {
+      // Error accessing window properties - allow SDK to run
+      return false;
+    }
+  }
+
+  // If in preview iframe, disable SDK completely
+  if (isInPreviewIframe()) {
+    // Expose a minimal API that does nothing
+    window.PrzioSDK = {
+      init: function() {
+        console.log('[PrzioSDK] SDK disabled in preview iframe');
+      },
+      processPopups: function() {},
+      version: SDK_VERSION,
+      config: function() { return {}; },
+    };
+    // Exit early - don't initialize anything
+    return;
+  }
+
   // State
   let config = {
     projectId: null,
@@ -222,8 +284,100 @@
         }, 100);
       }
 
-      // Append to body
+      // Append to body first so computed styles work correctly
       document.body.appendChild(container);
+
+      // Helper function to add close button
+      const addCloseButton = () => {
+        // Ensure popup element has non-static position for close button absolute positioning
+        const computedStyle = window.getComputedStyle(popupElement);
+        if (computedStyle.position === 'static') {
+          popupElement.style.position = 'relative';
+        }
+
+        // Create close icon button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'przio-close';
+        closeButton.setAttribute('data-przio-close', 'true');
+        closeButton.setAttribute('aria-label', 'Close popup');
+        
+        const buttonSize = activity.popupSettings?.closeButtonSize || '32px';
+        const closeButtonColor = activity.popupSettings?.closeButtonColor || '#666666';
+        const closeButtonPosition = activity.popupSettings?.closeButtonPosition || 'top-right';
+        
+        // Calculate position based on setting
+        let positionStyles = '';
+        switch (closeButtonPosition) {
+          case 'top-left':
+            positionStyles = 'top: 8px; left: 8px;';
+            break;
+          case 'top-right':
+            positionStyles = 'top: 8px; right: 8px;';
+            break;
+          case 'bottom-left':
+            positionStyles = 'bottom: 8px; left: 8px;';
+            break;
+          case 'bottom-right':
+            positionStyles = 'bottom: 8px; right: 8px;';
+            break;
+          default:
+            positionStyles = 'top: 8px; right: 8px;';
+        }
+        
+        closeButton.style.cssText = `
+          position: absolute;
+          ${positionStyles}
+          width: ${buttonSize};
+          height: ${buttonSize};
+          min-width: ${buttonSize};
+          min-height: ${buttonSize};
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          z-index: 1000000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+          outline: none;
+        `;
+
+        // Create SVG close icon (X)
+        closeButton.innerHTML = `
+          <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="${closeButtonColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        `;
+
+        // Add hover effect
+        closeButton.addEventListener('mouseenter', function() {
+          this.style.opacity = '0.7';
+          this.style.transform = 'scale(1.1)';
+        });
+        closeButton.addEventListener('mouseleave', function() {
+          this.style.opacity = '1';
+          this.style.transform = 'scale(1)';
+        });
+
+        // Insert close button into popup element
+        popupElement.appendChild(closeButton);
+      };
+
+      // Add close icon if showCloseButton is enabled
+      const showCloseButton = activity.popupSettings?.showCloseButton !== false; // Default to true if not specified
+      if (showCloseButton) {
+        // Check if close button already exists in the HTML
+        const existingCloseButton = popupElement.querySelector('[data-przio-close], .przio-close');
+        
+        if (!existingCloseButton) {
+          // Use requestAnimationFrame to ensure element is in DOM before checking computed styles
+          requestAnimationFrame(() => {
+            addCloseButton();
+          });
+        }
+      }
       injectedPopups.add(popupId);
 
       log('Injected popup:', popupId);

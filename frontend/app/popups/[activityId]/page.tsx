@@ -279,6 +279,12 @@ export default function PopupActivityPage() {
     position: 'center' as 'left-top' | 'right-top' | 'left-bottom' | 'right-bottom' | 'center-top' | 'center' | 'center-bottom',
     animation: '' as string,
   });
+  const [closeIconSettings, setCloseIconSettings] = useState({
+    showCloseButton: true,
+    closeButtonColor: '#666666',
+    closeButtonSize: '32px',
+    closeButtonPosition: 'top-right' as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right',
+  });
   const [alert, setAlert] = useState({
     isOpen: false,
     message: '',
@@ -302,7 +308,7 @@ export default function PopupActivityPage() {
   const [showPopupSettings, setShowPopupSettings] = useState(false);
   const [showCssEditor, setShowCssEditor] = useState(false);
   const [showPositionSettings, setShowPositionSettings] = useState(false);
-  const [showAnimationSettings, setShowAnimationSettings] = useState(false);
+  const [showAnimationSettings, setShowAnimationSettings] = useState<'position' | 'animation' | 'closeIcon'>('position');
   const [showImageModal, setShowImageModal] = useState(false);
   const [showLayersPanel, setShowLayersPanel] = useState(false);
   const [layersPanelPosition, setLayersPanelPosition] = useState({ x: 100, y: 100 });
@@ -571,6 +577,15 @@ export default function PopupActivityPage() {
         popupHtml = extractPopupContent(popupHtml);
         
         const savedAnimation = (fetchedActivity.popupSettings as any)?.animation || '';
+        
+        // Load close icon settings
+        const savedCloseIconSettings = {
+          showCloseButton: (fetchedActivity.popupSettings as any)?.showCloseButton !== false, // Default to true
+          closeButtonColor: (fetchedActivity.popupSettings as any)?.closeButtonColor || '#666666',
+          closeButtonSize: (fetchedActivity.popupSettings as any)?.closeButtonSize || '32px',
+          closeButtonPosition: (fetchedActivity.popupSettings as any)?.closeButtonPosition || 'top-right',
+        };
+        setCloseIconSettings(savedCloseIconSettings);
         
         setFormData({
           name: fetchedActivity.name,
@@ -1593,6 +1608,16 @@ export default function PopupActivityPage() {
       } else {
         websiteUrl = `https://${domain}`;
       }
+      // Add query parameter to indicate preview mode (SDK will detect this)
+      try {
+        const urlObj = new URL(websiteUrl);
+        urlObj.searchParams.set('przio-preview', 'true');
+        websiteUrl = urlObj.toString();
+      } catch (e) {
+        // If URL parsing fails, append query parameter manually
+        const separator = websiteUrl.includes('?') ? '&' : '?';
+        websiteUrl = `${websiteUrl}${separator}przio-preview=true`;
+      }
     }
 
     const parser = new DOMParser();
@@ -1600,13 +1625,125 @@ export default function PopupActivityPage() {
     const styleEl = popupDoc.querySelector('style');
     const popupElement = popupDoc.querySelector('.przio') || popupDoc.querySelector('.przio-popup');
     
+    // Inject close icon if enabled and doesn't exist
+    if (popupElement && closeIconSettings.showCloseButton) {
+      const existingCloseButton = popupElement.querySelector('[data-przio-close], .przio-close');
+      
+      if (!existingCloseButton) {
+        // Ensure popup element has non-static position
+        const popupEl = popupElement as HTMLElement;
+        const computedPosition = window.getComputedStyle ? 
+          window.getComputedStyle(popupEl).position : 
+          (popupEl.style.position || 'static');
+        
+        if (!popupEl.style.position && computedPosition === 'static') {
+          popupEl.style.position = 'relative';
+        }
+        
+        // Calculate position based on setting
+        let positionStyles = '';
+        switch (closeIconSettings.closeButtonPosition) {
+          case 'top-left':
+            positionStyles = 'top: 8px; left: 8px;';
+            break;
+          case 'top-right':
+            positionStyles = 'top: 8px; right: 8px;';
+            break;
+          case 'bottom-left':
+            positionStyles = 'bottom: 8px; left: 8px;';
+            break;
+          case 'bottom-right':
+            positionStyles = 'bottom: 8px; right: 8px;';
+            break;
+          default:
+            positionStyles = 'top: 8px; right: 8px;';
+        }
+        
+        // Create close button element
+        const closeButton = popupDoc.createElement('button');
+        closeButton.className = 'przio-close';
+        closeButton.setAttribute('data-przio-close', 'true');
+        closeButton.setAttribute('aria-label', 'Close popup');
+        closeButton.style.cssText = `
+          position: absolute;
+          ${positionStyles}
+          width: ${closeIconSettings.closeButtonSize};
+          height: ${closeIconSettings.closeButtonSize};
+          min-width: ${closeIconSettings.closeButtonSize};
+          min-height: ${closeIconSettings.closeButtonSize};
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          z-index: 1000000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+          outline: none;
+        `;
+        
+        // Create SVG close icon (X)
+        closeButton.innerHTML = `
+          <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="${closeIconSettings.closeButtonColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        `;
+        
+        // Add hover effect and click handler via inline style and script
+        const hoverStyle = popupDoc.createElement('style');
+        hoverStyle.textContent = `
+          .przio-close:hover {
+            opacity: 0.7 !important;
+            transform: scale(1.1) !important;
+          }
+        `;
+        if (!popupDoc.querySelector('style[data-close-button-hover]')) {
+          hoverStyle.setAttribute('data-close-button-hover', 'true');
+          popupDoc.head.appendChild(hoverStyle);
+        }
+        
+        // Append close button to popup element
+        popupElement.appendChild(closeButton);
+      }
+    }
+    
     // Extract style and popup HTML
     let popupHTML = '';
     if (styleEl) {
       popupHTML += styleEl.outerHTML + '\n    ';
     }
+    // Also include any additional styles (like hover styles)
+    const additionalStyles = popupDoc.querySelectorAll('style[data-close-button-hover]');
+    additionalStyles.forEach(style => {
+      if (!popupHTML.includes(style.outerHTML)) {
+        popupHTML += style.outerHTML + '\n    ';
+      }
+    });
     if (popupElement) {
       popupHTML += popupElement.outerHTML;
+    }
+    
+    // Get close button script if close button is enabled
+    let closeButtonScript = '';
+    if (closeIconSettings.showCloseButton) {
+      closeButtonScript = `
+    <script>
+      (function() {
+        document.addEventListener('DOMContentLoaded', function() {
+          const closeButtons = document.querySelectorAll('[data-przio-close], .przio-close');
+          closeButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              const popup = btn.closest('.przio') || btn.closest('.przio-popup');
+              if (popup) {
+                popup.style.display = 'none';
+              }
+            });
+          });
+        });
+      })();
+    </script>`;
     }
     
     // If no domain, just show the popup without iframe
@@ -1620,7 +1757,7 @@ export default function PopupActivityPage() {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 </head>
 <body>
-    ${popupHTML}
+    ${popupHTML}${closeButtonScript}
 </body>
 </html>`;
     }
@@ -1671,10 +1808,10 @@ export default function PopupActivityPage() {
     ></iframe>
     
     <!-- Popup overlay -->
-    ${popupHTML}
+    ${popupHTML}${closeButtonScript}
 </body>
 </html>`;
-  }, [formData.html, formData.domain]);
+  }, [formData.html, formData.domain, closeIconSettings]);
 
   // Placeholder CSS is not saved in HTML - it's only applied dynamically in preview
   // This useEffect is removed as placeholder is not part of saved HTML
@@ -1851,6 +1988,10 @@ export default function PopupActivityPage() {
             placeholderCss: popupCssSettings,
             animation: formData.animation,
             domain: formData.domain.trim() || undefined, // Store domain in popupSettings
+            showCloseButton: closeIconSettings.showCloseButton,
+            closeButtonColor: closeIconSettings.closeButtonColor,
+            closeButtonSize: closeIconSettings.closeButtonSize,
+            closeButtonPosition: closeIconSettings.closeButtonPosition,
           },
         },
         {
@@ -2279,9 +2420,9 @@ export default function PopupActivityPage() {
               {/* Tabs */}
               <div className="flex border-b border-gray-200 mb-6">
                 <button
-                  onClick={() => setShowAnimationSettings(false)}
+                  onClick={() => setShowAnimationSettings('position')}
                   className={`px-4 py-2 font-medium transition-colors ${
-                    !showAnimationSettings
+                    showAnimationSettings === 'position'
                       ? 'text-indigo-600 border-b-2 border-indigo-600'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
@@ -2289,18 +2430,28 @@ export default function PopupActivityPage() {
                   Position
                 </button>
                 <button
-                  onClick={() => setShowAnimationSettings(true)}
+                  onClick={() => setShowAnimationSettings('animation')}
                   className={`px-4 py-2 font-medium transition-colors ${
-                    showAnimationSettings
+                    showAnimationSettings === 'animation'
                       ? 'text-indigo-600 border-b-2 border-indigo-600'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   Animation
                 </button>
+                <button
+                  onClick={() => setShowAnimationSettings('closeIcon')}
+                  className={`px-4 py-2 font-medium transition-colors ${
+                    showAnimationSettings === 'closeIcon'
+                      ? 'text-indigo-600 border-b-2 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Close Icon
+                </button>
               </div>
 
-              {!showAnimationSettings ? (
+              {showAnimationSettings === 'position' ? (
                 /* Position Tab */
                 <div>
                   <div className="grid grid-cols-3 gap-3">
@@ -2332,7 +2483,7 @@ export default function PopupActivityPage() {
                     Popup will be positioned with 10px gap from screen corners
                   </p>
                 </div>
-              ) : (
+              ) : showAnimationSettings === 'animation' ? (
                 /* Animation Tab */
                 <div>
                   <div className="mb-4">
@@ -2488,6 +2639,94 @@ export default function PopupActivityPage() {
                         Animation will play when the popup appears
                       </p>
                     </div>
+                  )}
+                </div>
+              ) : (
+                /* Close Icon Tab */
+                <div className="space-y-6">
+                  {/* Show Close Button Toggle */}
+                  <div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={closeIconSettings.showCloseButton}
+                        onChange={(e) => setCloseIconSettings(prev => ({ ...prev, showCloseButton: e.target.checked }))}
+                        className="w-5 h-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Show Close Button</span>
+                    </label>
+                    <p className="mt-1 text-xs text-gray-500 ml-8">
+                      Display a close icon on the popup
+                    </p>
+                  </div>
+
+                  {closeIconSettings.showCloseButton && (
+                    <>
+                      {/* Close Button Position */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Close Icon Position
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { value: 'top-left', label: 'Top Left' },
+                            { value: 'top-right', label: 'Top Right' },
+                            { value: 'bottom-left', label: 'Bottom Left' },
+                            { value: 'bottom-right', label: 'Bottom Right' },
+                          ].map((pos) => (
+                            <button
+                              key={pos.value}
+                              onClick={() => setCloseIconSettings(prev => ({ ...prev, closeButtonPosition: pos.value as any }))}
+                              className={`px-4 py-3 border-2 rounded-lg font-medium transition-all ${
+                                closeIconSettings.closeButtonPosition === pos.value
+                                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                  : 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 text-gray-700'
+                              }`}
+                            >
+                              {pos.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Close Button Color */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Close Icon Color
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={closeIconSettings.closeButtonColor}
+                            onChange={(e) => setCloseIconSettings(prev => ({ ...prev, closeButtonColor: e.target.value }))}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            placeholder="#666666"
+                          />
+                          <input
+                            type="color"
+                            value={closeIconSettings.closeButtonColor || '#666666'}
+                            onChange={(e) => setCloseIconSettings(prev => ({ ...prev, closeButtonColor: e.target.value }))}
+                            className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">e.g., #666666 or rgb(102, 102, 102)</p>
+                      </div>
+
+                      {/* Close Button Size */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Close Icon Size
+                        </label>
+                        <input
+                          type="text"
+                          value={closeIconSettings.closeButtonSize}
+                          onChange={(e) => setCloseIconSettings(prev => ({ ...prev, closeButtonSize: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          placeholder="32px"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">e.g., 32px, 24px, or 40px</p>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
