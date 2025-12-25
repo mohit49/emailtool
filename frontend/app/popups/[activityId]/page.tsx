@@ -960,6 +960,33 @@ export default function PopupActivityPage() {
 
   // Handle image upload
   const handleImageUpload = useCallback(async (file: File, elementSelector: string) => {
+    if (!file) {
+      setAlert({
+        isOpen: true,
+        message: 'Please select a file to upload',
+        type: 'error',
+      });
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setAlert({
+        isOpen: true,
+        message: 'Please select an image file',
+        type: 'error',
+      });
+      return;
+    }
+
+    if (!elementSelector) {
+      setAlert({
+        isOpen: true,
+        message: 'No image element selected',
+        type: 'error',
+      });
+      return;
+    }
+
     try {
       setUploadingImage(true);
       const formData = new FormData();
@@ -971,7 +998,7 @@ export default function PopupActivityPage() {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
+            // Don't set Content-Type - let axios set it automatically with boundary
           },
         }
       );
@@ -1011,6 +1038,11 @@ export default function PopupActivityPage() {
 
       setShowImageModal(false);
       setImageUrl('');
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (error: any) {
       console.error('Image upload failed:', error);
       setAlert({
@@ -2564,6 +2596,7 @@ export default function PopupActivityPage() {
                 className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center transition-colors hover:border-indigo-400 hover:bg-gray-50"
               >
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   id="image-upload-input"
@@ -2580,15 +2613,16 @@ export default function PopupActivityPage() {
                 <p className="text-sm text-gray-600 mb-2">
                   Drag and drop an image here, or
                 </p>
-                <label htmlFor="image-upload-input">
-                  <button
-                    type="button"
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium cursor-pointer"
-                    disabled={uploadingImage}
-                  >
-                    {uploadingImage ? 'Uploading...' : 'Upload Image'}
-                  </button>
-                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    fileInputRef.current?.click();
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium cursor-pointer"
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                </button>
                 {uploadingImage && (
                   <p className="mt-2 text-sm text-gray-500">Uploading image...</p>
                 )}

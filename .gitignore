@@ -40,4 +40,5 @@ backend/uploads/
 
 # Frontend - Uploaded templates/images
 frontend/public/templates/
+frontend/public/popups/
 

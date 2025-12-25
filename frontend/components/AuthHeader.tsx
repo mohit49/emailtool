@@ -40,7 +40,14 @@ export default function AuthHeader({ showProjectInfo, projectId, hideEmailSettin
             {showProjectInfo && (
               <>
                 <span className="text-gray-400">|</span>
-                <span className="text-sm font-medium text-gray-900">{showProjectInfo.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-900">{showProjectInfo.name}</span>
+                  {projectId && (
+                    <span className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-0.5 rounded" title="Project ID">
+                      ID: {projectId}
+                    </span>
+                  )}
+                </div>
                 <span className={`px-2 py-1 text-xs font-medium rounded ${
                   showProjectInfo.role === 'owner' ? 'bg-purple-100 text-purple-700' :
                   showProjectInfo.role === 'ProjectAdmin' ? 'bg-blue-100 text-blue-700' :

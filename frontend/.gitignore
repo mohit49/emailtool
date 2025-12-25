@@ -40,5 +40,6 @@ next-env.d.ts
 
 # uploaded templates/images
 /public/templates/
+/public/popups/
 
 

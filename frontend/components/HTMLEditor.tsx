@@ -3,6 +3,7 @@
 import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import Editor, { Monaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
+import { Sparkles } from 'lucide-react';
 
 interface HTMLEditorProps {
   value: string;
@@ -14,6 +15,7 @@ interface HTMLEditorProps {
 export interface HTMLEditorRef {
   highlightRange: (startLine: number, startCol: number, endLine: number, endCol: number) => void;
   clearHighlights: () => void;
+  formatDocument: () => void;
 }
 
 const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange, isFullscreen, onFullscreenChange }, ref) => {
@@ -86,6 +88,12 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
         decorationsRef.current = monacoEditorRef.current.deltaDecorations(decorationsRef.current, []);
       }
     },
+    formatDocument: async () => {
+      if (monacoEditorRef.current) {
+        const editor = monacoEditorRef.current;
+        await editor.getAction('editor.action.formatDocument')?.run();
+      }
+    },
   }));
 
   return (
@@ -96,14 +104,43 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
       {isFullscreen && (
         <div className="absolute top-0 left-0 right-0 bg-gray-800 text-white px-4 py-2 flex justify-between items-center z-10">
           <span className="font-semibold">HTML Editor - Press ESC to exit fullscreen</span>
-          <button
-            onClick={() => onFullscreenChange(false)}
-            className="px-4 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition-colors"
-          >
-            Exit Fullscreen
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                if (monacoEditorRef.current) {
+                  await monacoEditorRef.current.getAction('editor.action.formatDocument')?.run();
+                }
+              }}
+              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-sm transition-colors flex items-center gap-2"
+              title="Format Document (Shift+Alt+F)"
+            >
+              <Sparkles className="w-4 h-4" />
+              Format
+            </button>
+            <button
+              onClick={() => onFullscreenChange(false)}
+              className="px-4 py-1 bg-red-600 hover:bg-red-700 rounded text-sm transition-colors"
+            >
+              Exit Fullscreen
+            </button>
+          </div>
         </div>
       )}
+      {/* Format Button Toolbar - Always visible */}
+      <div className="flex items-center justify-end px-3 py-2 bg-gray-50 border-b border-gray-200">
+        <button
+          onClick={async () => {
+            if (monacoEditorRef.current) {
+              await monacoEditorRef.current.getAction('editor.action.formatDocument')?.run();
+            }
+          }}
+          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm transition-colors flex items-center gap-2 shadow-sm"
+          title="Format Document (Shift+Alt+F)"
+        >
+          <Sparkles className="w-4 h-4" />
+          Format Code
+        </button>
+      </div>
       <div className={`flex-1 ${isFullscreen ? 'pt-12' : ''}`} style={{ minHeight: 0 }}>
         <Editor
           height="100%"
@@ -116,7 +153,7 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
             }
             onChange(newValue);
           }}
-          onMount={(editor, monaco) => {
+          onMount={async (editor, monaco) => {
             monacoEditorRef.current = editor;
             
             // Set up listener to clear highlights when content changes
@@ -129,6 +166,23 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
                 }
               });
             }
+
+            // Enable format command with keyboard shortcuts
+            // Shift+Alt+F (Windows/Linux) or Shift+Option+F (Mac)
+            editor.addCommand(
+              monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF,
+              async () => {
+                await editor.getAction('editor.action.formatDocument')?.run();
+              }
+            );
+
+            // Cmd+Shift+F (Mac) - alternative shortcut
+            editor.addCommand(
+              monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF,
+              async () => {
+                await editor.getAction('editor.action.formatDocument')?.run();
+              }
+            );
           }}
           theme="vs-dark"
           loading={
@@ -147,6 +201,7 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
             tabSize: 2,
             formatOnPaste: true,
             formatOnType: true,
+            formatOnSave: true,
             suggestOnTriggerCharacters: true,
             quickSuggestions: true,
             acceptSuggestionOnEnter: 'on',
