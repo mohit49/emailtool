@@ -7,7 +7,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import AuthHeader from '../../../components/AuthHeader';
 import Alert from '../../../components/Alert';
-import { ChevronLeft, Save, Trash2, ChevronDown, ChevronUp, Table, Rows3, Square, LayoutGrid, Type, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Bold, Italic, Link2, MousePointerClick, Image as ImageIcon, MoreHorizontal, X, Settings, Smartphone, Tablet, Monitor, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronLeft, Save, Trash2, ChevronDown, ChevronUp, ChevronRight, Table, Rows3, Square, LayoutGrid, Type, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Bold, Italic, Link2, MousePointerClick, Image as ImageIcon, MoreHorizontal, X, Settings, Smartphone, Tablet, Monitor, ArrowUp, ArrowDown, Layers } from 'lucide-react';
 import HTMLEditor, { HTMLEditorRef } from '../../../components/HTMLEditor';
 import CustomDropdown from '../../../components/popups/CustomDropdown';
 import PopupSidebar from '../../../components/popups/PopupSidebar';
@@ -169,6 +169,94 @@ const TooltipWrapper = ({ children, label }: { children: React.ReactNode; label:
   );
 };
 
+// Layer Item Component for rendering element tree
+const LayerItem = ({ 
+  element, 
+  level, 
+  onElementClick, 
+  selectedSelector 
+}: { 
+  element: any; 
+  level: number; 
+  onElementClick: (selector: string) => void;
+  selectedSelector: string;
+}) => {
+  const [isExpanded, setIsExpanded] = useState(level === 0);
+  const hasChildren = element.children && element.children.length > 0;
+  const isSelected = selectedSelector === element.selector;
+
+  const getTagIcon = (tagName: string) => {
+    switch (tagName.toLowerCase()) {
+      case 'div': return <LayoutGrid size={14} />;
+      case 'p': return <Type size={14} />;
+      case 'h1': return <Heading1 size={14} />;
+      case 'h2': return <Heading2 size={14} />;
+      case 'h3': return <Heading3 size={14} />;
+      case 'h4': return <Heading4 size={14} />;
+      case 'h5': return <Heading5 size={14} />;
+      case 'h6': return <Heading6 size={14} />;
+      case 'img': return <ImageIcon size={14} />;
+      case 'a': return <Link2 size={14} />;
+      default: return <Square size={14} />;
+    }
+  };
+
+  return (
+    <div>
+      <div
+        className={`flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-100 cursor-pointer transition-colors ${
+          isSelected ? 'bg-indigo-50 border border-indigo-200' : ''
+        }`}
+        style={{ paddingLeft: `${level * 16 + 8}px` }}
+        onClick={() => onElementClick(element.selector)}
+      >
+        {hasChildren ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            {isExpanded ? (
+              <ChevronDown className="w-3 h-3" />
+            ) : (
+              <ChevronRight className="w-3 h-3" />
+            )}
+          </button>
+        ) : (
+          <div className="w-3 h-3" />
+        )}
+        <div className="text-gray-500 flex-shrink-0">
+          {getTagIcon(element.tagName)}
+        </div>
+        <span className="text-xs font-medium text-gray-700 flex-1 truncate">
+          {element.tagName}
+          {element.id && <span className="text-gray-400 ml-1">#{element.id}</span>}
+          {element.classes && element.classes.split(' ').filter((c: string) => c.startsWith('przio-') && c !== 'przio').length > 0 && (
+            <span className="text-gray-400 ml-1">
+              .{element.classes.split(' ').find((c: string) => c.startsWith('przio-') && c !== 'przio')}
+            </span>
+          )}
+        </span>
+      </div>
+      {hasChildren && isExpanded && (
+        <div>
+          {element.children.map((child: any, index: number) => (
+            <LayerItem
+              key={index}
+              element={child}
+              level={level + 1}
+              onElementClick={onElementClick}
+              selectedSelector={selectedSelector}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function PopupActivityPage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -216,6 +304,11 @@ export default function PopupActivityPage() {
   const [showPositionSettings, setShowPositionSettings] = useState(false);
   const [showAnimationSettings, setShowAnimationSettings] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [showLayersPanel, setShowLayersPanel] = useState(false);
+  const [layersPanelPosition, setLayersPanelPosition] = useState({ x: 100, y: 100 });
+  const [isDraggingLayersPanel, setIsDraggingLayersPanel] = useState(false);
+  const layersPanelRef = useRef<HTMLDivElement>(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
   const [imageModalType, setImageModalType] = useState<'upload' | 'url'>('upload');
   const [selectedImageElement, setSelectedImageElement] = useState<string>('');
   const [imageUrl, setImageUrl] = useState('');
@@ -1344,6 +1437,92 @@ export default function PopupActivityPage() {
     return '100%';
   };
 
+  // Build element tree structure from HTML
+  const buildElementTree = useCallback(() => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(wrapForParsing(formData.html || ''), 'text/html');
+    const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
+    
+    if (!popupEl) return [];
+    
+    const generateSelectorForElement = (el: Element): string => {
+      const przioClass = Array.from(el.classList).find(c => 
+        c.startsWith('przio-') && 
+        c !== 'przio' && 
+        c !== 'przio-popup' && 
+        c !== 'przio-element' && 
+        c !== 'przio-editable' && 
+        c !== 'przio-selected' && 
+        c !== 'przio-drag-over'
+      );
+      
+      if (przioClass) return `.${przioClass}`;
+      if (el.id) return `#${el.id}`;
+      return `${el.tagName.toLowerCase()}`;
+    };
+    
+    const buildTree = (element: Element): any[] => {
+      const children: any[] = [];
+      
+      Array.from(element.children).forEach((child) => {
+        const childData: any = {
+          tagName: child.tagName.toLowerCase(),
+          id: child.id || '',
+          classes: Array.from(child.classList).join(' '),
+          selector: generateSelectorForElement(child),
+          children: buildTree(child),
+        };
+        children.push(childData);
+      });
+      
+      return children;
+    };
+    
+    return [{
+      tagName: popupEl.tagName.toLowerCase(),
+      id: popupEl.id || '',
+      classes: Array.from(popupEl.classList).join(' '),
+      selector: '.przio',
+      children: buildTree(popupEl),
+    }];
+  }, [formData.html]);
+
+  // Handle element click in layers panel to highlight it
+  const handleLayerElementClick = useCallback((selector: string) => {
+    if (!previewIframeRef.current) return;
+    
+    const iframe = previewIframeRef.current;
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) return;
+    
+    // Remove previous highlights
+    iframeDoc.querySelectorAll('.przio-selected').forEach(el => el.classList.remove('przio-selected'));
+    
+    // Find and highlight the element
+    const element = iframeDoc.querySelector(selector);
+    if (element) {
+      element.classList.add('przio-selected');
+      
+      // Scroll element into view
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Send message to parent to update toolbar position
+      const rect = element.getBoundingClientRect();
+      const iframeRect = iframe.getBoundingClientRect();
+      setToolbarPosition({
+        top: iframeRect.top + rect.top - 55,
+        left: iframeRect.left + rect.left,
+      });
+      setSelectedElement({ 
+        id: selector, 
+        element: null, 
+        tagName: (element as HTMLElement).tagName 
+      });
+      setShowElementToolbar(true);
+      loadElementCss(selector);
+    }
+  }, [loadElementCss]);
+
   // Apply animation to popup HTML
   const applyAnimationToHTML = useCallback((animation: string) => {
     setFormData((prev) => {
@@ -1465,6 +1644,32 @@ export default function PopupActivityPage() {
 
   // Placeholder CSS is not saved in HTML - it's only applied dynamically in preview
   // This useEffect is removed as placeholder is not part of saved HTML
+
+  // Handle layers panel dragging
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingLayersPanel || !layersPanelRef.current) return;
+      
+      setLayersPanelPosition({
+        x: e.clientX - dragOffsetRef.current.x,
+        y: e.clientY - dragOffsetRef.current.y,
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingLayersPanel(false);
+    };
+
+    if (isDraggingLayersPanel) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingLayersPanel]);
 
   // Apply position styling to HTML
   const applyPositionToHTML = useCallback((position: 'left-top' | 'right-top' | 'left-bottom' | 'right-bottom' | 'center-top' | 'center' | 'center-bottom') => {
@@ -1901,6 +2106,17 @@ export default function PopupActivityPage() {
                           </button>
                         </TooltipWrapper>
                       </div>
+                      {/* Layers Icon */}
+                      <div className="p-1.5 border-t border-gray-200">
+                        <TooltipWrapper label="Layers">
+                          <button
+                            onClick={() => setShowLayersPanel(!showLayersPanel)}
+                            className="w-full flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all shadow-sm"
+                          >
+                            <Layers className="w-4 h-4 text-gray-500 hover:text-indigo-600 transition-colors" />
+                          </button>
+                        </TooltipWrapper>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1958,6 +2174,17 @@ export default function PopupActivityPage() {
                           className="w-full flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all shadow-sm"
                         >
                           <Settings className="w-4 h-4 text-gray-500 hover:text-indigo-600 transition-colors" />
+                        </button>
+                      </TooltipWrapper>
+                    </div>
+                    {/* Layers Icon */}
+                    <div className="p-1.5 border-t border-gray-200">
+                      <TooltipWrapper label="Layers">
+                        <button
+                          onClick={() => setShowLayersPanel(!showLayersPanel)}
+                          className="w-full flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all shadow-sm"
+                        >
+                          <Layers className="w-4 h-4 text-gray-500 hover:text-indigo-600 transition-colors" />
                         </button>
                       </TooltipWrapper>
                     </div>
@@ -2239,6 +2466,58 @@ export default function PopupActivityPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Layers Panel - Draggable */}
+      {showLayersPanel && (activeTab === 'preview' || activeTab === 'split') && (
+        <div
+          ref={layersPanelRef}
+          className="fixed bg-white rounded-lg shadow-2xl border border-gray-200 z-[999999]"
+          style={{
+            left: `${layersPanelPosition.x}px`,
+            top: `${layersPanelPosition.y}px`,
+            width: '300px',
+            maxHeight: '500px',
+          }}
+        >
+          {/* Header - Draggable */}
+          <div
+            onMouseDown={(e) => {
+              if (!layersPanelRef.current) return;
+              const rect = layersPanelRef.current.getBoundingClientRect();
+              dragOffsetRef.current = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+              };
+              setIsDraggingLayersPanel(true);
+            }}
+            className="px-4 py-3 border-b border-gray-200 flex items-center justify-between cursor-move bg-gray-50"
+          >
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4 text-gray-600" />
+              <h3 className="text-sm font-semibold text-gray-900">Layers</h3>
+            </div>
+            <button
+              onClick={() => setShowLayersPanel(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          
+          {/* Layers List */}
+          <div className="overflow-y-auto max-h-[450px] p-2">
+            {buildElementTree().map((rootElement, index) => (
+              <LayerItem
+                key={index}
+                element={rootElement}
+                level={0}
+                onElementClick={handleLayerElementClick}
+                selectedSelector={selectedElement.id}
+              />
+            ))}
           </div>
         </div>
       )}
