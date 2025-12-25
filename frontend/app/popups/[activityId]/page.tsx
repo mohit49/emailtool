@@ -53,9 +53,13 @@ const extractPopupContent = (html: string): string => {
   const doc = parser.parseFromString(wrapped, 'text/html');
   
   const styleEl = doc.querySelector('style');
+  const customStyleEl = doc.querySelector('style[data-custom-css]');
+  const customScriptEl = doc.querySelector('script[data-custom-js]');
   const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
   
   let result = '';
+  
+  // Extract main style (popup-specific CSS)
   if (styleEl) {
     let styleContent = styleEl.textContent || '';
     
@@ -87,8 +91,20 @@ const extractPopupContent = (html: string): string => {
       result += newStyleEl.outerHTML + '\n    ';
     }
   }
+  
+  // Extract custom CSS
+  if (customStyleEl) {
+    result += customStyleEl.outerHTML + '\n    ';
+  }
+  
+  // Extract popup element
   if (popupEl) {
     result += popupEl.outerHTML;
+  }
+  
+  // Extract custom JS (preserve it in the HTML)
+  if (customScriptEl) {
+    result += '\n    ' + customScriptEl.outerHTML;
   }
   
   return result.trim();
@@ -490,7 +506,15 @@ export default function PopupActivityPage() {
         }
     </style>
     <div class="przio" id="${popupId}">
-    </div>`;
+    </div>
+    <!-- Custom CSS - Add your custom styles here -->
+    <style data-custom-css>
+        /* Add your custom CSS here */
+    </style>
+    <!-- Custom JavaScript - Add your custom scripts here -->
+    <script data-custom-js>
+        // Add your custom JavaScript here
+    </script>`;
         } else {
           // Ensure the popup has the correct ID and embedded CSS styles
           const parser = new DOMParser();
@@ -613,6 +637,32 @@ export default function PopupActivityPage() {
           sessionEnabled: isLegacySession || (fetchedActivity.popupSettings as any)?.sessionEnabled || false,
         };
         setTriggerSettings(savedTriggerSettings);
+
+        // Ensure custom CSS and JS tags exist in HTML (add if missing)
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(wrapForParsing(popupHtml || ''), 'text/html');
+        const customStyleEl = doc.querySelector('style[data-custom-css]');
+        const customScriptEl = doc.querySelector('script[data-custom-js]');
+        
+        if (!customStyleEl) {
+          const styleTag = doc.createElement('style');
+          styleTag.setAttribute('data-custom-css', '');
+          styleTag.textContent = '/* Add your custom CSS here */';
+          doc.body.appendChild(styleTag);
+        }
+        
+        if (!customScriptEl) {
+          const scriptTag = doc.createElement('script');
+          scriptTag.setAttribute('data-custom-js', '');
+          scriptTag.textContent = '// Add your custom JavaScript here';
+          doc.body.appendChild(scriptTag);
+        }
+        
+        // Update popupHtml with custom tags if they were added
+        if (!customStyleEl || !customScriptEl) {
+          popupHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+          setFormData(prev => ({ ...prev, html: popupHtml }));
+        }
         
         setFormData({
           name: fetchedActivity.name,
@@ -1748,8 +1798,20 @@ export default function PopupActivityPage() {
         popupHTML += style.outerHTML + '\n    ';
       }
     });
+    
+    // Include popup element
     if (popupElement) {
       popupHTML += popupElement.outerHTML;
+    }
+    
+    // Include custom CSS and JS tags (they're siblings of the popup element)
+    const customStyleEl = popupDoc.querySelector('style[data-custom-css]');
+    const customScriptEl = popupDoc.querySelector('script[data-custom-js]');
+    if (customStyleEl) {
+      popupHTML += '\n    ' + customStyleEl.outerHTML;
+    }
+    if (customScriptEl) {
+      popupHTML += '\n    ' + customScriptEl.outerHTML;
     }
     
     // Get close button script if close button is enabled
@@ -1999,6 +2061,8 @@ export default function PopupActivityPage() {
       placeholderEl.remove();
     }
     htmlToSave = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+    
+    // Custom CSS and JS are already in the HTML editor, no need to add separately
 
     setSaving(true);
     try {
@@ -2774,7 +2838,7 @@ export default function PopupActivityPage() {
                     </>
                   )}
                 </div>
-              ) : (
+              ) : showAnimationSettings === 'trigger' ? (
                 /* Trigger Tab */
                 <div className="space-y-6">
                   {/* Trigger Type Selection */}
@@ -2972,7 +3036,7 @@ export default function PopupActivityPage() {
                     </div>
                   )}
                 </div>
-              )}
+              ) : null}
 
               <div className="mt-6 flex justify-end">
                 <button

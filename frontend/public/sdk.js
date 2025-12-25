@@ -509,8 +509,10 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(activity.html || '', 'text/html');
 
-      // Extract style and popup element
-      const styleEl = doc.querySelector('style');
+      // Extract style, custom CSS, custom JS, and popup element
+      const styleEl = doc.querySelector('style:not([data-custom-css])');
+      const customStyleEl = doc.querySelector('style[data-custom-css]');
+      const customScriptEl = doc.querySelector('script[data-custom-js]');
       const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
 
       if (!popupEl) {
@@ -523,10 +525,16 @@
       container.id = popupId;
       container.className = 'przio-popup-container';
 
-      // Inject styles
+      // Inject main styles
       if (styleEl) {
         const styleClone = styleEl.cloneNode(true);
         container.appendChild(styleClone);
+      }
+
+      // Inject custom CSS
+      if (customStyleEl) {
+        const customStyleClone = customStyleEl.cloneNode(true);
+        container.appendChild(customStyleClone);
       }
 
       // Inject popup element
@@ -680,6 +688,21 @@
           }
         }
       });
+
+      // Inject custom JavaScript
+      if (customScriptEl) {
+        const customScriptClone = customScriptEl.cloneNode(true);
+        // Execute the script
+        const script = document.createElement('script');
+        script.textContent = customScriptClone.textContent || '';
+        document.head.appendChild(script);
+        // Remove after execution to avoid duplicates
+        setTimeout(() => {
+          if (script.parentNode) {
+            script.parentNode.removeChild(script);
+          }
+        }, 0);
+      }
 
     } catch (err) {
       error('Failed to inject popup:', err);
