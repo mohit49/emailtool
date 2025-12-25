@@ -192,6 +192,9 @@ export default function PopupsPage() {
           logicOperator: logicOperator,
           html: '',
           status: 'draft',
+          popupSettings: {
+            domain: newActivity.domain.trim() || undefined, // Store domain in popupSettings
+          },
         },
         {
           headers: { Authorization: `Bearer ${token}` },

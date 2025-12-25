@@ -404,8 +404,10 @@ export default function PopupActivityPage() {
           ? Array((fetchedActivity.urlConditions || []).length - 1).fill(logicOperator)
           : [];
         
-        // Extract domain from first condition if exists (for backward compatibility)
-        const domain = (fetchedActivity.urlConditions || [])[0]?.domain || '';
+        // Extract domain from popupSettings first, then fallback to first condition (for backward compatibility)
+        const domain = (fetchedActivity.popupSettings as any)?.domain || 
+                       (fetchedActivity.urlConditions || [])[0]?.domain || 
+                       '';
         
         // Set preview URL from domain (default to https:// if no protocol)
         const defaultPreviewUrl = domain 
@@ -1848,6 +1850,7 @@ export default function PopupActivityPage() {
             position: formData.position,
             placeholderCss: popupCssSettings,
             animation: formData.animation,
+            domain: formData.domain.trim() || undefined, // Store domain in popupSettings
           },
         },
         {
