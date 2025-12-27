@@ -509,59 +509,294 @@
   }
 
   /**
-   * Setup exit intent detection with inactivity timeout
+   * Check if exit-intent popup should be shown based on smart trigger rules
+   */
+  function checkExitIntentRules(activity) {
+    const settings = activity.popupSettings || {};
+    
+    // Check minimum time on page
+    const minTimeOnPage = settings.exitIntentMinTimeOnPage || 0; // seconds
+    if (minTimeOnPage > 0) {
+      const timeOnPage = (Date.now() - pageLoadTime) / 1000;
+      if (timeOnPage < minTimeOnPage) {
+        log('Exit intent: User has not been on page long enough:', timeOnPage, 's <', minTimeOnPage, 's');
+        return false;
+      }
+    }
+    
+    // Check minimum scroll percentage
+    const minScrollPercentage = settings.exitIntentMinScrollPercentage || 0; // 0-100
+    if (minScrollPercentage > 0) {
+      const scrollPercentage = getScrollPercentage();
+      if (scrollPercentage < minScrollPercentage) {
+        log('Exit intent: User has not scrolled enough:', scrollPercentage, '% <', minScrollPercentage, '%');
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Get current scroll percentage
+   */
+  function getScrollPercentage() {
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollableHeight = documentHeight - windowHeight;
+    if (scrollableHeight <= 0) return 100;
+    return Math.round((scrollTop / scrollableHeight) * 100);
+  }
+  
+  /**
+   * Check if exit-intent popup was shown recently (frequency control)
+   */
+  function wasExitIntentShownRecently(activity) {
+    const popupId = activity._id;
+    const settings = activity.popupSettings || {};
+    const cooldownDays = settings.exitIntentCooldownDays || 7; // Default 7 days
+    const maxPerSession = settings.exitIntentMaxPerSession !== undefined ? settings.exitIntentMaxPerSession : 1; // Default 1 per session
+    
+    // Check session storage (max per session)
+    if (maxPerSession > 0) {
+      const sessionKey = `przio-exit-intent-shown-${popupId}`;
+      const shownCount = parseInt(getSessionStorage(sessionKey) || '0', 10);
+      if (shownCount >= maxPerSession) {
+        log('Exit intent: Max per session reached:', shownCount, '>=', maxPerSession);
+        return true;
+      }
+    }
+    
+    // Check cookie/localStorage (cooldown period)
+    if (cooldownDays > 0) {
+      const cookieName = `przio-exit-intent-shown-${popupId}`;
+      const shownDate = getCookie(cookieName);
+      if (shownDate) {
+        const lastShown = new Date(parseInt(shownDate, 10));
+        const daysSince = (Date.now() - lastShown.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSince < cooldownDays) {
+          log('Exit intent: Still in cooldown period:', daysSince.toFixed(1), 'days <', cooldownDays, 'days');
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Mark exit-intent popup as shown (for frequency control)
+   */
+  function markExitIntentAsShown(activity) {
+    const popupId = activity._id;
+    const settings = activity.popupSettings || {};
+    const cooldownDays = settings.exitIntentCooldownDays || 7;
+    const maxPerSession = settings.exitIntentMaxPerSession !== undefined ? settings.exitIntentMaxPerSession : 1;
+    
+    // Update session storage
+    if (maxPerSession > 0) {
+      const sessionKey = `przio-exit-intent-shown-${popupId}`;
+      const shownCount = parseInt(getSessionStorage(sessionKey) || '0', 10);
+      setSessionStorage(sessionKey, (shownCount + 1).toString());
+    }
+    
+    // Update cookie with current timestamp
+    if (cooldownDays > 0) {
+      const cookieName = `przio-exit-intent-shown-${popupId}`;
+      setCookie(cookieName, Date.now().toString(), cooldownDays);
+    }
+  }
+  
+  /**
+   * Track page load time
+   */
+  let pageLoadTime = Date.now();
+  
+  /**
+   * Setup exit intent detection with professional implementation
    */
   function setupExitIntent(activity, callback) {
-    const inactivityTimeout = (activity.popupSettings?.inactivityTimeout || 30) * 1000; // Convert to milliseconds
+    // Check if exit-intent was shown recently (frequency control)
+    if (wasExitIntentShownRecently(activity)) {
+      log('Exit intent: Popup was shown recently, skipping');
+      return;
+    }
+    
+    const settings = activity.popupSettings || {};
+    const inactivityTimeout = (settings.inactivityTimeout || 30) * 1000; // Convert to milliseconds
     let inactivityTimer = null;
-    let mouseLeaveTimer = null;
     let hasShown = false;
-
-    // Track user activity
+    let lastMouseY = null;
+    let mouseVelocity = 0;
+    let lastMouseTime = Date.now();
+    let scrollDirection = 'down';
+    let lastScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    let fastScrollTimer = null;
+    
+    // Cleanup function
+    const cleanup = () => {
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = null;
+      }
+      if (fastScrollTimer) {
+        clearTimeout(fastScrollTimer);
+        fastScrollTimer = null;
+      }
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('keypress', resetInactivityTimer);
+      document.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('click', resetInactivityTimer);
+      document.removeEventListener('touchstart', resetInactivityTimer);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // Remove popstate listener for back button
+      if (window.history && window.history.pushState) {
+        window.removeEventListener('popstate', handleBackButton);
+      }
+    };
+    
+    // Show popup if all conditions are met
+    const showPopup = () => {
+      if (hasShown) return;
+      
+      // Check smart trigger rules
+      if (!checkExitIntentRules(activity)) {
+        return;
+      }
+      
+      log('Exit intent: Showing popup');
+      hasShown = true;
+      markExitIntentAsShown(activity);
+      callback();
+      cleanup();
+    };
+    
+    // Track user activity for inactivity timer
     const resetInactivityTimer = () => {
       if (inactivityTimer) {
         clearTimeout(inactivityTimer);
       }
       inactivityTimer = setTimeout(() => {
         if (!hasShown) {
-          log('User inactive, showing exit intent popup');
-          hasShown = true;
-          callback();
-          // Clean up listeners after showing
-          document.removeEventListener('mousemove', resetInactivityTimer);
-          document.removeEventListener('keypress', resetInactivityTimer);
-          document.removeEventListener('scroll', resetInactivityTimer);
-          document.removeEventListener('click', resetInactivityTimer);
-          document.removeEventListener('mouseleave', handleMouseLeave);
+          log('Exit intent: User inactive, showing popup');
+          showPopup();
         }
       }, inactivityTimeout);
     };
-
-    // Handle mouse leave (traditional exit intent)
+    
+    // Desktop: Detect rapid mouse movement toward top (exit intent)
+    const handleMouseMove = (e) => {
+      const now = Date.now();
+      const currentY = e.clientY;
+      
+      if (lastMouseY !== null) {
+        const timeDelta = now - lastMouseTime;
+        const yDelta = lastMouseY - currentY; // Positive = moving up
+        if (timeDelta > 0) {
+          mouseVelocity = yDelta / timeDelta; // pixels per ms
+        }
+      }
+      
+      lastMouseY = currentY;
+      lastMouseTime = now;
+      
+      // Reset inactivity timer on any mouse movement
+      resetInactivityTimer();
+    };
+    
+    // Desktop: Handle mouse leave at top of window (high-confidence exit)
     const handleMouseLeave = (e) => {
-      if (e.clientY <= 0 && !hasShown) {
-        // Mouse left the top of the window
-        log('Exit intent detected (mouse leave)');
-        hasShown = true;
-        callback();
-        // Clean up
-        document.removeEventListener('mousemove', resetInactivityTimer);
-        document.removeEventListener('keypress', resetInactivityTimer);
-        document.removeEventListener('scroll', resetInactivityTimer);
-        document.removeEventListener('click', resetInactivityTimer);
-        document.removeEventListener('mouseleave', handleMouseLeave);
+      // Only trigger if mouse leaves at the top (clientY <= 0 or relatedTarget is null)
+      if (e.clientY <= 0 || e.relatedTarget === null) {
+        // Check if mouse was moving rapidly upward (high velocity toward top)
+        const isRapidUpwardMovement = mouseVelocity > 0.5; // pixels per ms threshold
+        
+        if (isRapidUpwardMovement || e.clientY <= 0) {
+          log('Exit intent: Mouse left top of window (rapid upward movement detected)');
+          showPopup();
+        }
+      }
+      
+      resetInactivityTimer();
+    };
+    
+    // Mobile: Detect fast upward scroll (potential exit)
+    const handleScroll = () => {
+      const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollDelta = currentScrollTop - lastScrollTop;
+      
+      // Detect scroll direction
+      if (scrollDelta < 0) {
+        scrollDirection = 'up';
+        // Fast upward scroll to top (potential exit)
+        if (currentScrollTop < 50 && Math.abs(scrollDelta) > 100) {
+          log('Exit intent: Fast upward scroll detected');
+          if (fastScrollTimer) {
+            clearTimeout(fastScrollTimer);
+          }
+          fastScrollTimer = setTimeout(() => {
+            if (!hasShown && currentScrollTop < 50) {
+              showPopup();
+            }
+          }, 100);
+        }
+      } else {
+        scrollDirection = 'down';
+      }
+      
+      lastScrollTop = currentScrollTop;
+      resetInactivityTimer();
+    };
+    
+    // Mobile: Detect back button (browser history)
+    const handleBackButton = () => {
+      log('Exit intent: Back button pressed');
+      showPopup();
+    };
+    
+    // Mobile/Desktop: Detect page visibility change (tab switch)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        log('Exit intent: Page visibility changed (tab switch)');
+        // Don't show immediately, but mark as potential exit
+        // Could show on return if needed
       }
     };
-
-    // Start inactivity timer
+    
+    // Desktop: Detect beforeunload (page unload)
+    const handleBeforeUnload = () => {
+      log('Exit intent: Page unloading');
+      // Note: Can't show popup here, but can track
+    };
+    
+    // Initialize: Start inactivity timer
     resetInactivityTimer();
-
-    // Listen for user activity
-    document.addEventListener('mousemove', resetInactivityTimer);
-    document.addEventListener('keypress', resetInactivityTimer);
-    document.addEventListener('scroll', resetInactivityTimer);
-    document.addEventListener('click', resetInactivityTimer);
+    
+    // Desktop: Listen for mouse events
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
     document.addEventListener('mouseleave', handleMouseLeave);
+    
+    // Desktop/Mobile: Listen for user activity
+    document.addEventListener('keypress', resetInactivityTimer);
+    document.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('click', resetInactivityTimer);
+    document.addEventListener('touchstart', resetInactivityTimer, { passive: true });
+    
+    // Mobile: Listen for back button
+    if (window.history && window.history.pushState) {
+      // Intercept back button
+      window.history.pushState(null, '', window.location.href);
+      window.addEventListener('popstate', handleBackButton);
+    }
+    
+    // Mobile/Desktop: Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Desktop: Listen for page unload
+    window.addEventListener('beforeunload', handleBeforeUnload);
   }
 
   /**
@@ -1262,41 +1497,46 @@
             submitButton.textContent = 'Submitted!';
             submitButton.style.background = 'linear-gradient(90deg,#10b981,#059669)';
             
-            // Close popup on successful submit if enabled
-            const closeOnSuccessfulSubmit = activity?.popupSettings?.closeOnSuccessfulSubmit;
-            if (closeOnSuccessfulSubmit && popupContainer && popupContainer.parentNode) {
+            // Always close popup on successful form submission
+            // Find the popup container (use popupContainer parameter or find it from the form)
+            let containerToClose = popupContainer;
+            
+            // If popupContainer is not provided or invalid, find it by traversing up from the form
+            if (!containerToClose || !containerToClose.parentNode) {
+              let parent = form.parentElement;
+              while (parent && parent !== document.body) {
+                // Check if this is the container (has class przio-popup-container or id starts with przio-popup-)
+                if (parent.classList && parent.classList.contains('przio-popup-container')) {
+                  containerToClose = parent;
+                  break;
+                }
+                if (parent.id && parent.id.startsWith('przio-popup-')) {
+                  containerToClose = parent;
+                  break;
+                }
+                parent = parent.parentElement;
+              }
+            }
+            
+            // Always close the popup on successful form submission
+            if (containerToClose && containerToClose.parentNode) {
               log('Closing popup after successful form submission');
               // Use a delay to show success message before closing
               setTimeout(() => {
-                popupContainer.remove();
-                const popupId = popupContainer.id;
-                if (popupId) {
-                  injectedPopups.delete(popupId);
-                  // Mark popup as closed if using cookie or session trigger
-                  if (activity) {
-                    markPopupAsClosed(activity);
+                if (containerToClose && containerToClose.parentNode) {
+                  containerToClose.remove();
+                  const popupId = containerToClose.id;
+                  if (popupId) {
+                    injectedPopups.delete(popupId);
+                    // Mark popup as closed if using cookie or session trigger
+                    if (activity) {
+                      markPopupAsClosed(activity);
+                    }
                   }
                 }
               }, 1500); // Close after showing success message
             } else {
-              // Reset form if not closing popup
-              setTimeout(() => {
-                submitButton.disabled = false;
-                submitButton.textContent = originalText;
-                submitButton.style.background = 'linear-gradient(90deg,#4f46e5,#0ea5e9)';
-                form.reset();
-                
-                // Clear all error messages and reset borders
-                const allErrors = form.querySelectorAll('.form-error');
-                for (let k = 0; k < allErrors.length; k++) {
-                  allErrors[k].style.display = 'none';
-                }
-                const allInputs = form.querySelectorAll('input,textarea,select');
-                for (let k = 0; k < allInputs.length; k++) {
-                  allInputs[k].style.borderColor = '#d1d5db';
-                  allInputs[k].style.borderWidth = '1px';
-                }
-              }, 2000);
+              log('Warning: Could not find popup container to close after form submission');
             }
           } else {
             throw new Error(result.error || 'Submission failed');

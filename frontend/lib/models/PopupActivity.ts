@@ -24,6 +24,12 @@ export interface IPopupActivity extends Document {
     cookieEnabled?: boolean; // Enable cookie-based close state remembering
     cookieExpiry?: number; // Cookie expiry in days (if cookieEnabled is true)
     sessionEnabled?: boolean; // Enable session-based close state remembering
+    // Exit Intent Smart Trigger Rules
+    exitIntentMinTimeOnPage?: number; // Minimum seconds user must be on page before exit-intent can trigger
+    exitIntentMinScrollPercentage?: number; // Minimum scroll percentage (0-100) before exit-intent can trigger
+    // Exit Intent Frequency Control
+    exitIntentCooldownDays?: number; // Days to wait before showing exit-intent popup again (default: 7)
+    exitIntentMaxPerSession?: number; // Maximum times to show exit-intent popup per session (default: 1)
     position?: 'left-top' | 'right-top' | 'left-bottom' | 'right-bottom' | 'center-top' | 'center' | 'center-bottom';
     backdropEnabled?: boolean;
     backdropColor?: string;

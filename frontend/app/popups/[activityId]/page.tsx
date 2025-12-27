@@ -344,6 +344,12 @@ export default function PopupActivityPage() {
     cookieEnabled: false,
     cookieExpiry: 30, // days
     sessionEnabled: false,
+    // Exit Intent Smart Trigger Rules
+    exitIntentMinTimeOnPage: 0, // Minimum seconds on page
+    exitIntentMinScrollPercentage: 0, // Minimum scroll percentage (0-100)
+    // Exit Intent Frequency Control
+    exitIntentCooldownDays: 7, // Days to wait before showing again
+    exitIntentMaxPerSession: 1, // Max times per session
   });
   const [backdropSettings, setBackdropSettings] = useState({
     backdropEnabled: false,
@@ -682,6 +688,12 @@ export default function PopupActivityPage() {
           cookieEnabled: isLegacyCookie || (fetchedActivity.popupSettings as any)?.cookieEnabled || false,
           cookieExpiry: (fetchedActivity.popupSettings as any)?.cookieExpiry || 30,
           sessionEnabled: isLegacySession || (fetchedActivity.popupSettings as any)?.sessionEnabled || false,
+          // Exit Intent Smart Trigger Rules
+          exitIntentMinTimeOnPage: (fetchedActivity.popupSettings as any)?.exitIntentMinTimeOnPage || 0,
+          exitIntentMinScrollPercentage: (fetchedActivity.popupSettings as any)?.exitIntentMinScrollPercentage || 0,
+          // Exit Intent Frequency Control
+          exitIntentCooldownDays: (fetchedActivity.popupSettings as any)?.exitIntentCooldownDays || 7,
+          exitIntentMaxPerSession: (fetchedActivity.popupSettings as any)?.exitIntentMaxPerSession !== undefined ? (fetchedActivity.popupSettings as any)?.exitIntentMaxPerSession : 1,
         };
         setTriggerSettings(savedTriggerSettings);
 
@@ -2477,6 +2489,12 @@ export default function PopupActivityPage() {
             cookieEnabled: triggerSettings.cookieEnabled,
             cookieExpiry: triggerSettings.cookieEnabled ? triggerSettings.cookieExpiry : undefined,
             sessionEnabled: triggerSettings.sessionEnabled,
+            // Exit Intent Smart Trigger Rules
+            exitIntentMinTimeOnPage: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentMinTimeOnPage : undefined,
+            exitIntentMinScrollPercentage: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentMinScrollPercentage : undefined,
+            // Exit Intent Frequency Control
+            exitIntentCooldownDays: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentCooldownDays : undefined,
+            exitIntentMaxPerSession: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentMaxPerSession : undefined,
             backdropEnabled: backdropSettings.backdropEnabled,
             backdropColor: backdropSettings.backdropEnabled ? backdropSettings.backdropColor : undefined,
             backdropOpacity: backdropSettings.backdropEnabled ? backdropSettings.backdropOpacity : undefined,
@@ -3464,21 +3482,113 @@ export default function PopupActivityPage() {
 
                   {/* Exit Intent Settings */}
                   {triggerSettings.trigger === 'exitIntent' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Inactivity Timeout (seconds)
-                      </label>
-                      <input
-                        type="number"
-                        value={triggerSettings.inactivityTimeout}
-                        onChange={(e) => setTriggerSettings(prev => ({ ...prev, inactivityTimeout: parseInt(e.target.value) || 30 }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                        placeholder="30"
-                        min="1"
-                      />
-                      <p className="mt-1 text-xs text-gray-500">
-                        Popup will show after user is inactive (no mouse movement, clicks, keyboard input, or scrolling) for this duration. Also triggers when mouse leaves the top of the window.
-                      </p>
+                    <div className="space-y-6">
+                      {/* Inactivity Timeout */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Inactivity Timeout (seconds)
+                        </label>
+                        <input
+                          type="number"
+                          value={triggerSettings.inactivityTimeout}
+                          onChange={(e) => setTriggerSettings(prev => ({ ...prev, inactivityTimeout: parseInt(e.target.value) || 30 }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          placeholder="30"
+                          min="1"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          Popup will show after user is inactive (no mouse movement, clicks, keyboard input, or scrolling) for this duration. Also triggers when mouse leaves the top of the window.
+                        </p>
+                      </div>
+
+                      {/* Smart Trigger Rules */}
+                      <div className="border-t border-gray-200 pt-4">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">Smart Trigger Rules</h4>
+                        <p className="text-xs text-gray-500 mb-4">
+                          Configure conditions that must be met before the exit-intent popup can trigger.
+                        </p>
+
+                        {/* Minimum Time on Page */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Minimum Time on Page (seconds)
+                          </label>
+                          <input
+                            type="number"
+                            value={triggerSettings.exitIntentMinTimeOnPage}
+                            onChange={(e) => setTriggerSettings(prev => ({ ...prev, exitIntentMinTimeOnPage: parseInt(e.target.value) || 0 }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            placeholder="0"
+                            min="0"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            User must be on the page for at least this many seconds before exit-intent can trigger. Set to 0 to disable.
+                          </p>
+                        </div>
+
+                        {/* Minimum Scroll Percentage */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Minimum Scroll Percentage (0-100)
+                          </label>
+                          <input
+                            type="number"
+                            value={triggerSettings.exitIntentMinScrollPercentage}
+                            onChange={(e) => setTriggerSettings(prev => ({ ...prev, exitIntentMinScrollPercentage: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            placeholder="0"
+                            min="0"
+                            max="100"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            User must have scrolled at least this percentage of the page before exit-intent can trigger. Set to 0 to disable.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Frequency Control */}
+                      <div className="border-t border-gray-200 pt-4">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">Frequency & Suppression Control</h4>
+                        <p className="text-xs text-gray-500 mb-4">
+                          Control how often the exit-intent popup is shown to avoid annoying users.
+                        </p>
+
+                        {/* Cooldown Days */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Cooldown Period (days)
+                          </label>
+                          <input
+                            type="number"
+                            value={triggerSettings.exitIntentCooldownDays}
+                            onChange={(e) => setTriggerSettings(prev => ({ ...prev, exitIntentCooldownDays: parseInt(e.target.value) || 7 }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            placeholder="7"
+                            min="0"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Number of days to wait before showing the exit-intent popup again to the same user. Recommended: 7-30 days.
+                          </p>
+                        </div>
+
+                        {/* Max Per Session */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Maximum Per Session
+                          </label>
+                          <input
+                            type="number"
+                            value={triggerSettings.exitIntentMaxPerSession}
+                            onChange={(e) => setTriggerSettings(prev => ({ ...prev, exitIntentMaxPerSession: parseInt(e.target.value) || 1 }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            placeholder="1"
+                            min="0"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Maximum number of times to show the exit-intent popup per browser session. Recommended: 1. Set to 0 for unlimited (not recommended).
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
 
