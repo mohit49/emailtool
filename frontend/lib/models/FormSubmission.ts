@@ -8,6 +8,7 @@ export interface IFormSubmission extends Document {
   submittedAt: Date;
   ipAddress?: string;
   userAgent?: string;
+  visitorId?: string; // przio-uuid from cookie
 }
 
 const formSubmissionSchema = new Schema<IFormSubmission>({
@@ -45,11 +46,17 @@ const formSubmissionSchema = new Schema<IFormSubmission>({
     type: String,
     trim: true,
   },
+  visitorId: {
+    type: String,
+    trim: true,
+    index: true,
+  },
 });
 
 // Indexes for faster queries
 formSubmissionSchema.index({ formId: 1, submittedAt: -1 });
 formSubmissionSchema.index({ projectId: 1, submittedAt: -1 });
+formSubmissionSchema.index({ visitorId: 1, submittedAt: -1 });
 
 const FormSubmission: Model<IFormSubmission> = mongoose.models.FormSubmission || mongoose.model<IFormSubmission>('FormSubmission', formSubmissionSchema);
 

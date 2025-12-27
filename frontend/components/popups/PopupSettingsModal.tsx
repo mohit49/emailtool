@@ -12,11 +12,25 @@ interface PopupCssSettings {
   textAlign: string;
 }
 
+interface BackdropSettings {
+  backdropEnabled: boolean;
+  backdropColor: string;
+  backdropOpacity: number;
+}
+
+interface TriggerSettings {
+  closeOnSuccessfulSubmit: boolean;
+}
+
 interface PopupSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   popupCssSettings: PopupCssSettings;
   setPopupCssSettings: React.Dispatch<React.SetStateAction<PopupCssSettings>>;
+  backdropSettings: BackdropSettings;
+  setBackdropSettings: React.Dispatch<React.SetStateAction<BackdropSettings>>;
+  triggerSettings: TriggerSettings;
+  setTriggerSettings: React.Dispatch<React.SetStateAction<TriggerSettings>>;
 }
 
 const PopupSettingsModal: React.FC<PopupSettingsModalProps> = ({
@@ -24,11 +38,23 @@ const PopupSettingsModal: React.FC<PopupSettingsModalProps> = ({
   onClose,
   popupCssSettings,
   setPopupCssSettings,
+  backdropSettings,
+  setBackdropSettings,
+  triggerSettings,
+  setTriggerSettings,
 }) => {
   if (!isOpen) return null;
 
   const handleChange = (field: keyof PopupCssSettings, value: string) => {
     setPopupCssSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleBackdropChange = (field: keyof BackdropSettings, value: boolean | string | number) => {
+    setBackdropSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleTriggerChange = (field: keyof TriggerSettings, value: boolean) => {
+    setTriggerSettings((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -44,6 +70,79 @@ const PopupSettingsModal: React.FC<PopupSettingsModalProps> = ({
           </button>
         </div>
         <div className="px-6 py-6 space-y-4">
+          {/* Backdrop Settings Section - Moved to top for visibility */}
+          <div className="pb-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Backdrop Overlay</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">
+                  Enable Backdrop
+                </label>
+                <button
+                  type="button"
+                  onClick={() => handleBackdropChange('backdropEnabled', !backdropSettings.backdropEnabled)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                    backdropSettings.backdropEnabled ? 'bg-indigo-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      backdropSettings.backdropEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {backdropSettings.backdropEnabled && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Background Color
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={backdropSettings.backdropColor}
+                        onChange={(e) => handleBackdropChange('backdropColor', e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        placeholder="#000000"
+                      />
+                      <input
+                        type="color"
+                        value={backdropSettings.backdropColor || '#000000'}
+                        onChange={(e) => handleBackdropChange('backdropColor', e.target.value)}
+                        className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">e.g., #000000 or rgba(0, 0, 0, 0.5)</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Opacity: {Math.round(backdropSettings.backdropOpacity * 100)}%
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={backdropSettings.backdropOpacity}
+                      onChange={(e) => handleBackdropChange('backdropOpacity', parseFloat(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>0%</span>
+                      <span>50%</span>
+                      <span>100%</span>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Adjust the transparency of the backdrop overlay</p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Padding
@@ -123,6 +222,37 @@ const PopupSettingsModal: React.FC<PopupSettingsModalProps> = ({
               ]}
               className="w-full"
             />
+          </div>
+
+          {/* Submit Trigger Settings */}
+          <div className="pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Submit Trigger</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Close Popup on Successful Submit
+                  </label>
+                  <p className="text-xs text-gray-500">
+                    If enabled, the popup will automatically close when a form is successfully submitted. If submission fails, the popup will remain open.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTriggerChange('closeOnSuccessfulSubmit', !triggerSettings.closeOnSuccessfulSubmit)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ml-4 ${
+                    triggerSettings.closeOnSuccessfulSubmit ? 'bg-indigo-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      triggerSettings.closeOnSuccessfulSubmit ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">

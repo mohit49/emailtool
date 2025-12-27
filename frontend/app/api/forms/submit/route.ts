@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const { formId, data } = await req.json();
+    const { formId, data, visitorId } = await req.json();
 
     if (!formId || !data) {
       return NextResponse.json(
@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       data,
       ipAddress: Array.isArray(ipAddress) ? ipAddress[0] : ipAddress,
       userAgent,
+      visitorId: visitorId || undefined, // przio-uuid from cookie
     });
 
     await submission.save();

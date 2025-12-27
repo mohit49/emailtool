@@ -13,6 +13,14 @@ export interface FormField {
     max?: number;
     pattern?: string;
   };
+  stepId?: string; // For multi-step forms (survey)
+}
+
+export interface FormStep {
+  id: string;
+  title: string;
+  description?: string;
+  order: number;
 }
 
 export interface IForm extends Document {
@@ -22,6 +30,7 @@ export interface IForm extends Document {
   projectId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   fields: FormField[];
+  steps?: FormStep[]; // For multi-step forms (survey)
   status: 'draft' | 'active' | 'inactive';
   createdAt: Date;
   updatedAt: Date;
@@ -63,6 +72,31 @@ const formFieldSchema = new Schema<FormField>({
     type: Schema.Types.Mixed,
     default: {},
   },
+  stepId: {
+    type: String,
+    trim: true,
+  },
+}, { _id: false });
+
+const formStepSchema = new Schema<FormStep>({
+  id: {
+    type: String,
+    required: true,
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  description: {
+    type: String,
+    trim: true,
+  },
+  order: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
 }, { _id: false });
 
 const formSchema = new Schema<IForm>({
@@ -95,6 +129,10 @@ const formSchema = new Schema<IForm>({
   },
   fields: {
     type: [formFieldSchema],
+    default: [],
+  },
+  steps: {
+    type: [formStepSchema],
     default: [],
   },
   status: {

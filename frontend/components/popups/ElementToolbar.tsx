@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowUp, ArrowDown, Settings, Trash2, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Settings, Trash2, X, MousePointerClick } from 'lucide-react';
 
 interface ElementToolbarProps {
   toolbarPosition: { top: number; left: number };
@@ -9,6 +9,8 @@ interface ElementToolbarProps {
   moveElementSibling: (selector: string, direction: 'up' | 'down') => void;
   openCssEditor: () => void;
   deleteSelectedElement: () => void;
+  enableClickTracking?: () => void;
+  isClickTrackingEnabled?: boolean;
   onClose: () => void;
 }
 
@@ -18,6 +20,8 @@ const ElementToolbar: React.FC<ElementToolbarProps> = ({
   moveElementSibling,
   openCssEditor,
   deleteSelectedElement,
+  enableClickTracking,
+  isClickTrackingEnabled = false,
   onClose,
 }) => {
   return (
@@ -56,6 +60,24 @@ const ElementToolbar: React.FC<ElementToolbarProps> = ({
         <Settings size={16} />
         <span className="font-medium">Edit CSS</span>
       </button>
+
+      {enableClickTracking && (
+        <>
+          <div className="w-px h-4 bg-gray-200 mx-1"></div>
+          <button
+            onClick={enableClickTracking}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded transition-colors ${
+              isClickTrackingEnabled
+                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                : 'text-purple-600 hover:bg-purple-50'
+            }`}
+            title={isClickTrackingEnabled ? 'Click tracking enabled' : 'Enable click tracking'}
+          >
+            <MousePointerClick size={16} />
+            <span className="font-medium">{isClickTrackingEnabled ? 'Tracking' : 'Track Clicks'}</span>
+          </button>
+        </>
+      )}
 
       <div className="w-px h-4 bg-gray-200 mx-1"></div>
 

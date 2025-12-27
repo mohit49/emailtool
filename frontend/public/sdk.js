@@ -106,6 +106,107 @@
   }
 
   /**
+   * Generate or retrieve visitor UUID from cookie
+   */
+  function getVisitorId() {
+    const cookieName = 'przio-uuid';
+    let visitorId = getCookie(cookieName);
+    
+    if (!visitorId) {
+      // Generate new UUID
+      visitorId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+      // Store in cookie (expires in 1 year)
+      setCookie(cookieName, visitorId, 365);
+    }
+    
+    return visitorId;
+  }
+
+  /**
+   * Get cookie value
+   */
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  }
+
+  /**
+   * Set cookie value
+   */
+  function setCookie(name, value, days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = `expires=${date.toUTCString()}`;
+    document.cookie = `${name}=${value};${expires};path=/`;
+  }
+
+  /**
+   * Check if visitor has seen this popup before
+   */
+  function hasSeenPopup(activityId) {
+    const cookieName = `przio-seen-${activityId}`;
+    return getCookie(cookieName) !== null;
+  }
+
+  /**
+   * Mark popup as seen by this visitor
+   */
+  function markPopupAsSeen(activityId) {
+    const cookieName = `przio-seen-${activityId}`;
+    setCookie(cookieName, 'true', 365);
+  }
+
+  /**
+   * Track metrics event
+   */
+  async function trackMetrics(activityId, eventType, data = {}) {
+    try {
+      const visitorId = getVisitorId();
+      const isUniqueVisitor = !hasSeenPopup(activityId);
+      const isRepeatVisitor = hasSeenPopup(activityId);
+      
+      // Mark as seen if it's an impression
+      if (eventType === 'impression') {
+        markPopupAsSeen(activityId);
+      }
+
+      const metricsData = {
+        eventType,
+        visitorId,
+        url: getCurrentUrl(),
+        userAgent: navigator.userAgent,
+        isUniqueVisitor,
+        isRepeatVisitor,
+        ...data,
+      };
+
+      // Get API URL
+      const apiUrl = config.apiUrl || API_BASE_URL;
+      const baseUrl = apiUrl.replace('/api/sdk', '');
+      
+      const response = await fetch(`${baseUrl}/api/popup-activities/${activityId}/metrics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(metricsData),
+      });
+
+      if (!response.ok) {
+        log('Failed to track metrics:', response.statusText);
+      }
+    } catch (err) {
+      log('Error tracking metrics:', err);
+    }
+  }
+
+  /**
    * Get current URL path and query
    */
   function getCurrentUrl() {
@@ -541,6 +642,72 @@
       container.id = popupId;
       container.className = 'przio-popup-container';
 
+      // Create backdrop overlay if enabled
+      const backdropEnabled = activity.popupSettings?.backdropEnabled || false;
+      let backdropElement = null;
+      if (backdropEnabled) {
+        backdropElement = document.createElement('div');
+        backdropElement.className = 'przio-backdrop';
+        backdropElement.setAttribute('data-przio-backdrop', 'true');
+        
+        const backdropColor = activity.popupSettings?.backdropColor || '#000000';
+        const backdropOpacity = activity.popupSettings?.backdropOpacity !== undefined 
+          ? activity.popupSettings.backdropOpacity 
+          : 0.5;
+        
+        // Convert hex color to rgba if needed
+        let rgbaColor = backdropColor;
+        if (backdropColor.startsWith('#')) {
+          const hex = backdropColor.replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16);
+          const g = parseInt(hex.substring(2, 4), 16);
+          const b = parseInt(hex.substring(4, 6), 16);
+          rgbaColor = `rgba(${r}, ${g}, ${b}, ${backdropOpacity})`;
+        } else if (backdropColor.startsWith('rgb')) {
+          // If it's already rgb/rgba, extract and apply opacity
+          const rgbMatch = backdropColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          if (rgbMatch) {
+            rgbaColor = `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${backdropOpacity})`;
+          }
+        }
+        
+        backdropElement.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: ${rgbaColor};
+          z-index: ${activity.popupSettings?.backdropZIndex || 999998};
+          pointer-events: auto;
+        `;
+        
+        // Prevent backdrop from blocking clicks on popup
+        backdropElement.style.pointerEvents = 'auto';
+        
+        // Close popup when backdrop is clicked (but not when clicking on popup or close button)
+        backdropElement.addEventListener('click', (e) => {
+          // Only close if clicking directly on backdrop
+          // Check if the click target is the backdrop itself, not any child elements
+          if (e.target === backdropElement) {
+            // Additional check: make sure we're not clicking through to a child element
+            const path = e.composedPath ? e.composedPath() : [];
+            const isClickingOnPopup = path.some(el => 
+              el === popupElement || 
+              (el && el.classList && (el.classList.contains('przio') || el.classList.contains('przio-popup') || el.classList.contains('przio-close')))
+            );
+            
+            if (!isClickingOnPopup) {
+              container.remove();
+              injectedPopups.delete(popupId);
+              markPopupAsClosed(activity);
+            }
+          }
+        });
+        
+        container.appendChild(backdropElement);
+      }
+
       // Inject main styles
       if (styleEl) {
         const styleClone = styleEl.cloneNode(true);
@@ -569,12 +736,15 @@
       
       // Ensure popup has proper z-index and positioning
       const popupElement = popupClone;
+      // Popup should be above backdrop (backdrop is 999998, popup should be 999999 or higher)
       if (!popupElement.style.zIndex) {
         popupElement.style.zIndex = '999999';
       }
       if (!popupElement.style.position) {
         popupElement.style.position = 'fixed';
       }
+      // Ensure popup can receive pointer events (overrides container's pointer-events: none)
+      popupElement.style.pointerEvents = 'auto';
 
       container.appendChild(popupElement);
 
@@ -598,12 +768,20 @@
       // Append to body first so computed styles work correctly
       document.body.appendChild(container);
 
+      // Track impression
+      trackMetrics(activity._id, 'impression');
+
       // Helper function to add close button
       const addCloseButton = () => {
         // Ensure popup element has non-static position for close button absolute positioning
         const computedStyle = window.getComputedStyle(popupElement);
         if (computedStyle.position === 'static') {
           popupElement.style.position = 'relative';
+        }
+        
+        // Ensure popup element allows overflow for absolute positioned close button
+        if (computedStyle.overflow === 'hidden') {
+          popupElement.style.overflow = 'visible';
         }
 
         // Create close icon button
@@ -636,27 +814,31 @@
         }
         
         closeButton.style.cssText = `
-          position: absolute;
+          position: absolute !important;
           ${positionStyles}
-          width: ${buttonSize};
-          height: ${buttonSize};
-          min-width: ${buttonSize};
-          min-height: ${buttonSize};
-          background: transparent;
-          border: none;
-          cursor: pointer;
-          z-index: 1000000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0;
-          transition: opacity 0.2s ease, transform 0.2s ease;
-          outline: none;
+          width: ${buttonSize} !important;
+          height: ${buttonSize} !important;
+          min-width: ${buttonSize} !important;
+          min-height: ${buttonSize} !important;
+          background: transparent !important;
+          border: none !important;
+          cursor: pointer !important;
+          z-index: 1000001 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          transition: opacity 0.2s ease, transform 0.2s ease !important;
+          outline: none !important;
+          pointer-events: auto !important;
+          visibility: visible !important;
+          opacity: 1 !important;
         `;
 
         // Create SVG close icon (X)
         closeButton.innerHTML = `
-          <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="${closeButtonColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="${closeButtonColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block !important; visibility: visible !important;">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -678,6 +860,25 @@
 
       // Add close icon if showCloseButton is enabled
       const showCloseButton = activity.popupSettings?.showCloseButton !== false; // Default to true if not specified
+      
+      // Define close function before adding button
+      const closePopup = (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
+        // Track close event
+        trackMetrics(activity._id, 'close');
+        if (container && container.parentNode) {
+          container.remove();
+        }
+        injectedPopups.delete(popupId);
+        // Mark popup as closed if using cookie or session trigger
+        markPopupAsClosed(activity);
+        return false;
+      };
+      
       if (showCloseButton) {
         // Check if close button already exists in the HTML
         const existingCloseButton = popupElement.querySelector('[data-przio-close], .przio-close');
@@ -686,23 +887,55 @@
           // Use requestAnimationFrame to ensure element is in DOM before checking computed styles
           requestAnimationFrame(() => {
             addCloseButton();
+            // Attach event listener after button is added
+            const closeBtn = popupElement.querySelector('[data-przio-close], .przio-close');
+            if (closeBtn) {
+              closeBtn.addEventListener('click', closePopup, true); // Use capture phase
+              // Also add as direct onclick as backup
+              closeBtn.onclick = closePopup;
+            }
           });
+        } else {
+          // Button already exists, attach listener immediately
+          existingCloseButton.addEventListener('click', closePopup, true);
+          existingCloseButton.onclick = closePopup;
         }
       }
+      
       injectedPopups.add(popupId);
 
       log('Injected popup:', popupId);
 
-      // Add close functionality if close button exists
+      // Add close functionality to any existing close buttons
       const closeButtons = container.querySelectorAll('[data-przio-close], .przio-close');
       closeButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          container.remove();
-          injectedPopups.delete(popupId);
-          // Mark popup as closed if using cookie or session trigger
-          markPopupAsClosed(activity);
-        });
+        btn.addEventListener('click', closePopup, true); // Use capture phase
+        btn.onclick = closePopup; // Backup
       });
+
+      // Add click tracking for elements with data-przio-track-click attribute
+      const trackableElements = popupElement.querySelectorAll('[data-przio-track-click="true"]');
+      trackableElements.forEach(element => {
+        element.addEventListener('click', (e) => {
+          const selector = element.getAttribute('data-przio-selector') || getElementSelector(element);
+          const elementText = element.textContent?.trim().substring(0, 100) || '';
+          
+          trackMetrics(activity._id, 'click', {
+            elementSelector: selector,
+            elementText: elementText,
+          });
+        }, true);
+      });
+
+      // Helper function to generate CSS selector for element
+      function getElementSelector(element) {
+        if (element.id) return `#${element.id}`;
+        if (element.className) {
+          const classes = element.className.split(' ').filter(c => c && !c.startsWith('przio-')).join('.');
+          if (classes) return `${element.tagName.toLowerCase()}.${classes}`;
+        }
+        return element.tagName.toLowerCase();
+      }
 
       // Close on outside click if configured
       container.addEventListener('click', (e) => {
@@ -756,7 +989,7 @@
         });
 
         // Initialize form handlers for any forms in the popup
-        initializeFormHandlers(container);
+        initializeFormHandlers(container, activity, container);
 
         // Execute any other scripts from document head (if any)
         allScripts.forEach((scriptEl) => {
@@ -790,12 +1023,13 @@
   /**
    * Initialize form validation and submission handlers
    */
-  function initializeFormHandlers(container) {
+  function initializeFormHandlers(container, activity, popupContainer) {
     const forms = container.querySelectorAll('form.przio-form[data-form-id]');
     
     forms.forEach((form) => {
       const formId = form.getAttribute('data-form-id');
       const fieldsJson = form.getAttribute('data-form-fields');
+      const stepsJson = form.getAttribute('data-form-steps');
       
       if (!formId || !fieldsJson) {
         log('Form missing formId or fields data:', formId);
@@ -803,14 +1037,25 @@
       }
       
       let formFields;
+      let formSteps = [];
       try {
         formFields = JSON.parse(fieldsJson);
+        if (stepsJson) {
+          formSteps = JSON.parse(stepsJson);
+        }
       } catch (e) {
-        error('Failed to parse form fields:', e);
+        error('Failed to parse form fields or steps:', e);
         return;
       }
       
-      log('Initializing form handler for:', formId);
+      const isMultiStep = form.classList.contains('przio-multistep-form') && formSteps.length > 0;
+      
+      log('Initializing form handler for:', formId, isMultiStep ? '(multi-step)' : '(single-step)');
+      
+      // Initialize step navigation for multi-step forms
+      if (isMultiStep) {
+        initializeStepNavigation(form, formFields, formSteps);
+      }
       
       // Get submit button
       const submitButton = form.querySelector('button.przio-form-submit-btn');
@@ -843,14 +1088,25 @@
               }
             }
           } else if (field.type === 'checkbox') {
-            const checkboxes = form.querySelectorAll('[name="' + field.name + '[]"]');
-            const checked = [];
-            for (let j = 0; j < checkboxes.length; j++) {
-              if (checkboxes[j].checked) {
-                checked.push(checkboxes[j].value);
+            // Check if it's a single checkbox (no options) or multiple checkboxes (with options)
+            const checkboxesWithArray = form.querySelectorAll('[name="' + field.name + '[]"]');
+            const singleCheckbox = form.querySelector('[name="' + field.name + '"]:not([name*="[]"])');
+            
+            if (checkboxesWithArray.length > 0) {
+              // Multiple checkboxes with options
+              const checked = [];
+              for (let j = 0; j < checkboxesWithArray.length; j++) {
+                if (checkboxesWithArray[j].checked) {
+                  checked.push(checkboxesWithArray[j].value);
+                }
               }
+              value = checked;
+            } else if (singleCheckbox) {
+              // Single checkbox
+              value = singleCheckbox.checked ? singleCheckbox.value : '';
+            } else {
+              value = [];
             }
-            value = checked;
           } else {
             value = fieldEl.value ? fieldEl.value.trim() : '';
           }
@@ -991,10 +1247,13 @@
           const apiUrl = getPrzioApiUrl();
           log('Submitting form to:', apiUrl, 'Form ID:', formId);
           
+          // Get visitor ID (przio-uuid)
+          const visitorId = getVisitorId();
+          
           const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ formId: formId, data: data })
+            body: JSON.stringify({ formId: formId, data: data, visitorId: visitorId })
           });
           
           const result = await response.json();
@@ -1003,23 +1262,42 @@
             submitButton.textContent = 'Submitted!';
             submitButton.style.background = 'linear-gradient(90deg,#10b981,#059669)';
             
-            setTimeout(() => {
-              submitButton.disabled = false;
-              submitButton.textContent = originalText;
-              submitButton.style.background = 'linear-gradient(90deg,#4f46e5,#0ea5e9)';
-              form.reset();
-              
-              // Clear all error messages and reset borders
-              const allErrors = form.querySelectorAll('.form-error');
-              for (let k = 0; k < allErrors.length; k++) {
-                allErrors[k].style.display = 'none';
-              }
-              const allInputs = form.querySelectorAll('input,textarea,select');
-              for (let k = 0; k < allInputs.length; k++) {
-                allInputs[k].style.borderColor = '#d1d5db';
-                allInputs[k].style.borderWidth = '1px';
-              }
-            }, 2000);
+            // Close popup on successful submit if enabled
+            const closeOnSuccessfulSubmit = activity?.popupSettings?.closeOnSuccessfulSubmit;
+            if (closeOnSuccessfulSubmit && popupContainer && popupContainer.parentNode) {
+              log('Closing popup after successful form submission');
+              // Use a delay to show success message before closing
+              setTimeout(() => {
+                popupContainer.remove();
+                const popupId = popupContainer.id;
+                if (popupId) {
+                  injectedPopups.delete(popupId);
+                  // Mark popup as closed if using cookie or session trigger
+                  if (activity) {
+                    markPopupAsClosed(activity);
+                  }
+                }
+              }, 1500); // Close after showing success message
+            } else {
+              // Reset form if not closing popup
+              setTimeout(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+                submitButton.style.background = 'linear-gradient(90deg,#4f46e5,#0ea5e9)';
+                form.reset();
+                
+                // Clear all error messages and reset borders
+                const allErrors = form.querySelectorAll('.form-error');
+                for (let k = 0; k < allErrors.length; k++) {
+                  allErrors[k].style.display = 'none';
+                }
+                const allInputs = form.querySelectorAll('input,textarea,select');
+                for (let k = 0; k < allInputs.length; k++) {
+                  allInputs[k].style.borderColor = '#d1d5db';
+                  allInputs[k].style.borderWidth = '1px';
+                }
+              }, 2000);
+            }
           } else {
             throw new Error(result.error || 'Submission failed');
           }
@@ -1042,6 +1320,119 @@
       
       log('Form handler attached for:', formId);
     });
+  }
+
+  /**
+   * Initialize step navigation for multi-step forms
+   */
+  function initializeStepNavigation(form, formFields, formSteps) {
+    const sortedSteps = [...formSteps].sort((a, b) => a.order - b.order);
+    let currentStepIndex = 0;
+
+    // Get all step elements
+    const stepElements = Array.from(form.querySelectorAll('.przio-form-step')).sort((a, b) => {
+      const orderA = parseInt(a.getAttribute('data-step-order') || '0');
+      const orderB = parseInt(b.getAttribute('data-step-order') || '0');
+      return orderA - orderB;
+    });
+
+    // Validate current step fields
+    function validateCurrentStep() {
+      const currentStep = sortedSteps[currentStepIndex];
+      if (!currentStep) return true;
+
+      const currentStepElement = stepElements[currentStepIndex];
+      if (!currentStepElement) return true;
+
+      const stepFields = formFields.filter(f => f.stepId === currentStep.id);
+      let hasErrors = false;
+
+      for (let i = 0; i < stepFields.length; i++) {
+        const field = stepFields[i];
+        const fieldEl = currentStepElement.querySelector('[name="' + field.name + '"]');
+        const errorEl = document.getElementById('error-field-' + field.id);
+
+        if (!fieldEl) continue;
+
+        let value = '';
+        if (fieldEl.type === 'checkbox') {
+          const checked = currentStepElement.querySelectorAll('[name="' + field.name + '"]:checked');
+          value = Array.from(checked).map(function(c) { return c.value; });
+        } else {
+          value = fieldEl.value;
+        }
+
+        // Validate required fields
+        if (field.required) {
+          if (!value || (Array.isArray(value) && value.length === 0) || (typeof value === 'string' && value.trim() === '')) {
+            hasErrors = true;
+            if (errorEl) {
+              errorEl.textContent = 'This field is required';
+              errorEl.style.display = 'block';
+            }
+            if (fieldEl) {
+              fieldEl.style.borderColor = '#ef4444';
+              fieldEl.style.borderWidth = '2px';
+            }
+          } else {
+            if (errorEl) errorEl.style.display = 'none';
+            if (fieldEl) {
+              fieldEl.style.borderColor = '#d1d5db';
+              fieldEl.style.borderWidth = '1px';
+            }
+          }
+        }
+      }
+
+      return !hasErrors;
+    }
+
+    // Show step by index
+    function showStep(index) {
+      if (index < 0 || index >= stepElements.length) return;
+
+      // Hide all steps
+      stepElements.forEach(function(step, idx) {
+        step.style.display = idx === index ? 'flex' : 'none';
+      });
+
+      currentStepIndex = index;
+      log('Showing step', index + 1, 'of', stepElements.length);
+    }
+
+    // Next button handler
+    form.querySelectorAll('.przio-step-next').forEach((nextBtn) => {
+      nextBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Validate current step before moving forward
+        if (!validateCurrentStep()) {
+          log('Current step validation failed');
+          return;
+        }
+
+        if (currentStepIndex < stepElements.length - 1) {
+          showStep(currentStepIndex + 1);
+        }
+      });
+    });
+
+    // Previous button handler
+    form.querySelectorAll('.przio-step-prev').forEach((prevBtn) => {
+      prevBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (currentStepIndex > 0) {
+          showStep(currentStepIndex - 1);
+        }
+      });
+    });
+
+    // Initialize: show first step
+    showStep(0);
+    log('Multi-step form initialized with', stepElements.length, 'steps');
   }
 
   /**
@@ -1148,10 +1539,44 @@
     }
   }
 
+  /**
+   * Show a specific popup by activity ID (for testing/debugging)
+   */
+  async function showPopup(activityId) {
+    if (!config.projectId) {
+      error('SDK not initialized. Call PrzioSDK.init() first.');
+      return;
+    }
+
+    try {
+      // Fetch the specific activity
+      const response = await fetch(`${config.apiUrl || API_BASE_URL}/popups?projectId=${config.projectId}`);
+      if (!response.ok) {
+        error('Failed to fetch popups');
+        return;
+      }
+      
+      const data = await response.json();
+      const activity = data.activities?.find(a => a._id === activityId);
+      
+      if (!activity) {
+        error('Popup activity not found:', activityId);
+        return;
+      }
+
+      // Inject the popup directly (bypass URL and trigger checks)
+      injectPopup(activity);
+      log('Manually showing popup:', activity.name);
+    } catch (err) {
+      error('Error showing popup:', err);
+    }
+  }
+
   // Expose API
   window.PrzioSDK = {
     init,
     processPopups,
+    showPopup,
     version: SDK_VERSION,
     config: () => config,
   };

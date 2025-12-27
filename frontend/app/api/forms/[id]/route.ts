@@ -128,11 +128,12 @@ export async function PUT(
       );
     }
 
-    const { name, formType, fields, status, formId: newFormId } = await req.json();
+    const { name, formType, fields, steps, status, formId: newFormId } = await req.json();
 
     if (name !== undefined) form.name = name.trim();
     if (formType !== undefined) form.formType = formType;
     if (fields !== undefined) form.fields = fields;
+    if (steps !== undefined) form.steps = steps;
     if (status !== undefined) form.status = status;
     
     // If formId is being updated, check for uniqueness

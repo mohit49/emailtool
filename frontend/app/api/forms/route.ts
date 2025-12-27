@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const { formId, name, formType, projectId, fields, status } = await req.json();
+    const { formId, name, formType, projectId, fields, steps, status } = await req.json();
 
     if (!formId || !name || !formType || !projectId) {
       return NextResponse.json(
@@ -123,6 +123,7 @@ export async function POST(req: NextRequest) {
       projectId: projectObjectId,
       userId,
       fields: fields || [],
+      steps: steps || [],
       status: status || 'draft',
     });
 

@@ -7,7 +7,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import AuthHeader from '../../../components/AuthHeader';
 import Alert from '../../../components/Alert';
-import { ChevronLeft, Save, Trash2, Plus, X, GripVertical } from 'lucide-react';
+import { ChevronLeft, Save, Trash2, Plus, X, GripVertical, ChevronRight, ChevronLeft as ChevronLeftIcon } from 'lucide-react';
 
 const API_URL = '/api';
 
@@ -24,6 +24,14 @@ interface FormField {
     max?: number;
     pattern?: string;
   };
+  stepId?: string;
+}
+
+interface FormStep {
+  id: string;
+  title: string;
+  description?: string;
+  order: number;
 }
 
 interface Form {
@@ -34,6 +42,7 @@ interface Form {
   projectId: string;
   userId: string;
   fields: FormField[];
+  steps?: FormStep[];
   status: 'draft' | 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
@@ -84,7 +93,17 @@ export default function FormBuilderPage() {
         const formResponse = await axios.get(`${API_URL}/forms/${formId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setForm(formResponse.data.form);
+        const fetchedForm = formResponse.data.form;
+        // Initialize steps for survey forms if not present
+        if (fetchedForm.formType === 'survey' && (!fetchedForm.steps || fetchedForm.steps.length === 0)) {
+          fetchedForm.steps = [{
+            id: `step-${Date.now()}`,
+            title: 'Step 1',
+            description: '',
+            order: 0,
+          }];
+        }
+        setForm(fetchedForm);
       } catch (error: any) {
         console.error('Fetch error:', error);
         if (error.response?.status === 403 || error.response?.status === 404) {
@@ -98,7 +117,7 @@ export default function FormBuilderPage() {
     fetchData();
   }, [user, token, formId, projectId, router]);
 
-  const addField = () => {
+  const addField = (stepId?: string) => {
     if (!form) return;
     
     const newField: FormField = {
@@ -108,11 +127,53 @@ export default function FormBuilderPage() {
       type: 'text',
       required: false,
       placeholder: '',
+      stepId: stepId || (form.formType === 'survey' && form.steps && form.steps.length > 0 ? form.steps[0].id : undefined),
     };
     
     setForm({
       ...form,
       fields: [...form.fields, newField],
+    });
+  };
+
+  const addStep = () => {
+    if (!form || form.formType !== 'survey') return;
+    
+    const newStep: FormStep = {
+      id: `step-${Date.now()}`,
+      title: `Step ${(form.steps?.length || 0) + 1}`,
+      description: '',
+      order: form.steps?.length || 0,
+    };
+    
+    setForm({
+      ...form,
+      steps: [...(form.steps || []), newStep],
+    });
+  };
+
+  const removeStep = (stepId: string) => {
+    if (!form) return;
+    
+    // Remove step and reassign its fields to first step
+    const firstStepId = form.steps && form.steps.length > 0 ? form.steps[0].id : undefined;
+    const updatedFields = form.fields.map(f => 
+      f.stepId === stepId ? { ...f, stepId: firstStepId } : f
+    );
+    
+    setForm({
+      ...form,
+      steps: form.steps?.filter(s => s.id !== stepId).map((s, idx) => ({ ...s, order: idx })) || [],
+      fields: updatedFields,
+    });
+  };
+
+  const updateStep = (stepId: string, updates: Partial<FormStep>) => {
+    if (!form) return;
+    
+    setForm({
+      ...form,
+      steps: form.steps?.map(s => s.id === stepId ? { ...s, ...updates } : s) || [],
     });
   };
 
@@ -177,6 +238,7 @@ export default function FormBuilderPage() {
           name: form.name,
           formType: form.formType,
           fields: form.fields,
+          steps: form.steps || [],
           status: form.status,
         },
         {
@@ -296,20 +358,241 @@ export default function FormBuilderPage() {
               </select>
             </div>
 
-            {/* Fields List */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Form Fields</h2>
-                <button
-                  onClick={addField}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Field
-                </button>
-              </div>
+            {/* Steps Management for Survey Forms */}
+            {form.formType === 'survey' && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Form Steps</h2>
+                  <button
+                    onClick={addStep}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Step
+                  </button>
+                </div>
 
-              {form.fields.length === 0 ? (
+                {form.steps && form.steps.length > 0 ? (
+                  <div className="space-y-4">
+                    {form.steps.map((step, stepIndex) => {
+                      const stepFields = form.fields.filter(f => f.stepId === step.id);
+                      return (
+                        <div key={step.id} className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <span className="px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-semibold">
+                                  Step {stepIndex + 1}
+                                </span>
+                                <input
+                                  type="text"
+                                  value={step.title}
+                                  onChange={(e) => updateStep(step.id, { title: e.target.value })}
+                                  className="flex-1 px-3 py-1 border border-purple-300 rounded-lg text-sm font-semibold focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                  placeholder="Step Title"
+                                />
+                              </div>
+                              <input
+                                type="text"
+                                value={step.description || ''}
+                                onChange={(e) => updateStep(step.id, { description: e.target.value })}
+                                className="w-full px-3 py-1 border border-purple-300 rounded-lg text-sm text-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                placeholder="Step description (optional)"
+                              />
+                            </div>
+                            {form.steps && form.steps.length > 1 && (
+                              <button
+                                onClick={() => removeStep(step.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors ml-2"
+                                title="Remove step"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="mt-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="text-sm font-medium text-gray-700">Fields in this step</h3>
+                              <button
+                                onClick={() => addField(step.id)}
+                                className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Add Field
+                              </button>
+                            </div>
+
+                            {stepFields.length === 0 ? (
+                              <div className="text-center py-6 border-2 border-dashed border-purple-300 rounded-lg bg-white">
+                                <p className="text-gray-500 text-sm mb-2">No fields in this step</p>
+                                <button
+                                  onClick={() => addField(step.id)}
+                                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                                >
+                                  Add Field
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                {stepFields.map((field) => (
+                                  <div key={field.id} className="border border-gray-200 rounded-lg p-3 bg-white">
+                                    <div className="flex items-start gap-3">
+                                      <div className="flex-1 space-y-3">
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Field Name *</label>
+                                            <input
+                                              type="text"
+                                              value={field.name}
+                                              onChange={(e) => updateField(field.id, { name: e.target.value })}
+                                              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
+                                              placeholder="field_name"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Label *</label>
+                                            <input
+                                              type="text"
+                                              value={field.label}
+                                              onChange={(e) => updateField(field.id, { label: e.target.value })}
+                                              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                              placeholder="Field Label"
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Type *</label>
+                                            <select
+                                              value={field.type}
+                                              onChange={(e) => {
+                                                const newType = e.target.value as FormField['type'];
+                                                const updates: Partial<FormField> = { type: newType };
+                                                if (!['select', 'radio', 'checkbox'].includes(newType)) {
+                                                  updates.options = [];
+                                                }
+                                                updateField(field.id, updates);
+                                              }}
+                                              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            >
+                                              <option value="text">Text</option>
+                                              <option value="email">Email</option>
+                                              <option value="number">Number</option>
+                                              <option value="textarea">Textarea</option>
+                                              <option value="select">Select</option>
+                                              <option value="checkbox">Checkbox</option>
+                                              <option value="radio">Radio</option>
+                                              <option value="date">Date</option>
+                                              <option value="tel">Phone</option>
+                                              <option value="url">URL</option>
+                                            </select>
+                                          </div>
+                                          <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Placeholder</label>
+                                            <input
+                                              type="text"
+                                              value={field.placeholder || ''}
+                                              onChange={(e) => updateField(field.id, { placeholder: e.target.value })}
+                                              className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                              placeholder="Placeholder"
+                                            />
+                                          </div>
+                                        </div>
+                                        {['select', 'radio', 'checkbox'].includes(field.type) && (
+                                          <div>
+                                            <label className="block text-xs font-medium text-gray-700 mb-1">Options</label>
+                                            <div className="space-y-1">
+                                              {field.options?.map((option, optIndex) => (
+                                                <div key={optIndex} className="flex items-center gap-2">
+                                                  <input
+                                                    type="text"
+                                                    value={option}
+                                                    onChange={(e) => {
+                                                      const newOptions = [...(field.options || [])];
+                                                      newOptions[optIndex] = e.target.value;
+                                                      updateField(field.id, { options: newOptions });
+                                                    }}
+                                                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                  />
+                                                  <button
+                                                    onClick={() => removeOption(field.id, optIndex)}
+                                                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                  >
+                                                    <X className="w-3 h-3" />
+                                                  </button>
+                                                </div>
+                                              ))}
+                                              <button
+                                                onClick={() => {
+                                                  const newOption = prompt('Enter option:');
+                                                  if (newOption) addOption(field.id, newOption);
+                                                }}
+                                                className="px-2 py-1 text-xs text-indigo-600 border border-indigo-300 rounded hover:bg-indigo-50"
+                                              >
+                                                + Add Option
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
+                                        <div className="flex items-center justify-between">
+                                          <label className="flex items-center gap-2">
+                                            <input
+                                              type="checkbox"
+                                              checked={field.required}
+                                              onChange={(e) => updateField(field.id, { required: e.target.checked })}
+                                              className="w-4 h-4 text-indigo-600 border-gray-300 rounded"
+                                            />
+                                            <span className="text-xs text-gray-700">Required</span>
+                                          </label>
+                                          <button
+                                            onClick={() => removeField(field.id)}
+                                            className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded flex items-center gap-1"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                            Remove
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                    <p className="text-gray-500 mb-4">No steps yet</p>
+                    <button
+                      onClick={addStep}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Add Your First Step
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Fields List for Non-Survey Forms */}
+            {form.formType !== 'survey' && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Form Fields</h2>
+                  <button
+                    onClick={() => addField()}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Field
+                  </button>
+                </div>
+
+                {form.fields.length === 0 ? (
                 <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No fields yet</p>
                   <button
@@ -468,7 +751,8 @@ export default function FormBuilderPage() {
                   ))}
                 </div>
               )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -18,6 +18,7 @@ interface FormSubmission {
   submittedAt: string;
   ipAddress?: string;
   userAgent?: string;
+  visitorId?: string;
 }
 
 interface Form {
@@ -108,13 +109,14 @@ export default function FormDataPage() {
     });
 
     // Create CSV header
-    const headers = ['Submitted At', 'IP Address', ...Array.from(allFields)];
+    const headers = ['Submitted At', 'Visitor ID', 'IP Address', ...Array.from(allFields)];
     const csvRows = [headers.join(',')];
 
     // Add data rows
     submissions.forEach(sub => {
       const row = [
         new Date(sub.submittedAt).toISOString(),
+        sub.visitorId || '',
         sub.ipAddress || '',
         ...Array.from(allFields).map(field => {
           const value = sub.data[field];
@@ -218,6 +220,9 @@ export default function FormDataPage() {
                         Submitted At
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Visitor ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         IP Address
                       </th>
                       {Array.from(allFields).map(field => {
@@ -235,6 +240,9 @@ export default function FormDataPage() {
                       <tr key={submission._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {new Date(submission.submittedAt).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                          {submission.visitorId || 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {submission.ipAddress || 'N/A'}

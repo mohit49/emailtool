@@ -7,7 +7,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import AuthHeader from '../../../components/AuthHeader';
 import Alert from '../../../components/Alert';
-import { ChevronLeft, Save, Trash2, ChevronDown, ChevronUp, ChevronRight, Table, Rows3, Square, LayoutGrid, Type, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Bold, Italic, Link2, MousePointerClick, Image as ImageIcon, MoreHorizontal, X, Settings, Smartphone, Tablet, Monitor, ArrowUp, ArrowDown, Layers, FileText } from 'lucide-react';
+import { ChevronLeft, Save, Trash2, ChevronDown, ChevronUp, ChevronRight, Table, Rows3, Square, LayoutGrid, Type, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Bold, Italic, Link2, MousePointerClick, Image as ImageIcon, MoreHorizontal, X, Settings, Smartphone, Tablet, Monitor, ArrowUp, ArrowDown, Layers, FileText, Copy, Check, BarChart3 } from 'lucide-react';
 import HTMLEditor, { HTMLEditorRef } from '../../../components/HTMLEditor';
 import CustomDropdown from '../../../components/popups/CustomDropdown';
 import PopupSidebar from '../../../components/popups/PopupSidebar';
@@ -185,6 +185,40 @@ const TooltipWrapper = ({ children, label }: { children: React.ReactNode; label:
   );
 };
 
+// Code Block Component for displaying copyable code
+const CodeBlockComponent = ({ code }: { code: string }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono">
+        <code>{code}</code>
+      </pre>
+      <button
+        onClick={handleCopy}
+        className="absolute top-2 right-2 p-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+        title="Copy code"
+      >
+        {copied ? (
+          <Check className="w-4 h-4" />
+        ) : (
+          <Copy className="w-4 h-4" />
+        )}
+      </button>
+    </div>
+  );
+};
+
 // Layer Item Component for rendering element tree
 const LayerItem = ({ 
   element, 
@@ -311,6 +345,14 @@ export default function PopupActivityPage() {
     cookieExpiry: 30, // days
     sessionEnabled: false,
   });
+  const [backdropSettings, setBackdropSettings] = useState({
+    backdropEnabled: false,
+    backdropColor: '#000000',
+    backdropOpacity: 0.5, // 0-1 range
+  });
+  const [submitTriggerSettings, setSubmitTriggerSettings] = useState({
+    closeOnSuccessfulSubmit: true,
+  });
   const [alert, setAlert] = useState({
     isOpen: false,
     message: '',
@@ -334,7 +376,7 @@ export default function PopupActivityPage() {
   const [showPopupSettings, setShowPopupSettings] = useState(false);
   const [showCssEditor, setShowCssEditor] = useState(false);
   const [showPositionSettings, setShowPositionSettings] = useState(false);
-  const [showAnimationSettings, setShowAnimationSettings] = useState<'position' | 'animation' | 'closeIcon' | 'trigger'>('position');
+  const [showAnimationSettings, setShowAnimationSettings] = useState<'position' | 'animation' | 'closeIcon' | 'trigger' | 'backdrop' | 'code'>('position');
   const [showImageModal, setShowImageModal] = useState(false);
   const [showLayersPanel, setShowLayersPanel] = useState(false);
   const [layersPanelPosition, setLayersPanelPosition] = useState({ x: 100, y: 100 });
@@ -346,7 +388,7 @@ export default function PopupActivityPage() {
   const [imageUrl, setImageUrl] = useState('');
   const [elementCounter, setElementCounter] = useState(0);
   const [showFormModal, setShowFormModal] = useState(false);
-  const [forms, setForms] = useState<Array<{ _id: string; formId: string; name: string; fields: any[] }>>([]);
+  const [forms, setForms] = useState<Array<{ _id: string; formId: string; name: string; fields: any[]; steps?: any[] }>>([]);
   const [loadingForms, setLoadingForms] = useState(false);
   const [popupCssSettings, setPopupCssSettings] = useState({
     padding: '40px 20px',
@@ -643,6 +685,24 @@ export default function PopupActivityPage() {
         };
         setTriggerSettings(savedTriggerSettings);
 
+        // Load backdrop settings
+        const savedBackdropSettings = {
+          backdropEnabled: (fetchedActivity.popupSettings as any)?.backdropEnabled || false,
+          backdropColor: (fetchedActivity.popupSettings as any)?.backdropColor || '#000000',
+          backdropOpacity: (fetchedActivity.popupSettings as any)?.backdropOpacity !== undefined 
+            ? (fetchedActivity.popupSettings as any).backdropOpacity 
+            : 0.5,
+        };
+        setBackdropSettings(savedBackdropSettings);
+
+        // Load submit trigger settings
+        const savedSubmitTriggerSettings = {
+          closeOnSuccessfulSubmit: (fetchedActivity.popupSettings as any)?.closeOnSuccessfulSubmit !== undefined 
+            ? (fetchedActivity.popupSettings as any).closeOnSuccessfulSubmit 
+            : true, // Default to true
+        };
+        setSubmitTriggerSettings(savedSubmitTriggerSettings);
+
         // Ensure custom CSS and JS tags exist in HTML (add if missing)
         const parser = new DOMParser();
         const doc = parser.parseFromString(wrapForParsing(popupHtml || ''), 'text/html');
@@ -748,61 +808,174 @@ export default function PopupActivityPage() {
   };
 
   // Generate form HTML from form data
-  const generateFormHTML = (form: { formId: string; name: string; fields: any[] }): string => {
+  const generateFormHTML = (form: { formId: string; name: string; fields: any[]; steps?: any[] }): string => {
     let formHTML = `<div class="przio-form-wrapper" style="padding:20px;background:#ffffff;border-radius:8px;">`;
     formHTML += `<h3 style="margin:0 0 20px 0;font-size:20px;font-weight:600;color:#111827;font-family:inherit;">${form.name}</h3>`;
-    // Store form fields as JSON in data attribute for SDK to use
+    
+    // Check if this is a multi-step form (survey with steps)
+    const isMultiStep = form.steps && form.steps.length > 0;
+    const stepsJson = isMultiStep ? JSON.stringify(form.steps) : '[]';
+    
+    // Store form fields and steps as JSON in data attributes for SDK to use
     const fieldsJson = JSON.stringify(form.fields);
-    formHTML += `<form class="przio-form" data-form-id="${form.formId}" data-form-fields='${fieldsJson.replace(/'/g, "&#39;")}' style="display:flex;flex-direction:column;gap:16px;" onsubmit="event.preventDefault(); event.stopPropagation(); return false;">`;
+    formHTML += `<form class="przio-form ${isMultiStep ? 'przio-multistep-form' : ''}" data-form-id="${form.formId}" data-form-fields='${fieldsJson.replace(/'/g, "&#39;")}' data-form-steps='${stepsJson.replace(/'/g, "&#39;")}' style="display:flex;flex-direction:column;gap:16px;" onsubmit="event.preventDefault(); event.stopPropagation(); return false;">`;
     
-    form.fields.forEach((field) => {
-      const fieldId = `field-${field.id}`;
-      const fieldName = field.name;
-      const fieldLabel = field.label;
-      const isRequired = field.required ? 'required' : '';
-      const placeholder = field.placeholder || '';
+    if (isMultiStep) {
+      // Multi-step form: group fields by step
+      const sortedSteps = [...(form.steps || [])].sort((a, b) => a.order - b.order);
       
-      formHTML += `<div class="form-field" style="display:flex;flex-direction:column;gap:6px;">`;
-      formHTML += `<label for="${fieldId}" style="font-size:14px;font-weight:500;color:#374151;font-family:inherit;">${fieldLabel}${field.required ? ' <span style="color:#ef4444;">*</span>' : ''}</label>`;
-      
-      if (field.type === 'textarea') {
-        formHTML += `<textarea id="${fieldId}" name="${fieldName}" ${isRequired} placeholder="${placeholder}" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;min-height:100px;">${placeholder}</textarea>`;
-      } else if (field.type === 'select') {
-        formHTML += `<select id="${fieldId}" name="${fieldName}" ${isRequired} style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;background:#ffffff;">`;
-        if (placeholder) {
-          formHTML += `<option value="">${placeholder}</option>`;
+      sortedSteps.forEach((step, stepIndex) => {
+        const stepFields = form.fields.filter(f => f.stepId === step.id);
+        const isFirstStep = stepIndex === 0;
+        const isLastStep = stepIndex === sortedSteps.length - 1;
+        
+        formHTML += `<div class="przio-form-step" data-step-id="${step.id}" data-step-order="${step.order}" style="display:${isFirstStep ? 'flex' : 'none'};flex-direction:column;gap:16px;">`;
+        
+        // Step header
+        if (step.title) {
+          formHTML += `<div class="przio-step-header" style="margin-bottom:12px;">`;
+          formHTML += `<h4 style="margin:0 0 4px 0;font-size:18px;font-weight:600;color:#111827;font-family:inherit;">${step.title}</h4>`;
+          if (step.description) {
+            formHTML += `<p style="margin:0;font-size:14px;color:#6b7280;font-family:inherit;">${step.description}</p>`;
+          }
+          formHTML += `</div>`;
         }
-        (field.options || []).forEach((option: string) => {
-          formHTML += `<option value="${option}">${option}</option>`;
+        
+        // Step fields
+        stepFields.forEach((field) => {
+          const fieldId = `field-${field.id}`;
+          const fieldName = field.name;
+          const fieldLabel = field.label;
+          const isRequired = field.required ? 'required' : '';
+          const placeholder = field.placeholder || '';
+          
+          formHTML += `<div class="form-field" style="display:flex;flex-direction:column;gap:6px;">`;
+          formHTML += `<label for="${fieldId}" style="font-size:14px;font-weight:500;color:#374151;font-family:inherit;">${fieldLabel}${field.required ? ' <span style="color:#ef4444;">*</span>' : ''}</label>`;
+          
+          if (field.type === 'textarea') {
+            formHTML += `<textarea id="${fieldId}" name="${fieldName}" ${isRequired} placeholder="${placeholder}" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;min-height:100px;">${placeholder}</textarea>`;
+          } else if (field.type === 'select') {
+            formHTML += `<select id="${fieldId}" name="${fieldName}" ${isRequired} style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;background:#ffffff;">`;
+            if (placeholder) {
+              formHTML += `<option value="">${placeholder}</option>`;
+            }
+            (field.options || []).forEach((option: string) => {
+              formHTML += `<option value="${option}">${option}</option>`;
+            });
+            formHTML += `</select>`;
+          } else if (field.type === 'radio') {
+            (field.options || []).forEach((option: string, index: number) => {
+              const radioId = `${fieldId}-${index}`;
+              formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
+              formHTML += `<input type="radio" id="${radioId}" name="${fieldName}" value="${option}" ${isRequired} style="width:16px;height:16px;cursor:pointer;">`;
+              formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${option}</span>`;
+              formHTML += `</label>`;
+            });
+          } else if (field.type === 'checkbox') {
+            const checkboxOptions = field.options || [];
+            if (checkboxOptions.length > 0) {
+              // Multiple checkboxes with options
+              checkboxOptions.forEach((option: string, index: number) => {
+                const checkboxId = `${fieldId}-${index}`;
+                formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
+                formHTML += `<input type="checkbox" id="${checkboxId}" name="${fieldName}[]" value="${option}" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;">`;
+                formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${option}</span>`;
+                formHTML += `</label>`;
+              });
+            } else {
+              // Single checkbox (no options)
+              formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
+              formHTML += `<input type="checkbox" id="${fieldId}" name="${fieldName}" value="yes" ${isRequired} style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;">`;
+              formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${fieldLabel}</span>`;
+              formHTML += `</label>`;
+            }
+          } else {
+            const inputType = field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'tel' ? 'tel' : field.type === 'url' ? 'url' : field.type === 'date' ? 'date' : 'text';
+            formHTML += `<input type="${inputType}" id="${fieldId}" name="${fieldName}" ${isRequired} placeholder="${placeholder}" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;">`;
+          }
+          
+          formHTML += `<div class="form-error" id="error-${fieldId}" style="display:none;color:#ef4444;font-size:12px;margin-top:4px;font-family:inherit;"></div>`;
+          formHTML += `</div>`;
         });
-        formHTML += `</select>`;
-      } else if (field.type === 'radio') {
-        (field.options || []).forEach((option: string, index: number) => {
-          const radioId = `${fieldId}-${index}`;
-          formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
-          formHTML += `<input type="radio" id="${radioId}" name="${fieldName}" value="${option}" ${isRequired} style="width:16px;height:16px;cursor:pointer;">`;
-          formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${option}</span>`;
-          formHTML += `</label>`;
-        });
-      } else if (field.type === 'checkbox') {
-        (field.options || []).forEach((option: string, index: number) => {
-          const checkboxId = `${fieldId}-${index}`;
-          formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
-          formHTML += `<input type="checkbox" id="${checkboxId}" name="${fieldName}[]" value="${option}" style="width:16px;height:16px;cursor:pointer;">`;
-          formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${option}</span>`;
-          formHTML += `</label>`;
-        });
-      } else {
-        const inputType = field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'tel' ? 'tel' : field.type === 'url' ? 'url' : field.type === 'date' ? 'date' : 'text';
-        formHTML += `<input type="${inputType}" id="${fieldId}" name="${fieldName}" ${isRequired} placeholder="${placeholder}" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;">`;
-      }
+        
+        // Step navigation buttons
+        formHTML += `<div class="przio-step-navigation" style="display:flex;justify-content:space-between;gap:12px;margin-top:20px;padding-top:16px;border-top:1px solid #e5e7eb;">`;
+        if (!isFirstStep) {
+          formHTML += `<button type="button" class="przio-step-prev" data-step-id="${step.id}" style="padding:10px 20px;background:#6b7280;color:#ffffff;border:none;border-radius:6px;font-weight:500;font-size:14px;font-family:inherit;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Previous</button>`;
+        } else {
+          formHTML += `<div></div>`;
+        }
+        if (!isLastStep) {
+          formHTML += `<button type="button" class="przio-step-next" data-step-id="${step.id}" style="padding:10px 20px;background:linear-gradient(90deg,#4f46e5,#0ea5e9);color:#ffffff;border:none;border-radius:6px;font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;transition:opacity 0.2s;margin-left:auto;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Next</button>`;
+        } else {
+          formHTML += `<button type="button" class="przio-form-submit-btn" data-form-id="${form.formId}" style="padding:10px 20px;background:linear-gradient(90deg,#4f46e5,#0ea5e9);color:#ffffff;border:none;border-radius:6px;font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;transition:opacity 0.2s;margin-left:auto;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Submit</button>`;
+        }
+        formHTML += `</div>`;
+        
+        formHTML += `</div>`;
+      });
+    } else {
+      // Single-step form: show all fields
+      form.fields.forEach((field) => {
+        const fieldId = `field-${field.id}`;
+        const fieldName = field.name;
+        const fieldLabel = field.label;
+        const isRequired = field.required ? 'required' : '';
+        const placeholder = field.placeholder || '';
+        
+        formHTML += `<div class="form-field" style="display:flex;flex-direction:column;gap:6px;">`;
+        formHTML += `<label for="${fieldId}" style="font-size:14px;font-weight:500;color:#374151;font-family:inherit;">${fieldLabel}${field.required ? ' <span style="color:#ef4444;">*</span>' : ''}</label>`;
+        
+        if (field.type === 'textarea') {
+          formHTML += `<textarea id="${fieldId}" name="${fieldName}" ${isRequired} placeholder="${placeholder}" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;min-height:100px;">${placeholder}</textarea>`;
+        } else if (field.type === 'select') {
+          formHTML += `<select id="${fieldId}" name="${fieldName}" ${isRequired} style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;background:#ffffff;">`;
+          if (placeholder) {
+            formHTML += `<option value="">${placeholder}</option>`;
+          }
+          (field.options || []).forEach((option: string) => {
+            formHTML += `<option value="${option}">${option}</option>`;
+          });
+          formHTML += `</select>`;
+        } else if (field.type === 'radio') {
+          (field.options || []).forEach((option: string, index: number) => {
+            const radioId = `${fieldId}-${index}`;
+            formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
+            formHTML += `<input type="radio" id="${radioId}" name="${fieldName}" value="${option}" ${isRequired} style="width:16px;height:16px;cursor:pointer;">`;
+            formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${option}</span>`;
+            formHTML += `</label>`;
+          });
+        } else if (field.type === 'checkbox') {
+          const checkboxOptions = field.options || [];
+          if (checkboxOptions.length > 0) {
+            // Multiple checkboxes with options
+            checkboxOptions.forEach((option: string, index: number) => {
+              const checkboxId = `${fieldId}-${index}`;
+              formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
+              formHTML += `<input type="checkbox" id="${checkboxId}" name="${fieldName}[]" value="${option}" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;">`;
+              formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${option}</span>`;
+              formHTML += `</label>`;
+            });
+          } else {
+            // Single checkbox (no options)
+            formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
+            formHTML += `<input type="checkbox" id="${fieldId}" name="${fieldName}" value="yes" ${isRequired} style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5;">`;
+            formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${fieldLabel}</span>`;
+            formHTML += `</label>`;
+          }
+        } else {
+          const inputType = field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'tel' ? 'tel' : field.type === 'url' ? 'url' : field.type === 'date' ? 'date' : 'text';
+          formHTML += `<input type="${inputType}" id="${fieldId}" name="${fieldName}" ${isRequired} placeholder="${placeholder}" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;">`;
+        }
+        
+        formHTML += `<div class="form-error" id="error-${fieldId}" style="display:none;color:#ef4444;font-size:12px;margin-top:4px;font-family:inherit;"></div>`;
+        formHTML += `</div>`;
+      });
       
-      formHTML += `<div class="form-error" id="error-${fieldId}" style="display:none;color:#ef4444;font-size:12px;margin-top:4px;font-family:inherit;"></div>`;
-      formHTML += `</div>`;
-    });
+      // Submit button for single-step form
+      formHTML += `<button type="button" class="przio-form-submit-btn" data-form-id="${form.formId}" style="padding:12px 24px;background:linear-gradient(90deg,#4f46e5,#0ea5e9);color:#ffffff;border:none;border-radius:6px;font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Submit</button>`;
+    }
     
-    // Simple button - SDK will handle validation and submission
-    formHTML += `<button type="button" class="przio-form-submit-btn" data-form-id="${form.formId}" style="padding:12px 24px;background:linear-gradient(90deg,#4f46e5,#0ea5e9);color:#ffffff;border:none;border-radius:6px;font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Submit</button>`;
     formHTML += `</form>`;
     formHTML += `</div>`;
     
@@ -1100,6 +1273,82 @@ export default function PopupActivityPage() {
     setShowCssEditor(true);
   }, [selectedElement]);
 
+  // Enable click tracking on selected element
+  const enableClickTracking = useCallback(() => {
+    if (!selectedElement.id) return;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(wrapForParsing(formData.html || ''), 'text/html');
+    const element = doc.querySelector(selectedElement.id);
+
+    if (!element) return;
+
+    // Check if already tracking
+    const isTracking = element.getAttribute('data-przio-track-click') === 'true';
+    
+    let trackingSelector = '';
+    
+    if (isTracking) {
+      // Disable tracking
+      element.removeAttribute('data-przio-track-click');
+      element.removeAttribute('data-przio-selector');
+    } else {
+      // Enable tracking
+      element.setAttribute('data-przio-track-click', 'true');
+      
+      // Generate selector - use the element's actual attributes
+      if (element.id) {
+        trackingSelector = `#${element.id}`;
+      } else if (element.className) {
+        const classes = element.className.split(' ').filter(c => c && !c.startsWith('przio-')).join('.');
+        if (classes) {
+          trackingSelector = `${element.tagName.toLowerCase()}.${classes}`;
+        } else {
+          trackingSelector = element.tagName.toLowerCase();
+        }
+      } else {
+        // Try to create a unique selector based on position or content
+        const parent = element.parentElement;
+        if (parent) {
+          const siblings = Array.from(parent.children);
+          const index = siblings.indexOf(element);
+          trackingSelector = `${element.tagName.toLowerCase()}:nth-child(${index + 1})`;
+        } else {
+          trackingSelector = element.tagName.toLowerCase();
+        }
+      }
+      element.setAttribute('data-przio-selector', trackingSelector);
+    }
+
+    const updatedHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+    setFormData(prev => ({ ...prev, html: updatedHtml }));
+
+    // Refresh iframe to show updated attributes
+    const iframe = previewIframeRef.current;
+    if (iframe && iframe.contentWindow) {
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      if (iframeDoc) {
+        const iframeElement = iframeDoc.querySelector(selectedElement.id);
+        if (iframeElement) {
+          // Update the element in iframe
+          if (isTracking) {
+            iframeElement.removeAttribute('data-przio-track-click');
+            iframeElement.removeAttribute('data-przio-selector');
+          } else {
+            iframeElement.setAttribute('data-przio-track-click', 'true');
+            iframeElement.setAttribute('data-przio-selector', trackingSelector);
+          }
+        }
+      }
+    }
+  }, [selectedElement, formData.html]);
+
+  // Check if click tracking is enabled for selected element
+  const isClickTrackingEnabled = useCallback(() => {
+    if (!selectedElement.id || !selectedElement.element) return false;
+    return selectedElement.element.getAttribute('data-przio-track-click') === 'true';
+  }, [selectedElement]);
+
   // Apply CSS changes to element
   const applyCssChanges = useCallback(() => {
     if (!selectedElement.id) return;
@@ -1351,6 +1600,27 @@ export default function PopupActivityPage() {
             outline-offset: 2px; 
             background-color: rgba(79, 70, 229, 0.1) !important; 
           }
+          /* Visual indicator for click tracking enabled elements */
+          [data-przio-track-click="true"] {
+            position: relative;
+          }
+          [data-przio-track-click="true"]::after {
+            content: '📊';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #9333ea;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            z-index: 100001;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          }
           /* Disable pointer events on the background site-iframe during drag */
           body.przio-dragging .site-iframe {
             pointer-events: none !important;
@@ -1595,7 +1865,14 @@ export default function PopupActivityPage() {
         const { selector, rect, tagName } = e.data;
         console.log('📥 Element selected in iframe:', selector, rect, tagName);
         
-        setSelectedElement({ id: selector, element: null, tagName }); 
+        // Get the actual element from iframe
+        const iframe = previewIframeRef.current;
+        let element: HTMLElement | null = null;
+        if (iframe && iframe.contentDocument) {
+          element = iframe.contentDocument.querySelector(selector) as HTMLElement;
+        }
+        
+        setSelectedElement({ id: selector, element, tagName }); 
         
         if (rect && previewIframeRef.current) {
           const iframeRect = previewIframeRef.current.getBoundingClientRect();
@@ -2200,6 +2477,10 @@ export default function PopupActivityPage() {
             cookieEnabled: triggerSettings.cookieEnabled,
             cookieExpiry: triggerSettings.cookieEnabled ? triggerSettings.cookieExpiry : undefined,
             sessionEnabled: triggerSettings.sessionEnabled,
+            backdropEnabled: backdropSettings.backdropEnabled,
+            backdropColor: backdropSettings.backdropEnabled ? backdropSettings.backdropColor : undefined,
+            backdropOpacity: backdropSettings.backdropEnabled ? backdropSettings.backdropOpacity : undefined,
+            closeOnSuccessfulSubmit: submitTriggerSettings.closeOnSuccessfulSubmit,
           },
         },
         {
@@ -2287,6 +2568,13 @@ export default function PopupActivityPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href={`/popups/${activityId}/metrics?projectId=${projectId}`}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Metrics
+            </Link>
             <button
               onClick={handleDelete}
               className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-2"
@@ -2619,6 +2907,8 @@ export default function PopupActivityPage() {
           moveElementSibling={moveElementSibling}
           openCssEditor={openCssEditor}
           deleteSelectedElement={deleteSelectedElement}
+          enableClickTracking={enableClickTracking}
+          isClickTrackingEnabled={isClickTrackingEnabled()}
           onClose={() => {
             setShowElementToolbar(false);
             setSelectedElement({ id: '', element: null });
@@ -2640,6 +2930,10 @@ export default function PopupActivityPage() {
         onClose={() => setShowPopupSettings(false)}
         popupCssSettings={popupCssSettings}
         setPopupCssSettings={setPopupCssSettings}
+        backdropSettings={backdropSettings}
+        setBackdropSettings={setBackdropSettings}
+        triggerSettings={submitTriggerSettings}
+        setTriggerSettings={setSubmitTriggerSettings}
       />
 
       {/* Position Settings Popup */}
@@ -2698,6 +2992,26 @@ export default function PopupActivityPage() {
                   }`}
                 >
                   Trigger
+                </button>
+                <button
+                  onClick={() => setShowAnimationSettings('backdrop')}
+                  className={`px-4 py-2 font-medium transition-colors ${
+                    showAnimationSettings === 'backdrop'
+                      ? 'text-indigo-600 border-b-2 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Backdrop
+                </button>
+                <button
+                  onClick={() => setShowAnimationSettings('code')}
+                  className={`px-4 py-2 font-medium transition-colors ${
+                    showAnimationSettings === 'code'
+                      ? 'text-indigo-600 border-b-2 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Code
                 </button>
               </div>
 
@@ -3176,6 +3490,145 @@ export default function PopupActivityPage() {
                       </p>
                     </div>
                   )}
+                </div>
+              ) : showAnimationSettings === 'backdrop' ? (
+                /* Backdrop Tab */
+                <div className="space-y-6">
+                  {/* Enable Backdrop Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Enable Backdrop Overlay
+                      </label>
+                      <p className="text-xs text-gray-500">
+                        Show a backdrop overlay behind the popup
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setBackdropSettings(prev => ({ ...prev, backdropEnabled: !prev.backdropEnabled }))}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                        backdropSettings.backdropEnabled ? 'bg-indigo-600' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          backdropSettings.backdropEnabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {backdropSettings.backdropEnabled && (
+                    <>
+                      {/* Backdrop Color */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Background Color
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={backdropSettings.backdropColor}
+                            onChange={(e) => setBackdropSettings(prev => ({ ...prev, backdropColor: e.target.value }))}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            placeholder="#000000"
+                          />
+                          <input
+                            type="color"
+                            value={backdropSettings.backdropColor || '#000000'}
+                            onChange={(e) => setBackdropSettings(prev => ({ ...prev, backdropColor: e.target.value }))}
+                            className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">e.g., #000000 or rgba(0, 0, 0, 0.5)</p>
+                      </div>
+
+                      {/* Backdrop Opacity */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Opacity: {Math.round(backdropSettings.backdropOpacity * 100)}%
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={backdropSettings.backdropOpacity}
+                          onChange={(e) => setBackdropSettings(prev => ({ ...prev, backdropOpacity: parseFloat(e.target.value) }))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>0%</span>
+                          <span>50%</span>
+                          <span>100%</span>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Adjust the transparency of the backdrop overlay</p>
+                      </div>
+
+                      {/* Preview Info */}
+                      <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                        <p className="text-sm text-indigo-800">
+                          <strong>Note:</strong> The backdrop will appear behind the popup when it&apos;s displayed. Clicking on the backdrop will close the popup.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : showAnimationSettings === 'code' ? (
+                /* Code Tab */
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Initialization Code
+                    </label>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Copy and paste this code into your browser console to initialize and show this popup for testing.
+                    </p>
+                    
+                    {/* Get current origin for SDK URL */}
+                    {typeof window !== 'undefined' && (
+                      <CodeBlockComponent
+                        code={`// Load SDK first
+const script = document.createElement('script');
+script.src = '${window.location.origin}/sdk.js';
+script.onload = function() {
+  // Initialize SDK
+  window.PrzioSDK.init({
+    projectId: '${projectId}',
+    debug: true
+  });
+  
+  // Show this specific popup
+  setTimeout(() => {
+    window.PrzioSDK.showPopup('${activityId}');
+  }, 500);
+};
+document.head.appendChild(script);`}
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Simple Console Command
+                    </label>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Or use this simpler command (requires SDK to be already loaded):
+                    </p>
+                    
+                    {typeof window !== 'undefined' && (
+                      <CodeBlockComponent
+                        code={`window.PrzioSDK.showPopup('${activityId}');`}
+                      />
+                    )}
+                  </div>
+
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Note:</strong> Make sure you&apos;re on a page where the SDK is loaded. The popup will appear regardless of URL conditions when using <code className="bg-blue-100 px-1 rounded">showPopup()</code>.
+                    </p>
+                  </div>
                 </div>
               ) : null}
 
