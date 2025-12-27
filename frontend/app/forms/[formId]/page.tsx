@@ -596,7 +596,7 @@ export default function FormBuilderPage() {
                 <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
                   <p className="text-gray-500 mb-4">No fields yet</p>
                   <button
-                    onClick={addField}
+                    onClick={() => addField()}
                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                   >
                     Add Your First Field
