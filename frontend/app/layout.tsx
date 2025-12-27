@@ -6,9 +6,9 @@ import { AuthProvider } from './providers/AuthProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Email Testing Tool & Popup Builder - Create, Test & Send Emails & Popups | PRZIO',
-  description: 'Free email testing tool and popup builder platform. Test, preview, and send HTML email templates. Create engaging popups and nudges with drag-and-drop editor. Perfect for email campaigns, popup marketing, exit intent popups, and website engagement tools.',
-  keywords: 'email testing tool, popup builder, nudge builder, email template editor, popup creator, exit intent popup, website popup builder, email testing, HTML email editor, popup marketing, email campaign tool, drag and drop popup builder, conversion popup, lead generation popup, email preview tool, popup designer, email builder, website engagement tool, popup trigger, scroll popup, timeout popup, cookie-based popup, session popup',
+  title: 'Email Testing Tool & Popup Builder with Forms - Create, Test & Send Emails, Popups & Forms | PRZIO',
+  description: 'Free email testing tool, popup builder, and form builder platform. Test, preview, and send HTML email templates. Create engaging popups with embedded forms, lead generation forms, contact forms, and surveys. Perfect for email campaigns, popup marketing, exit intent popups, form submissions, and website engagement tools.',
+  keywords: 'email testing tool, popup builder, form builder, nudge builder, email template editor, popup creator, exit intent popup, website popup builder, email testing, HTML email editor, popup marketing, email campaign tool, drag and drop popup builder, conversion popup, lead generation popup, email preview tool, popup designer, email builder, website engagement tool, popup trigger, scroll popup, timeout popup, cookie-based popup, session popup, contact form builder, survey form builder, subscription form, form validation, embedded forms, popup forms, lead capture form, form submission, form data collection',
 }
 
 export default function RootLayout({

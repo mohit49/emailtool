@@ -269,13 +269,22 @@ export default function PopupsPage() {
                 <p className="text-sm text-gray-500 mt-1">Manage your popup activities</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Create Popup Activity
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push(`/forms?projectId=${projectId}`)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Forms
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Popup Activity
+              </button>
+            </div>
           </div>
 
           {/* Activities List */}

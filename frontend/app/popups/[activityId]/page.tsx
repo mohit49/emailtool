@@ -7,7 +7,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import AuthHeader from '../../../components/AuthHeader';
 import Alert from '../../../components/Alert';
-import { ChevronLeft, Save, Trash2, ChevronDown, ChevronUp, ChevronRight, Table, Rows3, Square, LayoutGrid, Type, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Bold, Italic, Link2, MousePointerClick, Image as ImageIcon, MoreHorizontal, X, Settings, Smartphone, Tablet, Monitor, ArrowUp, ArrowDown, Layers } from 'lucide-react';
+import { ChevronLeft, Save, Trash2, ChevronDown, ChevronUp, ChevronRight, Table, Rows3, Square, LayoutGrid, Type, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Bold, Italic, Link2, MousePointerClick, Image as ImageIcon, MoreHorizontal, X, Settings, Smartphone, Tablet, Monitor, ArrowUp, ArrowDown, Layers, FileText } from 'lucide-react';
 import HTMLEditor, { HTMLEditorRef } from '../../../components/HTMLEditor';
 import CustomDropdown from '../../../components/popups/CustomDropdown';
 import PopupSidebar from '../../../components/popups/PopupSidebar';
@@ -345,6 +345,9 @@ export default function PopupActivityPage() {
   const [selectedImageElement, setSelectedImageElement] = useState<string>('');
   const [imageUrl, setImageUrl] = useState('');
   const [elementCounter, setElementCounter] = useState(0);
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [forms, setForms] = useState<Array<{ _id: string; formId: string; name: string; fields: any[] }>>([]);
+  const [loadingForms, setLoadingForms] = useState(false);
   const [popupCssSettings, setPopupCssSettings] = useState({
     padding: '40px 20px',
     border: '2px dashed #cbd5e1',
@@ -389,6 +392,7 @@ export default function PopupActivityPage() {
     snippet: string;
     icon: React.ReactNode;
     primary?: boolean;
+    isForm?: boolean;
   }> = [
     { key: 'div', label: 'Container', snippet: '<div style="padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;min-height:100px;"></div>', icon: <LayoutGrid size={16} />, primary: true },
     { key: 'p', label: 'Paragraph', snippet: '<p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#111827;">Your paragraph text here</p>', icon: <Type size={16} />, primary: true },
@@ -399,6 +403,7 @@ export default function PopupActivityPage() {
     { key: 'link', label: 'Link', snippet: '<p style="margin:0 0 12px 0;"><a href="#" style="color:#4f46e5;text-decoration:underline;font-weight:500;">Click here</a></p>', icon: <Link2 size={16} /> },
     { key: 'h3', label: 'H3', snippet: '<h3 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#111827;">Heading 3</h3>', icon: <Heading3 size={16} /> },
     { key: 'h4', label: 'H4', snippet: '<h4 style="margin:0 0 10px 0;font-size:18px;font-weight:600;color:#111827;">Heading 4</h4>', icon: <Heading4 size={16} /> },
+    { key: 'form', label: 'Form', snippet: '', icon: <FileText size={16} />, isForm: true },
   ];
 
   useEffect(() => {
@@ -704,6 +709,7 @@ export default function PopupActivityPage() {
     fetchData();
   }, [user, token, activityId, projectId, router]);
 
+
   const addUrlCondition = () => {
     setFormData({
       ...formData,
@@ -739,6 +745,109 @@ export default function PopupActivityPage() {
     const updated = [...formData.logicOperators];
     updated[index] = operator;
     setFormData({ ...formData, logicOperators: updated });
+  };
+
+  // Generate form HTML from form data
+  const generateFormHTML = (form: { formId: string; name: string; fields: any[] }): string => {
+    let formHTML = `<div class="przio-form-wrapper" style="padding:20px;background:#ffffff;border-radius:8px;">`;
+    formHTML += `<h3 style="margin:0 0 20px 0;font-size:20px;font-weight:600;color:#111827;font-family:inherit;">${form.name}</h3>`;
+    // Store form fields as JSON in data attribute for SDK to use
+    const fieldsJson = JSON.stringify(form.fields);
+    formHTML += `<form class="przio-form" data-form-id="${form.formId}" data-form-fields='${fieldsJson.replace(/'/g, "&#39;")}' style="display:flex;flex-direction:column;gap:16px;" onsubmit="event.preventDefault(); event.stopPropagation(); return false;">`;
+    
+    form.fields.forEach((field) => {
+      const fieldId = `field-${field.id}`;
+      const fieldName = field.name;
+      const fieldLabel = field.label;
+      const isRequired = field.required ? 'required' : '';
+      const placeholder = field.placeholder || '';
+      
+      formHTML += `<div class="form-field" style="display:flex;flex-direction:column;gap:6px;">`;
+      formHTML += `<label for="${fieldId}" style="font-size:14px;font-weight:500;color:#374151;font-family:inherit;">${fieldLabel}${field.required ? ' <span style="color:#ef4444;">*</span>' : ''}</label>`;
+      
+      if (field.type === 'textarea') {
+        formHTML += `<textarea id="${fieldId}" name="${fieldName}" ${isRequired} placeholder="${placeholder}" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;min-height:100px;">${placeholder}</textarea>`;
+      } else if (field.type === 'select') {
+        formHTML += `<select id="${fieldId}" name="${fieldName}" ${isRequired} style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;background:#ffffff;">`;
+        if (placeholder) {
+          formHTML += `<option value="">${placeholder}</option>`;
+        }
+        (field.options || []).forEach((option: string) => {
+          formHTML += `<option value="${option}">${option}</option>`;
+        });
+        formHTML += `</select>`;
+      } else if (field.type === 'radio') {
+        (field.options || []).forEach((option: string, index: number) => {
+          const radioId = `${fieldId}-${index}`;
+          formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
+          formHTML += `<input type="radio" id="${radioId}" name="${fieldName}" value="${option}" ${isRequired} style="width:16px;height:16px;cursor:pointer;">`;
+          formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${option}</span>`;
+          formHTML += `</label>`;
+        });
+      } else if (field.type === 'checkbox') {
+        (field.options || []).forEach((option: string, index: number) => {
+          const checkboxId = `${fieldId}-${index}`;
+          formHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-family:inherit;">`;
+          formHTML += `<input type="checkbox" id="${checkboxId}" name="${fieldName}[]" value="${option}" style="width:16px;height:16px;cursor:pointer;">`;
+          formHTML += `<span style="font-size:14px;color:#374151;font-family:inherit;">${option}</span>`;
+          formHTML += `</label>`;
+        });
+      } else {
+        const inputType = field.type === 'email' ? 'email' : field.type === 'number' ? 'number' : field.type === 'tel' ? 'tel' : field.type === 'url' ? 'url' : field.type === 'date' ? 'date' : 'text';
+        formHTML += `<input type="${inputType}" id="${fieldId}" name="${fieldName}" ${isRequired} placeholder="${placeholder}" style="padding:10px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;font-family:inherit;">`;
+      }
+      
+      formHTML += `<div class="form-error" id="error-${fieldId}" style="display:none;color:#ef4444;font-size:12px;margin-top:4px;font-family:inherit;"></div>`;
+      formHTML += `</div>`;
+    });
+    
+    // Simple button - SDK will handle validation and submission
+    formHTML += `<button type="button" class="przio-form-submit-btn" data-form-id="${form.formId}" style="padding:12px 24px;background:linear-gradient(90deg,#4f46e5,#0ea5e9);color:#ffffff;border:none;border-radius:6px;font-weight:600;font-size:14px;font-family:inherit;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Submit</button>`;
+    formHTML += `</form>`;
+    formHTML += `</div>`;
+    
+    // No script tag needed - SDK will handle form validation and submission
+    return formHTML;
+  };
+
+  // Handle opening form modal
+  const handleOpenFormModal = async () => {
+    setShowFormModal(true);
+    
+    // Fetch forms immediately when modal opens
+    if (!user || !token || !projectId) {
+      return;
+    }
+    
+    setLoadingForms(true);
+    try {
+      const response = await axios.get(`${API_URL}/forms?projectId=${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setForms(response.data.forms || []);
+    } catch (error: any) {
+      console.error('Error fetching forms:', error);
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to load forms',
+        type: 'error',
+      });
+      setForms([]);
+    } finally {
+      setLoadingForms(false);
+    }
+  };
+
+  // Handle form selection
+  const handleFormSelect = (form: { formId: string; name: string; fields: any[] }) => {
+    const formHTML = generateFormHTML(form);
+    injectSnippet(formHTML);
+    setShowFormModal(false);
+    setAlert({
+      isOpen: true,
+      message: `Form "${form.name}" added successfully`,
+      type: 'success',
+    });
   };
 
   // Inject snippet into popup HTML (only inside przio wrapper)
@@ -2352,23 +2461,39 @@ export default function PopupActivityPage() {
                     {/* Visual Builder Sidebar - Right side, compact, icon-only */}
                     <div className="w-12 bg-gray-50 border-l border-gray-200 flex-shrink-0 flex flex-col">
                       <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
-                        {DRAG_ITEMS.map((item) => (
-                          <TooltipWrapper key={item.key} label={item.label}>
-                            <div
-                              draggable
-                              onDragStart={(e) => {
-                                setDraggingSnippet(item.snippet);
-                                draggingSnippetRef.current = item.snippet;
-                                e.dataTransfer.setData('text/plain', item.snippet);
-                              }}
-                              className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 cursor-grab active:cursor-grabbing transition-all shadow-sm"
-                            >
-                              <div className="text-gray-500 group-hover:text-indigo-600 transition-colors">
-                                {item.icon}
+                        {DRAG_ITEMS.map((item) => {
+                          if ((item as any).isForm) {
+                            return (
+                              <TooltipWrapper key={item.key} label={item.label}>
+                                <div
+                                  onClick={handleOpenFormModal}
+                                  className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 cursor-pointer transition-all shadow-sm"
+                                >
+                                  <div className="text-gray-500 group-hover:text-purple-600 transition-colors">
+                                    {item.icon}
+                                  </div>
+                                </div>
+                              </TooltipWrapper>
+                            );
+                          }
+                          return (
+                            <TooltipWrapper key={item.key} label={item.label}>
+                              <div
+                                draggable
+                                onDragStart={(e) => {
+                                  setDraggingSnippet(item.snippet);
+                                  draggingSnippetRef.current = item.snippet;
+                                  e.dataTransfer.setData('text/plain', item.snippet);
+                                }}
+                                className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 cursor-grab active:cursor-grabbing transition-all shadow-sm"
+                              >
+                                <div className="text-gray-500 group-hover:text-indigo-600 transition-colors">
+                                  {item.icon}
+                                </div>
                               </div>
-                            </div>
-                          </TooltipWrapper>
-                        ))}
+                            </TooltipWrapper>
+                          );
+                        })}
                       </div>
                       {/* Settings Icon */}
                       <div className="p-1.5 border-t border-gray-200">
@@ -2423,23 +2548,39 @@ export default function PopupActivityPage() {
                   {/* Visual Builder Sidebar (only in preview mode) - Right side, compact, icon-only */}
                   <div className="w-12 bg-gray-50 border-l border-gray-200 flex-shrink-0 flex flex-col">
                     <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
-                      {DRAG_ITEMS.map((item) => (
-                        <TooltipWrapper key={item.key} label={item.label}>
-                          <div
-                            draggable
-                            onDragStart={(e) => {
-                              setDraggingSnippet(item.snippet);
-                              draggingSnippetRef.current = item.snippet;
-                              e.dataTransfer.setData('text/plain', item.snippet);
-                            }}
-                            className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 cursor-grab active:cursor-grabbing transition-all shadow-sm"
-                          >
-                            <div className="text-gray-500 group-hover:text-indigo-600 transition-colors">
-                              {item.icon}
+                      {DRAG_ITEMS.map((item) => {
+                        if ((item as any).isForm) {
+                          return (
+                            <TooltipWrapper key={item.key} label={item.label}>
+                              <div
+                                onClick={handleOpenFormModal}
+                                className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 cursor-pointer transition-all shadow-sm"
+                              >
+                                <div className="text-gray-500 group-hover:text-purple-600 transition-colors">
+                                  {item.icon}
+                                </div>
+                              </div>
+                            </TooltipWrapper>
+                          );
+                        }
+                        return (
+                          <TooltipWrapper key={item.key} label={item.label}>
+                            <div
+                              draggable
+                              onDragStart={(e) => {
+                                setDraggingSnippet(item.snippet);
+                                draggingSnippetRef.current = item.snippet;
+                                e.dataTransfer.setData('text/plain', item.snippet);
+                              }}
+                              className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 cursor-grab active:cursor-grabbing transition-all shadow-sm"
+                            >
+                              <div className="text-gray-500 group-hover:text-indigo-600 transition-colors">
+                                {item.icon}
+                              </div>
                             </div>
-                          </div>
-                        </TooltipWrapper>
-                      ))}
+                          </TooltipWrapper>
+                        );
+                      })}
                     </div>
                     {/* Settings Icon */}
                     <div className="p-1.5 border-t border-gray-200">
@@ -3218,6 +3359,68 @@ export default function PopupActivityPage() {
         type={alert.type}
         onClose={() => setAlert({ ...alert, isOpen: false })}
       />
+
+      {/* Form Selection Modal */}
+      {showFormModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">Select Form</h2>
+              <button
+                onClick={() => setShowFormModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {loadingForms ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Loading forms...</p>
+                </div>
+              ) : forms.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500 mb-4">No forms available</p>
+                  <p className="text-sm text-gray-400 mb-4">Create a form first to add it to your popup</p>
+                  <Link
+                    href={`/forms?projectId=${projectId}`}
+                    className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Create Form
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {forms.map((form) => (
+                    <div
+                      key={form._id}
+                      onClick={() => handleFormSelect(form)}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-indigo-500 hover:bg-indigo-50 cursor-pointer transition-all"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1">{form.name}</h3>
+                          <p className="text-sm text-gray-500 mb-2">
+                            Form ID: <code className="bg-gray-100 px-1 rounded">{form.formId}</code>
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {form.fields.length} field{form.fields.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        <div className="text-indigo-600">
+                          <ChevronRight className="w-5 h-5" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

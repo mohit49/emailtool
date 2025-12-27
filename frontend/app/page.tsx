@@ -4,9 +4,9 @@ import HomeRedirect from '../components/HomeRedirect';
 import Footer from '../components/Footer';
 
 export const metadata = {
-  title: 'Email Testing Tool & Popup Builder - Create, Test & Send Emails & Popups | PRZIO',
-  description: 'Free email testing tool and popup builder platform. Test, preview, and send HTML email templates. Create engaging popups and nudges with drag-and-drop editor. Perfect for email campaigns, popup marketing, exit intent popups, and website engagement tools.',
-  keywords: 'email testing tool, popup builder, nudge builder, email template editor, popup creator, exit intent popup, website popup builder, email testing, HTML email editor, popup marketing, email campaign tool, drag and drop popup builder, conversion popup, lead generation popup, email preview tool, popup designer, email builder, website engagement tool, popup trigger, scroll popup, timeout popup, cookie-based popup, session popup',
+  title: 'Email Testing Tool & Popup Builder with Forms - Create, Test & Send Emails, Popups & Forms | PRZIO',
+  description: 'Free email testing tool, popup builder, and form builder platform. Test, preview, and send HTML email templates. Create engaging popups with embedded forms, lead generation forms, contact forms, and surveys. Perfect for email campaigns, popup marketing, exit intent popups, form submissions, and website engagement tools.',
+  keywords: 'email testing tool, popup builder, form builder, nudge builder, email template editor, popup creator, exit intent popup, website popup builder, email testing, HTML email editor, popup marketing, email campaign tool, drag and drop popup builder, conversion popup, lead generation popup, email preview tool, popup designer, email builder, website engagement tool, popup trigger, scroll popup, timeout popup, cookie-based popup, session popup, contact form builder, survey form builder, subscription form, form validation, embedded forms, popup forms, lead capture form, form submission, form data collection',
 };
 
 export default function Home() {
@@ -25,8 +25,8 @@ export default function Home() {
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Create, test, and send professional email campaigns. Build engaging popups and nudges with our drag-and-drop editor. 
-            Perfect for email marketing, lead generation, exit intent popups, and website engagement.
+            Create, test, and send professional email campaigns. Build engaging popups with embedded forms, lead generation forms, and surveys. 
+            Perfect for email marketing, lead capture, exit intent popups, contact forms, and website engagement.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -41,6 +41,12 @@ export default function Home() {
               className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-semibold text-lg border-2 border-indigo-600 hover:bg-indigo-50 transition-all shadow-md"
             >
               Popup Tutorial
+            </Link>
+            <Link
+              href="/form-tutorial"
+              className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-semibold text-lg border-2 border-indigo-600 hover:bg-indigo-50 transition-all shadow-md"
+            >
+              Form Tutorial
             </Link>
             <Link
               href="/how-it-works"
@@ -208,6 +214,45 @@ export default function Home() {
               your popups will work across all pages with URL-based targeting.
             </p>
           </div>
+
+          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="w-14 h-14 bg-indigo-100 rounded-lg flex items-center justify-center mb-6">
+              <svg className="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-3">Form Builder & Integration</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Create custom forms with our drag-and-drop form builder. Build subscription forms, 
+              contact forms, surveys, and quizzes. Embed forms directly into popups with automatic validation.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center mb-6">
+              <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-3">Automatic Form Validation</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Built-in form validation ensures data quality. Validate required fields, email formats, 
+              numbers, URLs, and more. Real-time error messages guide users to correct submissions.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
+            <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
+              <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-3">Form Data Collection</h3>
+            <p className="text-gray-600 leading-relaxed">
+              Collect and manage all form submissions in one place. View submission data, export results, 
+              and track form performance. Perfect for lead generation and data collection.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -360,6 +405,12 @@ export default function Home() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
                 Smart trigger options
+              </li>
+              <li className="flex items-center">
+                <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Embedded forms in popups
               </li>
             </ul>
           </div>

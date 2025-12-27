@@ -262,16 +262,30 @@
       }
     });
 
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+    // Only observe if document.body exists, otherwise use document.documentElement
+    const targetNode = document.body || document.documentElement;
+    if (targetNode) {
+      observer.observe(targetNode, {
+        childList: true,
+        subtree: true
+      });
 
-    // Timeout after specified time
-    setTimeout(() => {
-      observer.disconnect();
-      log('Element not found within timeout:', selector);
-    }, timeout);
+      // Timeout after specified time
+      setTimeout(() => {
+        observer.disconnect();
+        log('Element not found within timeout:', selector);
+      }, timeout);
+    } else {
+      // If neither body nor documentElement exists, just use timeout
+      setTimeout(() => {
+        const element = document.querySelector(selector);
+        if (element) {
+          callback(element);
+        } else {
+          log('Element not found within timeout:', selector);
+        }
+      }, timeout);
+    }
   }
 
   /**
@@ -509,10 +523,12 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(activity.html || '', 'text/html');
 
-      // Extract style, custom CSS, custom JS, and popup element
+      // Extract style, custom CSS, custom JS, form scripts, and popup element
       const styleEl = doc.querySelector('style:not([data-custom-css])');
       const customStyleEl = doc.querySelector('style[data-custom-css]');
       const customScriptEl = doc.querySelector('script[data-custom-js]');
+      // Get all scripts (including form submission scripts)
+      const allScripts = doc.querySelectorAll('script');
       const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
 
       if (!popupEl) {
@@ -539,6 +555,17 @@
 
       // Inject popup element
       const popupClone = popupEl.cloneNode(true);
+      
+      // Extract scripts from popup element before appending (scripts won't execute when cloned)
+      const scriptsInPopup = popupClone.querySelectorAll('script');
+      const scriptsToExecute = [];
+      scriptsInPopup.forEach(scriptEl => {
+        if (scriptEl.textContent.trim()) {
+          scriptsToExecute.push(scriptEl.textContent);
+          // Remove script from clone (we'll execute it separately)
+          scriptEl.remove();
+        }
+      });
       
       // Ensure popup has proper z-index and positioning
       const popupElement = popupClone;
@@ -689,24 +716,332 @@
         }
       });
 
-      // Inject custom JavaScript
-      if (customScriptEl) {
-        const customScriptClone = customScriptEl.cloneNode(true);
-        // Execute the script
-        const script = document.createElement('script');
-        script.textContent = customScriptClone.textContent || '';
-        document.head.appendChild(script);
-        // Remove after execution to avoid duplicates
+      // Inject and execute all scripts (custom JS and form scripts)
+      // Execute scripts after popup is in DOM so form selectors work
+      // Use requestAnimationFrame to ensure DOM is ready, then add a small delay
+      requestAnimationFrame(() => {
         setTimeout(() => {
-          if (script.parentNode) {
-            script.parentNode.removeChild(script);
+        // Execute custom JavaScript
+        if (customScriptEl) {
+          const customScriptClone = customScriptEl.cloneNode(true);
+          const script = document.createElement('script');
+          script.textContent = customScriptClone.textContent || '';
+          document.head.appendChild(script);
+          // Remove after execution to avoid duplicates
+          setTimeout(() => {
+            if (script.parentNode) {
+              script.parentNode.removeChild(script);
+            }
+          }, 0);
+        }
+
+        // Execute scripts extracted from popup element (form submission scripts, etc.)
+        log('Executing', scriptsToExecute.length, 'scripts from popup');
+        scriptsToExecute.forEach((scriptContent, index) => {
+          log('Executing script', index + 1, 'of', scriptsToExecute.length);
+          const script = document.createElement('script');
+          script.textContent = scriptContent;
+          // Add error handler
+          script.onerror = function(err) {
+            error('Script execution error:', err);
+          };
+          document.head.appendChild(script);
+          
+          // Remove after execution
+          setTimeout(() => {
+            if (script.parentNode) {
+              script.parentNode.removeChild(script);
+            }
+          }, 100); // Increased delay to ensure script executes
+        });
+
+        // Initialize form handlers for any forms in the popup
+        initializeFormHandlers(container);
+
+        // Execute any other scripts from document head (if any)
+        allScripts.forEach((scriptEl) => {
+          // Skip custom-js scripts (already handled above), scripts in popup (handled above), and empty scripts
+          if (scriptEl.hasAttribute('data-custom-js') || 
+              popupEl.contains(scriptEl) || 
+              !scriptEl.textContent.trim()) {
+            return;
           }
-        }, 0);
-      }
+
+          // Create and execute script
+          const script = document.createElement('script');
+          script.textContent = scriptEl.textContent || '';
+          document.head.appendChild(script);
+          
+          // Remove after execution
+          setTimeout(() => {
+            if (script.parentNode) {
+              script.parentNode.removeChild(script);
+            }
+          }, 0);
+        });
+        }, 200); // Delay to ensure popup is fully rendered
+      });
 
     } catch (err) {
       error('Failed to inject popup:', err);
     }
+  }
+
+  /**
+   * Initialize form validation and submission handlers
+   */
+  function initializeFormHandlers(container) {
+    const forms = container.querySelectorAll('form.przio-form[data-form-id]');
+    
+    forms.forEach((form) => {
+      const formId = form.getAttribute('data-form-id');
+      const fieldsJson = form.getAttribute('data-form-fields');
+      
+      if (!formId || !fieldsJson) {
+        log('Form missing formId or fields data:', formId);
+        return;
+      }
+      
+      let formFields;
+      try {
+        formFields = JSON.parse(fieldsJson);
+      } catch (e) {
+        error('Failed to parse form fields:', e);
+        return;
+      }
+      
+      log('Initializing form handler for:', formId);
+      
+      // Get submit button
+      const submitButton = form.querySelector('button.przio-form-submit-btn');
+      if (!submitButton) {
+        log('Submit button not found for form:', formId);
+        return;
+      }
+      
+      // Validation function
+      function validateForm() {
+        const errors = [];
+        let hasErrors = false;
+        
+        for (let i = 0; i < formFields.length; i++) {
+          const field = formFields[i];
+          const fieldEl = form.querySelector('[name="' + field.name + '"]');
+          const errorEl = document.getElementById('error-field-' + field.id);
+          
+          if (!fieldEl) continue;
+          
+          let value = '';
+          
+          // Get value based on field type
+          if (field.type === 'radio') {
+            const radios = form.querySelectorAll('[name="' + field.name + '"]');
+            for (let j = 0; j < radios.length; j++) {
+              if (radios[j].checked) {
+                value = radios[j].value;
+                break;
+              }
+            }
+          } else if (field.type === 'checkbox') {
+            const checkboxes = form.querySelectorAll('[name="' + field.name + '[]"]');
+            const checked = [];
+            for (let j = 0; j < checkboxes.length; j++) {
+              if (checkboxes[j].checked) {
+                checked.push(checkboxes[j].value);
+              }
+            }
+            value = checked;
+          } else {
+            value = fieldEl.value ? fieldEl.value.trim() : '';
+          }
+          
+          // Clear previous errors
+          if (errorEl) {
+            errorEl.style.display = 'none';
+          }
+          if (fieldEl) {
+            fieldEl.style.borderColor = '#d1d5db';
+            fieldEl.style.borderWidth = '1px';
+          }
+          
+          // Check if value is empty
+          const isEmpty = !value || 
+                          (Array.isArray(value) && value.length === 0) || 
+                          (typeof value === 'string' && value.trim() === '');
+          
+          // Validate required fields
+          if (field.required && isEmpty) {
+            hasErrors = true;
+            const msg = field.label + ' is required';
+            errors.push({ field: field.id, message: msg });
+            if (errorEl) {
+              errorEl.textContent = msg;
+              errorEl.style.display = 'block';
+            }
+            if (fieldEl) {
+              fieldEl.style.borderColor = '#ef4444';
+              fieldEl.style.borderWidth = '2px';
+            }
+          } else if (value && !isEmpty) {
+            // Validate field types
+            if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+              hasErrors = true;
+              const msg = 'Please enter a valid email address';
+              errors.push({ field: field.id, message: msg });
+              if (errorEl) {
+                errorEl.textContent = msg;
+                errorEl.style.display = 'block';
+              }
+              if (fieldEl) {
+                fieldEl.style.borderColor = '#ef4444';
+                fieldEl.style.borderWidth = '2px';
+              }
+            } else if (field.type === 'number' && isNaN(value)) {
+              hasErrors = true;
+              const msg = 'Please enter a valid number';
+              errors.push({ field: field.id, message: msg });
+              if (errorEl) {
+                errorEl.textContent = msg;
+                errorEl.style.display = 'block';
+              }
+              if (fieldEl) {
+                fieldEl.style.borderColor = '#ef4444';
+                fieldEl.style.borderWidth = '2px';
+              }
+            } else if (field.type === 'url' && !/^https?:\/\/.+/.test(value)) {
+              hasErrors = true;
+              const msg = 'Please enter a valid URL (starting with http:// or https://)';
+              errors.push({ field: field.id, message: msg });
+              if (errorEl) {
+                errorEl.textContent = msg;
+                errorEl.style.display = 'block';
+              }
+              if (fieldEl) {
+                fieldEl.style.borderColor = '#ef4444';
+                fieldEl.style.borderWidth = '2px';
+              }
+            }
+          }
+        }
+        
+        // Scroll to first error
+        if (hasErrors && errors.length > 0) {
+          const firstError = document.getElementById('error-field-' + errors[0].field);
+          if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+        
+        return !hasErrors;
+      }
+      
+      // Get API URL
+      function getPrzioApiUrl() {
+        const sdkScript = document.querySelector('script[src*="sdk.js"], script[src*="przio"]');
+        if (sdkScript && sdkScript.src) {
+          try {
+            const a = document.createElement('a');
+            let srcUrl = sdkScript.src;
+            if (srcUrl.indexOf('://') === -1) {
+              srcUrl = window.location.protocol + '//' + window.location.host + srcUrl;
+            }
+            a.href = srcUrl;
+            const origin = a.protocol + '//' + a.host;
+            return origin + '/api/forms/submit';
+          } catch (e) {
+            error('Error parsing SDK URL:', e);
+          }
+        }
+        return window.location.origin + '/api/forms/submit';
+      }
+      
+      // Handle form submission
+      async function handleSubmit(e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        
+        // Validate form
+        if (!validateForm()) {
+          log('Form validation failed for:', formId);
+          return;
+        }
+        
+        const originalText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.textContent = 'Submitting...';
+        
+        // Collect form data
+        const formData = new FormData(form);
+        const data = {};
+        for (let [key, value] of formData.entries()) {
+          if (data[key]) {
+            if (Array.isArray(data[key])) {
+              data[key].push(value);
+            } else {
+              data[key] = [data[key], value];
+            }
+          } else {
+            data[key] = value;
+          }
+        }
+        
+        try {
+          const apiUrl = getPrzioApiUrl();
+          log('Submitting form to:', apiUrl, 'Form ID:', formId);
+          
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ formId: formId, data: data })
+          });
+          
+          const result = await response.json();
+          
+          if (response.ok) {
+            submitButton.textContent = 'Submitted!';
+            submitButton.style.background = 'linear-gradient(90deg,#10b981,#059669)';
+            
+            setTimeout(() => {
+              submitButton.disabled = false;
+              submitButton.textContent = originalText;
+              submitButton.style.background = 'linear-gradient(90deg,#4f46e5,#0ea5e9)';
+              form.reset();
+              
+              // Clear all error messages and reset borders
+              const allErrors = form.querySelectorAll('.form-error');
+              for (let k = 0; k < allErrors.length; k++) {
+                allErrors[k].style.display = 'none';
+              }
+              const allInputs = form.querySelectorAll('input,textarea,select');
+              for (let k = 0; k < allInputs.length; k++) {
+                allInputs[k].style.borderColor = '#d1d5db';
+                allInputs[k].style.borderWidth = '1px';
+              }
+            }, 2000);
+          } else {
+            throw new Error(result.error || 'Submission failed');
+          }
+        } catch (err) {
+          error('Form submission error:', err);
+          submitButton.textContent = 'Error - Try Again';
+          submitButton.style.background = 'linear-gradient(90deg,#ef4444,#dc2626)';
+          
+          setTimeout(() => {
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+            submitButton.style.background = 'linear-gradient(90deg,#4f46e5,#0ea5e9)';
+          }, 3000);
+        }
+      }
+      
+      // Attach event handlers
+      form.addEventListener('submit', handleSubmit);
+      submitButton.addEventListener('click', handleSubmit);
+      
+      log('Form handler attached for:', formId);
+    });
   }
 
   /**
@@ -778,8 +1113,21 @@
     };
 
     // Use MutationObserver for SPA navigation detection
-    const observer = new MutationObserver(checkUrlChange);
-    observer.observe(document.body, { childList: true, subtree: true });
+    // Only observe if document.body exists
+    if (document.body) {
+      const observer = new MutationObserver(checkUrlChange);
+      observer.observe(document.body, { childList: true, subtree: true });
+    } else {
+      // If body doesn't exist yet, wait for it
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          if (document.body) {
+            const observer = new MutationObserver(checkUrlChange);
+            observer.observe(document.body, { childList: true, subtree: true });
+          }
+        });
+      }
+    }
 
     // Also check periodically (fallback)
     setInterval(checkUrlChange, 1000);
