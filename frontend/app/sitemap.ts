@@ -14,36 +14,67 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Ensure URL doesn't have trailing slash
   const cleanBaseUrl = baseUrl.replace(/\/$/, '')
   
+  const now = new Date()
+  
   return [
+    // Home page - highest priority
     {
       url: cleanBaseUrl,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: 'weekly',
-      priority: 1,
+      priority: 1.0,
     },
+    // Main product/info pages
     {
       url: `${cleanBaseUrl}/about`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: 'monthly',
-      priority: 0.8,
+      priority: 0.9,
     },
     {
       url: `${cleanBaseUrl}/how-it-works`,
-      lastModified: new Date(),
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    // Tutorial pages
+    {
+      url: `${cleanBaseUrl}/form-tutorial`,
+      lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.8,
     },
     {
-      url: `${cleanBaseUrl}/login`,
-      lastModified: new Date(),
+      url: `${cleanBaseUrl}/popup-tutorial`,
+      lastModified: now,
       changeFrequency: 'monthly',
-      priority: 0.5,
+      priority: 0.8,
     },
+    // Integration page
+    {
+      url: `${cleanBaseUrl}/third-party-integration`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    // Authentication pages
     {
       url: `${cleanBaseUrl}/signup`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.7,
+    },
+    {
+      url: `${cleanBaseUrl}/login`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${cleanBaseUrl}/forgot-password`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.5,
     },
   ]
 }
