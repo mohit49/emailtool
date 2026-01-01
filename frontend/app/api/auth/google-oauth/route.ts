@@ -44,15 +44,15 @@ export async function GET(req: NextRequest) {
       // Check if value is an object
       if (typeof googleOAuthSettings.value === 'object' && !Array.isArray(googleOAuthSettings.value)) {
         clientId = googleOAuthSettings.value.clientId?.trim() || '';
-        // Handle enabled - could be boolean true, string "true", or truthy
-        const enabledValue = googleOAuthSettings.value.enabled;
-        enabled = enabledValue === true || enabledValue === 'true' || (enabledValue !== false && enabledValue !== 'false' && enabledValue !== null && enabledValue !== undefined);
+        // Explicitly check if enabled is true (boolean)
+        // Only return true if explicitly set to boolean true
+        enabled = googleOAuthSettings.value.enabled === true;
       } else if (typeof googleOAuthSettings.value === 'string') {
         // If value is stored as JSON string, try to parse it
         try {
           const parsed = JSON.parse(googleOAuthSettings.value);
           clientId = parsed.clientId?.trim() || '';
-          enabled = parsed.enabled === true || parsed.enabled === 'true';
+          enabled = parsed.enabled === true;
         } catch (e) {
           console.log('Failed to parse value as JSON string:', e);
         }

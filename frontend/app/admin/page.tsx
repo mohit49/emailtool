@@ -104,7 +104,7 @@ export default function AdminDashboard() {
         setGoogleOAuthSettings({
           clientId: googleOAuthResponse.data.googleOAuth.clientId || '',
           clientSecret: googleOAuthResponse.data.googleOAuth.clientSecret || '',
-          enabled: googleOAuthResponse.data.googleOAuth.enabled !== false,
+          enabled: googleOAuthResponse.data.googleOAuth.enabled === true,
         });
       }
     } catch (error) {

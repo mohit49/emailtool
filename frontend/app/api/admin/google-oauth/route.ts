@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       googleOAuth: {
         clientId: googleOAuthSettings.value.clientId || '',
         clientSecret: googleOAuthSettings.value.clientSecret ? '***configured***' : '',
-        enabled: googleOAuthSettings.value.enabled !== false,
+        enabled: googleOAuthSettings.value.enabled === true,
         updatedAt: googleOAuthSettings.updatedAt,
       },
     });
@@ -75,8 +75,8 @@ export async function POST(req: NextRequest) {
     const existingSettings = await Settings.findOne({ key: 'googleOAuth' });
     const existingSecret = existingSettings?.value?.clientSecret;
 
-    // Explicitly handle enabled - default to true if not provided, but respect false
-    const isEnabled = enabled === undefined ? true : enabled === true;
+    // Explicitly handle enabled - default to false if not provided, but respect true/false
+    const isEnabled = enabled === true;
 
     const settingsValue: any = {
       clientId: clientId.trim(),
