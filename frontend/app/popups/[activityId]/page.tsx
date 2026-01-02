@@ -2329,6 +2329,14 @@ export default function PopupActivityPage() {
     };
   }, [isDraggingLayersPanel]);
 
+  // Add editor mode class to body for CSS scoping
+  useEffect(() => {
+    document.body.classList.add('przio-editor-mode');
+    return () => {
+      document.body.classList.remove('przio-editor-mode');
+    };
+  }, []);
+
   // Apply position styling to HTML
   const applyPositionToHTML = useCallback((position: 'left-top' | 'right-top' | 'left-bottom' | 'right-bottom' | 'center-top' | 'center' | 'center-bottom') => {
     setFormData((prev) => {
@@ -2565,14 +2573,6 @@ export default function PopupActivityPage() {
       </div>
     );
   }
-
-  // Add editor mode class to body for CSS scoping
-  useEffect(() => {
-    document.body.classList.add('przio-editor-mode');
-    return () => {
-      document.body.classList.remove('przio-editor-mode');
-    };
-  }, []);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 przio-editor-container">
