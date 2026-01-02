@@ -502,6 +502,7 @@ export default function PopupActivityPage() {
     fontFamily: '',
     borderRadius: '',
     boxShadow: '',
+    objectFit: '',
     // Flexbox properties
     display: '',
     flexDirection: '',
@@ -1605,6 +1606,7 @@ export default function PopupActivityPage() {
         fontFamily: getCssValue('font-family', 'fontFamily'),
         borderRadius: getCssValue('border-radius', 'borderRadius'),
         boxShadow: getCssValue('box-shadow', 'boxShadow'),
+        objectFit: getCssValue('object-fit', 'objectFit'),
         // Flexbox properties
         display: getCssValue('display'),
         flexDirection: getCssValue('flex-direction', 'flexDirection'),
@@ -1648,6 +1650,7 @@ export default function PopupActivityPage() {
         fontFamily: '',
         borderRadius: '',
         boxShadow: '',
+        objectFit: '',
         // Flexbox properties
         display: '',
         flexDirection: '',
@@ -1831,6 +1834,7 @@ export default function PopupActivityPage() {
     if (editingElementCss.fontFamily && editingElementCss.fontFamily.trim()) cssProperties += `font-family: ${editingElementCss.fontFamily.trim()}; `;
     if (editingElementCss.borderRadius && editingElementCss.borderRadius.trim()) cssProperties += `border-radius: ${editingElementCss.borderRadius.trim()}; `;
     if (editingElementCss.boxShadow && editingElementCss.boxShadow.trim()) cssProperties += `box-shadow: ${editingElementCss.boxShadow.trim()}; `;
+    if (editingElementCss.objectFit && editingElementCss.objectFit.trim()) cssProperties += `object-fit: ${editingElementCss.objectFit.trim()}; `;
     // Add Flexbox properties
     if (editingElementCss.display && editingElementCss.display.trim()) cssProperties += `display: ${editingElementCss.display.trim()}; `;
     if (editingElementCss.flexDirection && editingElementCss.flexDirection.trim()) cssProperties += `flex-direction: ${editingElementCss.flexDirection.trim()}; `;

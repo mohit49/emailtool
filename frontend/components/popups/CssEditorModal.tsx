@@ -25,6 +25,7 @@ interface EditingElementCss {
   fontFamily: string;
   borderRadius: string;
   boxShadow: string;
+  objectFit: string;
   // Flexbox properties
   display: string;
   flexDirection: string;
@@ -79,6 +80,9 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
 
   // Check if element is a text element (P, H1-H6)
   const isTextElement = elementTagName && ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(elementTagName.toUpperCase());
+  
+  // Check if element is an image element
+  const isImageElement = elementTagName && elementTagName.toUpperCase() === 'IMG';
 
   if (!isOpen) {
     return null;
@@ -1105,6 +1109,33 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   placeholder="linear-gradient(90deg, #4f46e5, #0ea5e9)"
                 />
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* Image Properties - Only for image elements */}
+          {isImageElement && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Image Properties</h3>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Object Fit</label>
+                <select
+                  value={editingElementCss.objectFit || ''}
+                  onChange={(e) => handleChange('objectFit', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Default (fill)</option>
+                  <option value="fill">Fill</option>
+                  <option value="contain">Contain</option>
+                  <option value="cover">Cover</option>
+                  <option value="none">None</option>
+                  <option value="scale-down">Scale Down</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Controls how the image should be resized to fit its container
+                </p>
               </div>
             </div>
           </div>
