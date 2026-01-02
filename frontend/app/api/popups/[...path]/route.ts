@@ -22,11 +22,10 @@ export async function GET(
       return new NextResponse('Not found', { status: 404 });
     }
 
-    // Construct file path: public/popups/{projectId}/{activityId}/{filename}
+    // Construct file path: public/{projectId}/{date-time-folder}/{filename}
     const filePath = path.join(
       process.cwd(),
       'public',
-      'popups',
       ...pathSegments
     );
 
@@ -36,7 +35,7 @@ export async function GET(
 
     // Security: Prevent directory traversal
     const resolvedPath = path.resolve(filePath);
-    const publicPath = path.resolve(process.cwd(), 'public', 'popups');
+    const publicPath = path.resolve(process.cwd(), 'public');
     if (!resolvedPath.startsWith(publicPath)) {
       return new NextResponse('Forbidden', { status: 403 });
     }

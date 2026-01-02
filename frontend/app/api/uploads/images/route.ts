@@ -22,14 +22,13 @@ function getBaseUrl(req: NextRequest): string {
   return baseUrl;
 }
 
-// In production, saves to /static/assets/templet/
-// In development, saves to /public/templates/<shareToken>/
+// Saves to public/{projectId}/{date-time-folder}/{filename}
+// shareToken is used as projectId for email templates
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const shareToken = (formData.get('shareToken') as string | null) || 'shared';
-    const isProduction = process.env.NODE_ENV === 'production';
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -39,30 +38,33 @@ export async function POST(req: NextRequest) {
     const ext = path.extname(file.name) || '.png';
     const filename = `${Date.now()}-${randomUUID()}${ext}`;
     
-    let uploadDir: string;
-    let relativePath: string;
-
-    if (isProduction) {
-      // In production, save to static/assets/templet/
-      uploadDir = path.join(process.cwd(), '..', 'static', 'assets', 'templet');
-      await fs.mkdir(uploadDir, { recursive: true });
-      const filePath = path.join(uploadDir, filename);
-      await fs.writeFile(filePath, buffer);
-      relativePath = `/static/assets/templet/${filename}`;
-    } else {
-      // In development, save to public/templates/
-      uploadDir = path.join(process.cwd(), 'public', 'templates', shareToken);
-      await fs.mkdir(uploadDir, { recursive: true });
-      const filePath = path.join(uploadDir, filename);
-      await fs.writeFile(filePath, buffer);
-      relativePath = `/templates/${shareToken}/${filename}`;
-    }
+    // Create date-time folder: YYYY-MM-DD-HHmmss format
+    const now = new Date();
+    const dateTimeFolder = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    
+    // Use shareToken as projectId (it's actually the projectId in the tool page)
+    const projectId = shareToken;
+    
+    // Create directory structure: public/{projectId}/{date-time-folder}/
+    const uploadDir = path.join(
+      process.cwd(),
+      'public',
+      projectId,
+      dateTimeFolder
+    );
+    
+    await fs.mkdir(uploadDir, { recursive: true });
+    const filePath = path.join(uploadDir, filename);
+    await fs.writeFile(filePath, buffer);
+    
+    // Return relative path that can be used in HTML
+    const relativePath = `/${projectId}/${dateTimeFolder}/${filename}`;
 
     // Get base URL and return absolute URL
     const baseUrl = getBaseUrl(req);
     const url = `${baseUrl}${relativePath}`;
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url, relativePath });
   } catch (error: any) {
     console.error('Image upload failed:', error);
     return NextResponse.json({ error: error?.message || 'Upload failed' }, { status: 500 });

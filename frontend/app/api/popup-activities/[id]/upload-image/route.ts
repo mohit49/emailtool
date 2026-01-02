@@ -93,13 +93,16 @@ export async function POST(
     const ext = path.extname(file.name) || '.png';
     const filename = `${Date.now()}-${randomUUID()}${ext}`;
     
-    // Create directory structure: public/popups/{projectId}/{activityId}/
+    // Create date-time folder: YYYY-MM-DD-HHmmss format
+    const now = new Date();
+    const dateTimeFolder = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    
+    // Create directory structure: public/{projectId}/{date-time-folder}/
     const uploadDir = path.join(
       process.cwd(), 
       'public', 
-      'popups', 
       activity.projectId.toString(),
-      activityId
+      dateTimeFolder
     );
     
     await fs.mkdir(uploadDir, { recursive: true });
@@ -107,7 +110,7 @@ export async function POST(
     await fs.writeFile(filePath, buffer);
     
     // Return relative path that can be used in HTML
-    const relativePath = `/popups/${activity.projectId}/${activityId}/${filename}`;
+    const relativePath = `/${activity.projectId}/${dateTimeFolder}/${filename}`;
     
     // Get base URL and return absolute URL
     const baseUrl = getBaseUrl(req);
