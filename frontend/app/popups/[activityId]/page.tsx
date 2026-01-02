@@ -1411,10 +1411,10 @@ export default function PopupActivityPage() {
         
         // Remove existing rules for this selector (including media queries)
         const escapedSelector = classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const ruleRegex = new RegExp(`${escapedSelector}\\s*\\{[^}]*\\}`, 'gs');
-        const mobileMediaRegex = new RegExp(`@media\\s*\\(max-width:\\s*767px\\)\\s*\\{[^}]*${escapedSelector}[^}]*\\{[^}]*\\}[^}]*\\}`, 'gs');
-        const tabletMediaRegex = new RegExp(`@media\\s*\\(min-width:\\s*768px\\)\\s*and\\s*\\(max-width:\\s*1023px\\)\\s*\\{[^}]*${escapedSelector}[^}]*\\{[^}]*\\}[^}]*\\}`, 'gs');
-        const desktopMediaRegex = new RegExp(`@media\\s*\\(min-width:\\s*1024px\\)\\s*\\{[^}]*${escapedSelector}[^}]*\\{[^}]*\\}[^}]*\\}`, 'gs');
+        const ruleRegex = new RegExp(`${escapedSelector}\\s*\\{[\\s\\S]*?\\}`, 'g');
+        const mobileMediaRegex = new RegExp(`@media\\s*\\(max-width:\\s*767px\\)\\s*\\{[\\s\\S]*?${escapedSelector}[\\s\\S]*?\\{[\\s\\S]*?\\}[\\s\\S]*?\\}`, 'g');
+        const tabletMediaRegex = new RegExp(`@media\\s*\\(min-width:\\s*768px\\)\\s*and\\s*\\(max-width:\\s*1023px\\)\\s*\\{[\\s\\S]*?${escapedSelector}[\\s\\S]*?\\{[\\s\\S]*?\\}[\\s\\S]*?\\}`, 'g');
+        const desktopMediaRegex = new RegExp(`@media\\s*\\(min-width:\\s*1024px\\)\\s*\\{[\\s\\S]*?${escapedSelector}[\\s\\S]*?\\{[\\s\\S]*?\\}[\\s\\S]*?\\}`, 'g');
         
         styleContent = styleContent.replace(ruleRegex, '');
         styleContent = styleContent.replace(mobileMediaRegex, '');
@@ -2423,8 +2423,9 @@ export default function PopupActivityPage() {
     let styleContent = styleEl.textContent || '';
     
     // Remove existing responsive width media queries (more specific regex)
-    const mobileMediaRegex = /@media\s*\(max-width:\s*767px\)\s*\{[^}]*#popup-[^}]*\{[^}]*width[^}]*\}[^}]*\}/gs;
-    const desktopMediaRegex = /@media\s*\(min-width:\s*768px\)\s*\{[^}]*#popup-[^}]*\{[^}]*width[^}]*\}[^}]*\}/gs;
+    // Use [\s\S] instead of . with s flag for ES2017 compatibility
+    const mobileMediaRegex = /@media\s*\(max-width:\s*767px\)\s*\{[\s\S]*?#popup-[\s\S]*?\{[\s\S]*?width[\s\S]*?\}[\s\S]*?\}/g;
+    const desktopMediaRegex = /@media\s*\(min-width:\s*768px\)\s*\{[\s\S]*?#popup-[\s\S]*?\{[\s\S]*?width[\s\S]*?\}[\s\S]*?\}/g;
     styleContent = styleContent.replace(mobileMediaRegex, '');
     styleContent = styleContent.replace(desktopMediaRegex, '');
     styleContent = styleContent.trim();
@@ -2448,6 +2449,7 @@ export default function PopupActivityPage() {
         setFormData(prev => ({ ...prev, html: updatedHtml }));
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [popupCssSettings.mobileWidth, popupCssSettings.desktopWidth, activityId]);
 
   // Apply position styling to HTML
