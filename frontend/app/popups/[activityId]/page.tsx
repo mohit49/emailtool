@@ -402,6 +402,8 @@ export default function PopupActivityPage() {
     borderRadius: '8px',
     backgroundColor: '#f9fafb',
     textAlign: 'center',
+    mobileWidth: '',
+    desktopWidth: '',
   });
   const [editingElementCss, setEditingElementCss] = useState({
     width: '',
@@ -518,6 +520,8 @@ export default function PopupActivityPage() {
           borderRadius: currentCssSettings.borderRadius || '8px',
           backgroundColor: currentCssSettings.backgroundColor || '#f9fafb',
           textAlign: currentCssSettings.textAlign || 'center',
+          mobileWidth: currentCssSettings.mobileWidth || '',
+          desktopWidth: currentCssSettings.desktopWidth || '',
         });
         
         // Ensure HTML has przio wrapper if it doesn't exist
@@ -1405,14 +1409,82 @@ export default function PopupActivityPage() {
         const elementClass = targetElement.getAttribute('data-przio-class') || targetElement.id;
         const classSelector = elementClass ? (elementClass.startsWith('przio-') ? `.${elementClass}` : `#${elementClass}`) : selector;
         
-        const ruleRegex = new RegExp(`${classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{[^}]*\\}`, 'gs');
+        // Remove existing rules for this selector (including media queries)
+        const escapedSelector = classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const ruleRegex = new RegExp(`${escapedSelector}\\s*\\{[^}]*\\}`, 'gs');
+        const mobileMediaRegex = new RegExp(`@media\\s*\\(max-width:\\s*767px\\)\\s*\\{[^}]*${escapedSelector}[^}]*\\{[^}]*\\}[^}]*\\}`, 'gs');
+        const tabletMediaRegex = new RegExp(`@media\\s*\\(min-width:\\s*768px\\)\\s*and\\s*\\(max-width:\\s*1023px\\)\\s*\\{[^}]*${escapedSelector}[^}]*\\{[^}]*\\}[^}]*\\}`, 'gs');
+        const desktopMediaRegex = new RegExp(`@media\\s*\\(min-width:\\s*1024px\\)\\s*\\{[^}]*${escapedSelector}[^}]*\\{[^}]*\\}[^}]*\\}`, 'gs');
         
-        if (styleContent.match(ruleRegex)) {
-          styleContent = styleContent.replace(ruleRegex, `${classSelector} { ${cssProperties} }`);
-        } else {
+        styleContent = styleContent.replace(ruleRegex, '');
+        styleContent = styleContent.replace(mobileMediaRegex, '');
+        styleContent = styleContent.replace(tabletMediaRegex, '');
+        styleContent = styleContent.replace(desktopMediaRegex, '');
+        styleContent = styleContent.trim();
+        
+        // Add base CSS rule
+        if (cssProperties.trim()) {
           styleContent += `\n        ${classSelector} { ${cssProperties} }`;
         }
-        styleTag.textContent = styleContent;
+        
+        // Add responsive CSS with media queries
+        let responsiveCss = '';
+        
+        // Mobile CSS (max-width: 767px)
+        if (editingElementCss.mobileCss && typeof editingElementCss.mobileCss === 'object') {
+          let mobileCssProps = '';
+          const mobile = editingElementCss.mobileCss as any;
+          if (mobile?.width) mobileCssProps += `width: ${mobile.width}; `;
+          if (mobile?.height) mobileCssProps += `height: ${mobile.height}; `;
+          if (mobile?.minWidth) mobileCssProps += `min-width: ${mobile.minWidth}; `;
+          if (mobile?.maxWidth) mobileCssProps += `max-width: ${mobile.maxWidth}; `;
+          if (mobile?.minHeight) mobileCssProps += `min-height: ${mobile.minHeight}; `;
+          if (mobile?.maxHeight) mobileCssProps += `max-height: ${mobile.maxHeight}; `;
+          if (mobile?.padding) mobileCssProps += `padding: ${mobile.padding}; `;
+          if (mobile?.margin) mobileCssProps += `margin: ${mobile.margin}; `;
+          
+          if (mobileCssProps.trim()) {
+            responsiveCss += `\n        @media (max-width: 767px) {\n            ${classSelector} { ${mobileCssProps.trim()} }\n        }`;
+          }
+        }
+        
+        // Tablet CSS (768px - 1023px)
+        if (editingElementCss.tabletCss && typeof editingElementCss.tabletCss === 'object') {
+          let tabletCssProps = '';
+          const tablet = editingElementCss.tabletCss as any;
+          if (tablet?.width) tabletCssProps += `width: ${tablet.width}; `;
+          if (tablet?.height) tabletCssProps += `height: ${tablet.height}; `;
+          if (tablet?.minWidth) tabletCssProps += `min-width: ${tablet.minWidth}; `;
+          if (tablet?.maxWidth) tabletCssProps += `max-width: ${tablet.maxWidth}; `;
+          if (tablet?.minHeight) tabletCssProps += `min-height: ${tablet.minHeight}; `;
+          if (tablet?.maxHeight) tabletCssProps += `max-height: ${tablet.maxHeight}; `;
+          if (tablet?.padding) tabletCssProps += `padding: ${tablet.padding}; `;
+          if (tablet?.margin) tabletCssProps += `margin: ${tablet.margin}; `;
+          
+          if (tabletCssProps.trim()) {
+            responsiveCss += `\n        @media (min-width: 768px) and (max-width: 1023px) {\n            ${classSelector} { ${tabletCssProps.trim()} }\n        }`;
+          }
+        }
+        
+        // Desktop CSS (min-width: 1024px)
+        if (editingElementCss.desktopCss && typeof editingElementCss.desktopCss === 'object') {
+          let desktopCssProps = '';
+          const desktop = editingElementCss.desktopCss as any;
+          if (desktop?.width) desktopCssProps += `width: ${desktop.width}; `;
+          if (desktop?.height) desktopCssProps += `height: ${desktop.height}; `;
+          if (desktop?.minWidth) desktopCssProps += `min-width: ${desktop.minWidth}; `;
+          if (desktop?.maxWidth) desktopCssProps += `max-width: ${desktop.maxWidth}; `;
+          if (desktop?.minHeight) desktopCssProps += `min-height: ${desktop.minHeight}; `;
+          if (desktop?.maxHeight) desktopCssProps += `max-height: ${desktop.maxHeight}; `;
+          if (desktop?.padding) desktopCssProps += `padding: ${desktop.padding}; `;
+          if (desktop?.margin) desktopCssProps += `margin: ${desktop.margin}; `;
+          
+          if (desktopCssProps.trim()) {
+            responsiveCss += `\n        @media (min-width: 1024px) {\n            ${classSelector} { ${desktopCssProps.trim()} }\n        }`;
+          }
+        }
+        
+        styleTag.textContent = styleContent + responsiveCss;
       }
       
       const nextHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
@@ -2336,6 +2408,47 @@ export default function PopupActivityPage() {
       document.body.classList.remove('przio-editor-mode');
     };
   }, []);
+
+  // Apply responsive widths to popup CSS
+  useEffect(() => {
+    if (!activityId || !formData.html) return;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(wrapForParsing(formData.html || ''), 'text/html');
+    const styleEl = doc.querySelector('style');
+    const popupId = `popup-${activityId}`;
+
+    if (!styleEl) return;
+
+    let styleContent = styleEl.textContent || '';
+    
+    // Remove existing responsive width media queries (more specific regex)
+    const mobileMediaRegex = /@media\s*\(max-width:\s*767px\)\s*\{[^}]*#popup-[^}]*\{[^}]*width[^}]*\}[^}]*\}/gs;
+    const desktopMediaRegex = /@media\s*\(min-width:\s*768px\)\s*\{[^}]*#popup-[^}]*\{[^}]*width[^}]*\}[^}]*\}/gs;
+    styleContent = styleContent.replace(mobileMediaRegex, '');
+    styleContent = styleContent.replace(desktopMediaRegex, '');
+    styleContent = styleContent.trim();
+
+    // Add responsive width media queries if widths are set
+    let responsiveCss = '';
+    if (popupCssSettings.mobileWidth && popupCssSettings.mobileWidth.trim()) {
+      responsiveCss += `\n        @media (max-width: 767px) {\n            #${popupId} {\n                width: ${popupCssSettings.mobileWidth.trim()} !important;\n                max-width: ${popupCssSettings.mobileWidth.trim()} !important;\n            }\n        }`;
+    }
+    if (popupCssSettings.desktopWidth && popupCssSettings.desktopWidth.trim()) {
+      responsiveCss += `\n        @media (min-width: 768px) {\n            #${popupId} {\n                width: ${popupCssSettings.desktopWidth.trim()} !important;\n                max-width: ${popupCssSettings.desktopWidth.trim()} !important;\n            }\n        }`;
+    }
+
+    if (responsiveCss || (popupCssSettings.mobileWidth === '' && popupCssSettings.desktopWidth === '')) {
+      styleEl.textContent = styleContent + responsiveCss;
+      
+      // Update formData.html with the new styles
+      const updatedHtml = extractPopupContent('<!DOCTYPE html>' + doc.documentElement.outerHTML);
+      // Only update if HTML actually changed to prevent infinite loops
+      if (updatedHtml !== formData.html) {
+        setFormData(prev => ({ ...prev, html: updatedHtml }));
+      }
+    }
+  }, [popupCssSettings.mobileWidth, popupCssSettings.desktopWidth, activityId]);
 
   // Apply position styling to HTML
   const applyPositionToHTML = useCallback((position: 'left-top' | 'right-top' | 'left-bottom' | 'right-bottom' | 'center-top' | 'center' | 'center-bottom') => {

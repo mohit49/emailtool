@@ -10,6 +10,8 @@ interface PopupCssSettings {
   borderRadius: string;
   backgroundColor: string;
   textAlign: string;
+  mobileWidth: string;
+  desktopWidth: string;
 }
 
 interface BackdropSettings {
@@ -222,6 +224,54 @@ const PopupSettingsModal: React.FC<PopupSettingsModalProps> = ({
               ]}
               className="w-full"
             />
+          </div>
+
+          {/* Responsive Width Settings */}
+          <div className="pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Responsive Width</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Set different widths for mobile and desktop devices. The popup will automatically adjust based on screen size.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Mobile Width
+                  </div>
+                </label>
+                <input
+                  type="text"
+                  value={popupCssSettings.mobileWidth}
+                  onChange={(e) => handleChange('mobileWidth', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="90% or 320px"
+                />
+                <p className="mt-1 text-xs text-gray-500">Applied on screens &lt; 768px. e.g., 90%, 320px, 100vw</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Desktop Width
+                  </div>
+                </label>
+                <input
+                  type="text"
+                  value={popupCssSettings.desktopWidth}
+                  onChange={(e) => handleChange('desktopWidth', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="500px or 50%"
+                />
+                <p className="mt-1 text-xs text-gray-500">Applied on screens ≥ 768px. e.g., 500px, 50%, 600px</p>
+              </div>
+            </div>
           </div>
 
           {/* Submit Trigger Settings */}

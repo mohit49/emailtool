@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface EditingElementCss {
   width: string;
@@ -46,6 +46,16 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
   applyCssChanges,
   elementTagName,
 }) => {
+  const [openAccordions, setOpenAccordions] = useState({
+    mobile: false,
+    tablet: false,
+    desktop: false,
+  });
+
+  const toggleAccordion = (key: 'mobile' | 'tablet' | 'desktop') => {
+    setOpenAccordions(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   if (!isOpen) return null;
 
   const handleChange = (field: keyof EditingElementCss, value: string) => {
@@ -73,87 +83,479 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
           {!isTextElement && (
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Layout & Dimensions</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
-                <input
-                  type="text"
-                  value={editingElementCss.width}
-                  onChange={(e) => handleChange('width', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="auto, 100px, 50%"
-                />
+            
+            {/* Default (All Devices) */}
+            <div className="mb-6">
+              <h4 className="text-sm font-semibold text-gray-800 mb-3">Default (All Devices)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
+                  <input
+                    type="text"
+                    value={editingElementCss.width}
+                    onChange={(e) => handleChange('width', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="auto, 100px, 50%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Height</label>
+                  <input
+                    type="text"
+                    value={editingElementCss.height}
+                    onChange={(e) => handleChange('height', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="auto, 100px, 50%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Width</label>
+                  <input
+                    type="text"
+                    value={editingElementCss.minWidth}
+                    onChange={(e) => handleChange('minWidth', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="100px, 50%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Width</label>
+                  <input
+                    type="text"
+                    value={editingElementCss.maxWidth}
+                    onChange={(e) => handleChange('maxWidth', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="1000px, 100%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Height</label>
+                  <input
+                    type="text"
+                    value={editingElementCss.minHeight}
+                    onChange={(e) => handleChange('minHeight', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="100px, 50vh"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Height</label>
+                  <input
+                    type="text"
+                    value={editingElementCss.maxHeight}
+                    onChange={(e) => handleChange('maxHeight', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="800px, 100vh"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Padding</label>
+                  <input
+                    type="text"
+                    value={editingElementCss.padding}
+                    onChange={(e) => handleChange('padding', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="10px, 10px 20px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Margin</label>
+                  <input
+                    type="text"
+                    value={editingElementCss.margin}
+                    onChange={(e) => handleChange('margin', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="10px, 10px 20px"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Height</label>
-                <input
-                  type="text"
-                  value={editingElementCss.height}
-                  onChange={(e) => handleChange('height', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="auto, 100px, 50%"
-                />
+            </div>
+
+            {/* Mobile Responsive */}
+            <div className="mb-4 border-t border-gray-200 pt-4">
+              <button
+                type="button"
+                onClick={() => toggleAccordion('mobile')}
+                className="w-full flex items-center justify-between text-sm font-semibold text-gray-800 mb-3 hover:text-indigo-600 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  Mobile (max-width: 767px)
+                </div>
+                {openAccordions.mobile ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+              {openAccordions.mobile && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.width ? editingElementCss.mobileCss.width : ''}
+                    onChange={(e) => {
+                      const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                      handleChange('mobileCss', { ...mobileCss, width: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="100%, 320px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Height</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.height ? editingElementCss.mobileCss.height : ''}
+                    onChange={(e) => {
+                      const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                      handleChange('mobileCss', { ...mobileCss, height: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="auto, 200px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Width</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.minWidth ? editingElementCss.mobileCss.minWidth : ''}
+                    onChange={(e) => {
+                      const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                      handleChange('mobileCss', { ...mobileCss, minWidth: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="100px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Width</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.maxWidth ? editingElementCss.mobileCss.maxWidth : ''}
+                    onChange={(e) => {
+                      const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                      handleChange('mobileCss', { ...mobileCss, maxWidth: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="100%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Height</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.minHeight ? editingElementCss.mobileCss.minHeight : ''}
+                    onChange={(e) => {
+                      const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                      handleChange('mobileCss', { ...mobileCss, minHeight: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="100px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Height</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.maxHeight ? editingElementCss.mobileCss.maxHeight : ''}
+                    onChange={(e) => {
+                      const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                      handleChange('mobileCss', { ...mobileCss, maxHeight: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="500px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Padding</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.padding ? editingElementCss.mobileCss.padding : ''}
+                    onChange={(e) => {
+                      const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                      handleChange('mobileCss', { ...mobileCss, padding: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="10px, 10px 20px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Margin</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.margin ? editingElementCss.mobileCss.margin : ''}
+                    onChange={(e) => {
+                      const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                      handleChange('mobileCss', { ...mobileCss, margin: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="10px, 10px 20px"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Min Width</label>
-                <input
-                  type="text"
-                  value={editingElementCss.minWidth}
-                  onChange={(e) => handleChange('minWidth', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="100px, 50%"
-                />
+              )}
+            </div>
+
+            {/* Tablet Responsive */}
+            <div className="mb-4 border-t border-gray-200 pt-4">
+              <button
+                type="button"
+                onClick={() => toggleAccordion('tablet')}
+                className="w-full flex items-center justify-between text-sm font-semibold text-gray-800 mb-3 hover:text-indigo-600 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  Tablet (768px - 1023px)
+                </div>
+                {openAccordions.tablet ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+              {openAccordions.tablet && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.width ? editingElementCss.tabletCss.width : ''}
+                    onChange={(e) => {
+                      const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                      handleChange('tabletCss', { ...tabletCss, width: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="80%, 600px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Height</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.height ? editingElementCss.tabletCss.height : ''}
+                    onChange={(e) => {
+                      const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                      handleChange('tabletCss', { ...tabletCss, height: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="auto, 300px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Width</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.minWidth ? editingElementCss.tabletCss.minWidth : ''}
+                    onChange={(e) => {
+                      const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                      handleChange('tabletCss', { ...tabletCss, minWidth: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="300px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Width</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.maxWidth ? editingElementCss.tabletCss.maxWidth : ''}
+                    onChange={(e) => {
+                      const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                      handleChange('tabletCss', { ...tabletCss, maxWidth: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="800px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Height</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.minHeight ? editingElementCss.tabletCss.minHeight : ''}
+                    onChange={(e) => {
+                      const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                      handleChange('tabletCss', { ...tabletCss, minHeight: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="200px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Height</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.maxHeight ? editingElementCss.tabletCss.maxHeight : ''}
+                    onChange={(e) => {
+                      const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                      handleChange('tabletCss', { ...tabletCss, maxHeight: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="600px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Padding</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.padding ? editingElementCss.tabletCss.padding : ''}
+                    onChange={(e) => {
+                      const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                      handleChange('tabletCss', { ...tabletCss, padding: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="20px, 20px 30px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Margin</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.margin ? editingElementCss.tabletCss.margin : ''}
+                    onChange={(e) => {
+                      const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                      handleChange('tabletCss', { ...tabletCss, margin: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="20px, 20px 30px"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Max Width</label>
-                <input
-                  type="text"
-                  value={editingElementCss.maxWidth}
-                  onChange={(e) => handleChange('maxWidth', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="1000px, 100%"
-                />
+              )}
+            </div>
+
+            {/* Desktop Responsive */}
+            <div className="mb-4 border-t border-gray-200 pt-4">
+              <button
+                type="button"
+                onClick={() => toggleAccordion('desktop')}
+                className="w-full flex items-center justify-between text-sm font-semibold text-gray-800 mb-3 hover:text-indigo-600 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Desktop (min-width: 1024px)
+                </div>
+                {openAccordions.desktop ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+              {openAccordions.desktop && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.width ? editingElementCss.desktopCss.width : ''}
+                    onChange={(e) => {
+                      const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                      handleChange('desktopCss', { ...desktopCss, width: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="600px, 50%"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Height</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.height ? editingElementCss.desktopCss.height : ''}
+                    onChange={(e) => {
+                      const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                      handleChange('desktopCss', { ...desktopCss, height: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="auto, 400px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Width</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.minWidth ? editingElementCss.desktopCss.minWidth : ''}
+                    onChange={(e) => {
+                      const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                      handleChange('desktopCss', { ...desktopCss, minWidth: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="400px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Width</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.maxWidth ? editingElementCss.desktopCss.maxWidth : ''}
+                    onChange={(e) => {
+                      const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                      handleChange('desktopCss', { ...desktopCss, maxWidth: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="1200px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Height</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.minHeight ? editingElementCss.desktopCss.minHeight : ''}
+                    onChange={(e) => {
+                      const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                      handleChange('desktopCss', { ...desktopCss, minHeight: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="300px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Height</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.maxHeight ? editingElementCss.desktopCss.maxHeight : ''}
+                    onChange={(e) => {
+                      const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                      handleChange('desktopCss', { ...desktopCss, maxHeight: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="800px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Padding</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.padding ? editingElementCss.desktopCss.padding : ''}
+                    onChange={(e) => {
+                      const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                      handleChange('desktopCss', { ...desktopCss, padding: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="40px, 40px 60px"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Margin</label>
+                  <input
+                    type="text"
+                    value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.margin ? editingElementCss.desktopCss.margin : ''}
+                    onChange={(e) => {
+                      const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                      handleChange('desktopCss', { ...desktopCss, margin: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    placeholder="40px, 40px 60px"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Min Height</label>
-                <input
-                  type="text"
-                  value={editingElementCss.minHeight}
-                  onChange={(e) => handleChange('minHeight', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="100px, 50vh"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Max Height</label>
-                <input
-                  type="text"
-                  value={editingElementCss.maxHeight}
-                  onChange={(e) => handleChange('maxHeight', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="800px, 100vh"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Padding</label>
-                <input
-                  type="text"
-                  value={editingElementCss.padding}
-                  onChange={(e) => handleChange('padding', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="10px, 10px 20px"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Margin</label>
-                <input
-                  type="text"
-                  value={editingElementCss.margin}
-                  onChange={(e) => handleChange('margin', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  placeholder="10px, 10px 20px"
-                />
-              </div>
+              )}
             </div>
           </div>
           )}
@@ -382,13 +784,6 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
             </div>
           </div>
 
-          {/* Responsive Options Info */}
-          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-indigo-900 mb-2">📱 Responsive Design</h3>
-            <p className="text-sm text-indigo-700">
-              These styles will apply to all screen sizes. Responsive CSS (mobile, tablet, desktop specific) will be available in the next update.
-            </p>
-          </div>
         </div>
 
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3 sticky bottom-0 bg-white">
