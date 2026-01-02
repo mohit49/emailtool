@@ -40,21 +40,20 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const { id, url, injectInHead } = await req.json();
+    const { id, scriptTag, injectInHead } = await req.json();
 
-    if (!url || typeof url !== 'string' || !url.trim()) {
+    if (!scriptTag || typeof scriptTag !== 'string' || !scriptTag.trim()) {
       return NextResponse.json(
-        { error: 'URL is required' },
+        { error: 'Script tag is required' },
         { status: 400 }
       );
     }
 
-    // Validate URL format
-    try {
-      new URL(url.trim());
-    } catch {
+    // Basic validation - check if it contains script tag
+    const trimmedScript = scriptTag.trim();
+    if (!trimmedScript.includes('<script') && !trimmedScript.includes('</script>')) {
       return NextResponse.json(
-        { error: 'Invalid URL format' },
+        { error: 'Invalid script tag format. Must contain <script> tag' },
         { status: 400 }
       );
     }
@@ -73,14 +72,14 @@ export async function POST(req: NextRequest) {
       }
       scripts[scriptIndex] = {
         id,
-        url: url.trim(),
+        scriptTag: trimmedScript,
         injectInHead: injectInHead === true,
       };
     } else {
       // Add new script
       const newScript = {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        url: url.trim(),
+        scriptTag: trimmedScript,
         injectInHead: injectInHead === true,
       };
       scripts.push(newScript);

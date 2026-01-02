@@ -65,11 +65,11 @@ export default function AdminDashboard() {
     message: '',
     type: 'info' as 'info' | 'success' | 'error',
   });
-  const [externalJsScripts, setExternalJsScripts] = useState<Array<{ id?: string; url: string; injectInHead: boolean }>>([]);
+  const [externalJsScripts, setExternalJsScripts] = useState<Array<{ id?: string; scriptTag: string; injectInHead: boolean }>>([]);
   const [showJsModal, setShowJsModal] = useState(false);
-  const [editingJs, setEditingJs] = useState<{ id?: string; url: string; injectInHead: boolean } | null>(null);
+  const [editingJs, setEditingJs] = useState<{ id?: string; scriptTag: string; injectInHead: boolean } | null>(null);
   const [jsSettings, setJsSettings] = useState({
-    url: '',
+    scriptTag: '',
     injectInHead: false,
   });
   const [savingJs, setSavingJs] = useState(false);
@@ -360,17 +360,17 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleOpenJsModal = (script?: { id?: string; url: string; injectInHead: boolean }) => {
+  const handleOpenJsModal = (script?: { id?: string; scriptTag: string; injectInHead: boolean }) => {
     if (script) {
       setEditingJs(script);
       setJsSettings({
-        url: script.url || '',
+        scriptTag: script.scriptTag || '',
         injectInHead: script.injectInHead || false,
       });
     } else {
       setEditingJs(null);
       setJsSettings({
-        url: '',
+        scriptTag: '',
         injectInHead: false,
       });
     }
@@ -381,29 +381,28 @@ export default function AdminDashboard() {
     setShowJsModal(false);
     setEditingJs(null);
     setJsSettings({
-      url: '',
+      scriptTag: '',
       injectInHead: false,
     });
   };
 
   const handleSaveJs = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!jsSettings.url.trim()) {
+    if (!jsSettings.scriptTag.trim()) {
       setAlert({
         isOpen: true,
-        message: 'JavaScript URL is required',
+        message: 'Script tag is required',
         type: 'error',
       });
       return;
     }
 
-    // Validate URL
-    try {
-      new URL(jsSettings.url);
-    } catch {
+    // Basic validation - check if it contains script tag
+    const trimmedScript = jsSettings.scriptTag.trim();
+    if (!trimmedScript.includes('<script') && !trimmedScript.includes('</script>')) {
       setAlert({
         isOpen: true,
-        message: 'Please enter a valid URL',
+        message: 'Please enter a valid script tag (e.g., <script src="..."></script>)',
         type: 'error',
       });
       return;
@@ -412,7 +411,7 @@ export default function AdminDashboard() {
     setSavingJs(true);
     try {
       const payload: any = {
-        url: jsSettings.url.trim(),
+        scriptTag: trimmedScript,
         injectInHead: jsSettings.injectInHead,
       };
 
@@ -1073,7 +1072,7 @@ export default function AdminDashboard() {
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">External JavaScript Scripts</h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    Add external JavaScript files to be injected into all pages. Choose whether to inject in &lt;head&gt; or before &lt;/body&gt;.
+                    Add JavaScript script tags to be injected into all pages. Enter the full script tag and choose whether to inject in &lt;head&gt; or before &lt;/body&gt;.
                   </p>
                 </div>
                 <button
@@ -1103,20 +1102,23 @@ export default function AdminDashboard() {
                       className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
                     >
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900 break-all">{script.url}</h3>
-                            {script.injectInHead ? (
-                              <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
-                                In &lt;head&gt;
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                                Before &lt;/body&gt;
-                              </span>
-                            )}
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-1">Script Tag:</h3>
+                            <code className="text-xs text-gray-600 break-all bg-gray-50 p-2 rounded block">{script.scriptTag}</code>
                           </div>
+                          {script.injectInHead ? (
+                            <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded whitespace-nowrap">
+                              In &lt;head&gt;
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded whitespace-nowrap">
+                              Before &lt;/body&gt;
+                            </span>
+                          )}
                         </div>
+                      </div>
                         <div className="flex items-center space-x-2 ml-4">
                           <button
                             onClick={() => handleOpenJsModal(script)}
@@ -1159,19 +1161,27 @@ export default function AdminDashboard() {
                         <form onSubmit={handleSaveJs}>
                           <div className="mb-4">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                              JavaScript URL <span className="text-red-500">*</span>
+                              Script Tag <span className="text-red-500">*</span>
                             </label>
-                            <input
-                              type="url"
-                              value={jsSettings.url}
-                              onChange={(e) => setJsSettings({ ...jsSettings, url: e.target.value })}
-                              placeholder="https://example.com/script.js"
+                            <textarea
+                              value={jsSettings.scriptTag}
+                              onChange={(e) => setJsSettings({ ...jsSettings, scriptTag: e.target.value })}
+                              placeholder='<script src="https://example.com/script.js"></script>'
                               required
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                              rows={4}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-mono text-sm"
                             />
                             <p className="mt-1 text-xs text-gray-500">
-                              Enter the full URL of the external JavaScript file
+                              Enter the full script tag (e.g., <code className="bg-gray-100 px-1 rounded">&lt;script src="..."&gt;&lt;/script&gt;</code> or inline scripts)
                             </p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              Examples:
+                            </p>
+                            <ul className="mt-1 text-xs text-gray-500 list-disc list-inside space-y-1">
+                              <li><code className="bg-gray-100 px-1 rounded">&lt;script src="/sdk.js"&gt;&lt;/script&gt;</code></li>
+                              <li><code className="bg-gray-100 px-1 rounded">&lt;script src="https://cdn.example.com/script.js" async&gt;&lt;/script&gt;</code></li>
+                              <li><code className="bg-gray-100 px-1 rounded">&lt;script&gt;console.log('Hello');&lt;/script&gt;</code></li>
+                            </ul>
                           </div>
 
                           <div className="mb-4 flex items-center space-x-2">
