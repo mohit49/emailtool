@@ -496,10 +496,27 @@ export default function PopupActivityPage() {
     fontFamily: '',
     borderRadius: '',
     boxShadow: '',
+    // Flexbox properties
+    display: '',
+    flexDirection: '',
+    flexWrap: '',
+    justifyContent: '',
+    alignItems: '',
+    alignContent: '',
+    gap: '',
+    flexGrow: '',
+    flexShrink: '',
+    flexBasis: '',
+    alignSelf: '',
     // Responsive CSS
     mobileCss: {},
     tabletCss: {},
     desktopCss: {},
+    // Custom CSS
+    customCss: '',
+    mobileCustomCss: '',
+    tabletCustomCss: '',
+    desktopCustomCss: '',
   });
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
   const htmlEditorRef = useRef<HTMLEditorRef>(null);
@@ -1417,9 +1434,25 @@ export default function PopupActivityPage() {
         fontFamily: cssFromStyleTag['font-family'] || '',
         borderRadius: cssFromStyleTag['border-radius'] || '',
         boxShadow: cssFromStyleTag['box-shadow'] || '',
+        // Flexbox properties
+        display: cssFromStyleTag['display'] || '',
+        flexDirection: cssFromStyleTag['flex-direction'] || '',
+        flexWrap: cssFromStyleTag['flex-wrap'] || '',
+        justifyContent: cssFromStyleTag['justify-content'] || '',
+        alignItems: cssFromStyleTag['align-items'] || '',
+        alignContent: cssFromStyleTag['align-content'] || '',
+        gap: cssFromStyleTag['gap'] || '',
+        flexGrow: cssFromStyleTag['flex-grow'] || '',
+        flexShrink: cssFromStyleTag['flex-shrink'] || '',
+        flexBasis: cssFromStyleTag['flex-basis'] || '',
+        alignSelf: cssFromStyleTag['align-self'] || '',
         mobileCss: Object.keys(mobileCss).length > 0 ? mobileCss : {},
         tabletCss: Object.keys(tabletCss).length > 0 ? tabletCss : {},
         desktopCss: Object.keys(desktopCss).length > 0 ? desktopCss : {},
+        customCss: '',
+        mobileCustomCss: '',
+        tabletCustomCss: '',
+        desktopCustomCss: '',
       });
     } else {
       // Reset to empty if no element found
@@ -1444,9 +1477,25 @@ export default function PopupActivityPage() {
         fontFamily: '',
         borderRadius: '',
         boxShadow: '',
+        // Flexbox properties
+        display: '',
+        flexDirection: '',
+        flexWrap: '',
+        justifyContent: '',
+        alignItems: '',
+        alignContent: '',
+        gap: '',
+        flexGrow: '',
+        flexShrink: '',
+        flexBasis: '',
+        alignSelf: '',
         mobileCss: {},
         tabletCss: {},
         desktopCss: {},
+        customCss: '',
+        mobileCustomCss: '',
+        tabletCustomCss: '',
+        desktopCustomCss: '',
       });
     }
   }, [formData.html]);
@@ -1587,6 +1636,14 @@ export default function PopupActivityPage() {
     if (editingElementCss.fontFamily) cssProperties += `font-family: ${editingElementCss.fontFamily}; `;
     if (editingElementCss.borderRadius) cssProperties += `border-radius: ${editingElementCss.borderRadius}; `;
     if (editingElementCss.boxShadow) cssProperties += `box-shadow: ${editingElementCss.boxShadow}; `;
+    // Add custom CSS if provided
+    if (editingElementCss.customCss && editingElementCss.customCss.trim()) {
+      // Parse custom CSS and add it (remove comments and trim)
+      const customCss = editingElementCss.customCss.trim().replace(/\/\*[\s\S]*?\*\//g, '').trim();
+      if (customCss) {
+        cssProperties += customCss + (customCss.endsWith(';') ? ' ' : '; ');
+      }
+    }
 
     setFormData(prev => {
       const parser = new DOMParser();
@@ -1637,6 +1694,20 @@ export default function PopupActivityPage() {
           if (mobile?.maxHeight && mobile.maxHeight.trim()) mobileCssProps += `max-height: ${mobile.maxHeight.trim()}; `;
           if (mobile?.padding && mobile.padding.trim()) mobileCssProps += `padding: ${mobile.padding.trim()}; `;
           if (mobile?.margin && mobile.margin.trim()) mobileCssProps += `margin: ${mobile.margin.trim()}; `;
+          // Mobile Flexbox
+          if (mobile?.display && mobile.display.trim()) mobileCssProps += `display: ${mobile.display.trim()}; `;
+          if (mobile?.flexDirection && mobile.flexDirection.trim()) mobileCssProps += `flex-direction: ${mobile.flexDirection.trim()}; `;
+          if (mobile?.justifyContent && mobile.justifyContent.trim()) mobileCssProps += `justify-content: ${mobile.justifyContent.trim()}; `;
+          if (mobile?.alignItems && mobile.alignItems.trim()) mobileCssProps += `align-items: ${mobile.alignItems.trim()}; `;
+          if (mobile?.gap && mobile.gap.trim()) mobileCssProps += `gap: ${mobile.gap.trim()}; `;
+          
+          // Add mobile custom CSS if provided
+          if (editingElementCss.mobileCustomCss && editingElementCss.mobileCustomCss.trim()) {
+            const mobileCustom = editingElementCss.mobileCustomCss.trim().replace(/\/\*[\s\S]*?\*\//g, '').trim();
+            if (mobileCustom) {
+              mobileCssProps += mobileCustom + (mobileCustom.endsWith(';') ? ' ' : '; ');
+            }
+          }
           
           if (mobileCssProps.trim()) {
             const mobileMediaQuery = `\n        @media (max-width: 767px) {\n            ${classSelector} { ${mobileCssProps.trim()} }\n        }`;
@@ -1663,6 +1734,20 @@ export default function PopupActivityPage() {
           if (tablet?.maxHeight) tabletCssProps += `max-height: ${tablet.maxHeight}; `;
           if (tablet?.padding) tabletCssProps += `padding: ${tablet.padding}; `;
           if (tablet?.margin) tabletCssProps += `margin: ${tablet.margin}; `;
+          // Tablet Flexbox
+          if (tablet?.display && tablet.display.trim()) tabletCssProps += `display: ${tablet.display.trim()}; `;
+          if (tablet?.flexDirection && tablet.flexDirection.trim()) tabletCssProps += `flex-direction: ${tablet.flexDirection.trim()}; `;
+          if (tablet?.justifyContent && tablet.justifyContent.trim()) tabletCssProps += `justify-content: ${tablet.justifyContent.trim()}; `;
+          if (tablet?.alignItems && tablet.alignItems.trim()) tabletCssProps += `align-items: ${tablet.alignItems.trim()}; `;
+          if (tablet?.gap && tablet.gap.trim()) tabletCssProps += `gap: ${tablet.gap.trim()}; `;
+          
+          // Add tablet custom CSS if provided
+          if (editingElementCss.tabletCustomCss && editingElementCss.tabletCustomCss.trim()) {
+            const tabletCustom = editingElementCss.tabletCustomCss.trim().replace(/\/\*[\s\S]*?\*\//g, '').trim();
+            if (tabletCustom) {
+              tabletCssProps += tabletCustom + (tabletCustom.endsWith(';') ? ' ' : '; ');
+            }
+          }
           
           if (tabletCssProps.trim()) {
             responsiveCss += `\n        @media (min-width: 768px) and (max-width: 1023px) {\n            ${classSelector} { ${tabletCssProps.trim()} }\n        }`;
@@ -1681,6 +1766,20 @@ export default function PopupActivityPage() {
           if (desktop?.maxHeight) desktopCssProps += `max-height: ${desktop.maxHeight}; `;
           if (desktop?.padding) desktopCssProps += `padding: ${desktop.padding}; `;
           if (desktop?.margin) desktopCssProps += `margin: ${desktop.margin}; `;
+          // Desktop Flexbox
+          if (desktop?.display && desktop.display.trim()) desktopCssProps += `display: ${desktop.display.trim()}; `;
+          if (desktop?.flexDirection && desktop.flexDirection.trim()) desktopCssProps += `flex-direction: ${desktop.flexDirection.trim()}; `;
+          if (desktop?.justifyContent && desktop.justifyContent.trim()) desktopCssProps += `justify-content: ${desktop.justifyContent.trim()}; `;
+          if (desktop?.alignItems && desktop.alignItems.trim()) desktopCssProps += `align-items: ${desktop.alignItems.trim()}; `;
+          if (desktop?.gap && desktop.gap.trim()) desktopCssProps += `gap: ${desktop.gap.trim()}; `;
+          
+          // Add desktop custom CSS if provided
+          if (editingElementCss.desktopCustomCss && editingElementCss.desktopCustomCss.trim()) {
+            const desktopCustom = editingElementCss.desktopCustomCss.trim().replace(/\/\*[\s\S]*?\*\//g, '').trim();
+            if (desktopCustom) {
+              desktopCssProps += desktopCustom + (desktopCustom.endsWith(';') ? ' ' : '; ');
+            }
+          }
           
           if (desktopCssProps.trim()) {
             responsiveCss += `\n        @media (min-width: 1024px) {\n            ${classSelector} { ${desktopCssProps.trim()} }\n        }`;

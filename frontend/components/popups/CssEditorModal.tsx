@@ -24,9 +24,25 @@ interface EditingElementCss {
   fontFamily: string;
   borderRadius: string;
   boxShadow: string;
+  // Flexbox properties
+  display: string;
+  flexDirection: string;
+  flexWrap: string;
+  justifyContent: string;
+  alignItems: string;
+  alignContent: string;
+  gap: string;
+  flexGrow: string;
+  flexShrink: string;
+  flexBasis: string;
+  alignSelf: string;
   mobileCss: any;
   tabletCss: any;
   desktopCss: any;
+  customCss: string;
+  mobileCustomCss: string;
+  tabletCustomCss: string;
+  desktopCustomCss: string;
 }
 
 interface CssEditorModalProps {
@@ -56,14 +72,16 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
     setOpenAccordions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  if (!isOpen) return null;
-
-  const handleChange = (field: keyof EditingElementCss, value: string) => {
+  const handleChange = (field: keyof EditingElementCss, value: string | any) => {
     setEditingElementCss((prev) => ({ ...prev, [field]: value }));
   };
 
   // Check if element is a text element (P, H1-H6)
   const isTextElement = elementTagName && ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(elementTagName.toUpperCase());
+
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000000] p-4">
@@ -79,6 +97,160 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
         </div>
         
         <div className="px-6 py-6 space-y-6">
+          {/* Flexbox - Only for non-text elements */}
+          {!isTextElement && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Flexbox</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Display</label>
+                <select
+                  value={editingElementCss.display || ''}
+                  onChange={(e) => handleChange('display', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Default</option>
+                  <option value="flex">Flex</option>
+                  <option value="inline-flex">Inline Flex</option>
+                  <option value="block">Block</option>
+                  <option value="inline-block">Inline Block</option>
+                  <option value="grid">Grid</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Flex Direction</label>
+                <select
+                  value={editingElementCss.flexDirection || ''}
+                  onChange={(e) => handleChange('flexDirection', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Default</option>
+                  <option value="row">Row</option>
+                  <option value="column">Column</option>
+                  <option value="row-reverse">Row Reverse</option>
+                  <option value="column-reverse">Column Reverse</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Flex Wrap</label>
+                <select
+                  value={editingElementCss.flexWrap || ''}
+                  onChange={(e) => handleChange('flexWrap', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Default</option>
+                  <option value="nowrap">No Wrap</option>
+                  <option value="wrap">Wrap</option>
+                  <option value="wrap-reverse">Wrap Reverse</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Justify Content</label>
+                <select
+                  value={editingElementCss.justifyContent || ''}
+                  onChange={(e) => handleChange('justifyContent', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Default</option>
+                  <option value="flex-start">Flex Start</option>
+                  <option value="flex-end">Flex End</option>
+                  <option value="center">Center</option>
+                  <option value="space-between">Space Between</option>
+                  <option value="space-around">Space Around</option>
+                  <option value="space-evenly">Space Evenly</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Align Items</label>
+                <select
+                  value={editingElementCss.alignItems || ''}
+                  onChange={(e) => handleChange('alignItems', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Default</option>
+                  <option value="flex-start">Flex Start</option>
+                  <option value="flex-end">Flex End</option>
+                  <option value="center">Center</option>
+                  <option value="baseline">Baseline</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Align Content</label>
+                <select
+                  value={editingElementCss.alignContent || ''}
+                  onChange={(e) => handleChange('alignContent', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Default</option>
+                  <option value="flex-start">Flex Start</option>
+                  <option value="flex-end">Flex End</option>
+                  <option value="center">Center</option>
+                  <option value="space-between">Space Between</option>
+                  <option value="space-around">Space Around</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Gap</label>
+                <input
+                  type="text"
+                  value={editingElementCss.gap || ''}
+                  onChange={(e) => handleChange('gap', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="10px, 1rem"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Flex Grow</label>
+                <input
+                  type="text"
+                  value={editingElementCss.flexGrow || ''}
+                  onChange={(e) => handleChange('flexGrow', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="0, 1, 2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Flex Shrink</label>
+                <input
+                  type="text"
+                  value={editingElementCss.flexShrink || ''}
+                  onChange={(e) => handleChange('flexShrink', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="0, 1"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Flex Basis</label>
+                <input
+                  type="text"
+                  value={editingElementCss.flexBasis || ''}
+                  onChange={(e) => handleChange('flexBasis', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  placeholder="auto, 200px, 50%"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Align Self</label>
+                <select
+                  value={editingElementCss.alignSelf || ''}
+                  onChange={(e) => handleChange('alignSelf', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                >
+                  <option value="">Default</option>
+                  <option value="auto">Auto</option>
+                  <option value="flex-start">Flex Start</option>
+                  <option value="flex-end">Flex End</option>
+                  <option value="center">Center</option>
+                  <option value="baseline">Baseline</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          )}
+
           {/* Layout & Dimensions - Only for non-text elements */}
           {!isTextElement && (
           <div>
@@ -191,6 +363,7 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                 )}
               </button>
               {openAccordions.mobile && (
+              <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
@@ -297,6 +470,98 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                   />
                 </div>
               </div>
+              
+              {/* Mobile Flexbox */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3">Flexbox Options</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Display</label>
+                    <select
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.display ? editingElementCss.mobileCss.display : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, display: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex">Flex</option>
+                      <option value="inline-flex">Inline Flex</option>
+                      <option value="block">Block</option>
+                      <option value="inline-block">Inline Block</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Direction</label>
+                    <select
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.flexDirection ? editingElementCss.mobileCss.flexDirection : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, flexDirection: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="row">Row</option>
+                      <option value="column">Column</option>
+                      <option value="row-reverse">Row Reverse</option>
+                      <option value="column-reverse">Column Reverse</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Justify Content</label>
+                    <select
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.justifyContent ? editingElementCss.mobileCss.justifyContent : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, justifyContent: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="space-between">Space Between</option>
+                      <option value="space-around">Space Around</option>
+                      <option value="space-evenly">Space Evenly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Align Items</label>
+                    <select
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.alignItems ? editingElementCss.mobileCss.alignItems : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, alignItems: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="baseline">Baseline</option>
+                      <option value="stretch">Stretch</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Gap</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.gap ? editingElementCss.mobileCss.gap : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, gap: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="10px, 1rem"
+                    />
+                  </div>
+                </div>
+              </div>
+              </>
               )}
             </div>
 
@@ -320,6 +585,7 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                 )}
               </button>
               {openAccordions.tablet && (
+              <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
@@ -426,6 +692,98 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                   />
                 </div>
               </div>
+              
+              {/* Tablet Flexbox */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3">Flexbox Options</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Display</label>
+                    <select
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.display ? editingElementCss.tabletCss.display : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, display: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex">Flex</option>
+                      <option value="inline-flex">Inline Flex</option>
+                      <option value="block">Block</option>
+                      <option value="inline-block">Inline Block</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Direction</label>
+                    <select
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.flexDirection ? editingElementCss.tabletCss.flexDirection : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, flexDirection: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="row">Row</option>
+                      <option value="column">Column</option>
+                      <option value="row-reverse">Row Reverse</option>
+                      <option value="column-reverse">Column Reverse</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Justify Content</label>
+                    <select
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.justifyContent ? editingElementCss.tabletCss.justifyContent : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, justifyContent: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="space-between">Space Between</option>
+                      <option value="space-around">Space Around</option>
+                      <option value="space-evenly">Space Evenly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Align Items</label>
+                    <select
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.alignItems ? editingElementCss.tabletCss.alignItems : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, alignItems: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="baseline">Baseline</option>
+                      <option value="stretch">Stretch</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Gap</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.gap ? editingElementCss.tabletCss.gap : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, gap: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="10px, 1rem"
+                    />
+                  </div>
+                </div>
+              </div>
+              </>
               )}
             </div>
 
@@ -449,6 +807,7 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                 )}
               </button>
               {openAccordions.desktop && (
+              <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Width</label>
@@ -555,6 +914,98 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                   />
                 </div>
               </div>
+              
+              {/* Desktop Flexbox */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3">Flexbox Options</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Display</label>
+                    <select
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.display ? editingElementCss.desktopCss.display : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, display: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex">Flex</option>
+                      <option value="inline-flex">Inline Flex</option>
+                      <option value="block">Block</option>
+                      <option value="inline-block">Inline Block</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Direction</label>
+                    <select
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.flexDirection ? editingElementCss.desktopCss.flexDirection : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, flexDirection: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="row">Row</option>
+                      <option value="column">Column</option>
+                      <option value="row-reverse">Row Reverse</option>
+                      <option value="column-reverse">Column Reverse</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Justify Content</label>
+                    <select
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.justifyContent ? editingElementCss.desktopCss.justifyContent : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, justifyContent: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="space-between">Space Between</option>
+                      <option value="space-around">Space Around</option>
+                      <option value="space-evenly">Space Evenly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Align Items</label>
+                    <select
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.alignItems ? editingElementCss.desktopCss.alignItems : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, alignItems: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="baseline">Baseline</option>
+                      <option value="stretch">Stretch</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Gap</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.gap ? editingElementCss.desktopCss.gap : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, gap: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="10px, 1rem"
+                    />
+                  </div>
+                </div>
+              </div>
+              </>
               )}
             </div>
           </div>
@@ -709,6 +1160,114 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
             </div>
           </div>
           )}
+
+          {/* Custom CSS */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Custom CSS</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Default (All Devices)</label>
+                <textarea
+                  value={editingElementCss.customCss || ''}
+                  onChange={(e) => handleChange('customCss', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono text-sm"
+                  rows={4}
+                  placeholder="/* Add custom CSS for this element */&#10;transform: rotate(5deg);&#10;opacity: 0.9;"
+                />
+                <p className="text-xs text-gray-500 mt-1">Add any custom CSS properties. These will be applied to the element.</p>
+              </div>
+
+              {/* Mobile Custom CSS */}
+              <div className="border-t border-gray-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => toggleAccordion('mobile')}
+                  className="w-full flex items-center justify-between text-sm font-semibold text-gray-800 mb-3 hover:text-indigo-600 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Mobile Custom CSS (max-width: 767px)
+                  </div>
+                  {openAccordions.mobile ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+                {openAccordions.mobile && (
+                  <textarea
+                    value={editingElementCss.mobileCustomCss || ''}
+                    onChange={(e) => handleChange('mobileCustomCss', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono text-sm"
+                    rows={4}
+                    placeholder="/* Add custom CSS for mobile devices */&#10;transform: scale(0.9);"
+                  />
+                )}
+              </div>
+
+              {/* Tablet Custom CSS */}
+              <div className="border-t border-gray-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => toggleAccordion('tablet')}
+                  className="w-full flex items-center justify-between text-sm font-semibold text-gray-800 mb-3 hover:text-indigo-600 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    Tablet Custom CSS (768px - 1023px)
+                  </div>
+                  {openAccordions.tablet ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+                {openAccordions.tablet && (
+                  <textarea
+                    value={editingElementCss.tabletCustomCss || ''}
+                    onChange={(e) => handleChange('tabletCustomCss', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono text-sm"
+                    rows={4}
+                    placeholder="/* Add custom CSS for tablet devices */"
+                  />
+                )}
+              </div>
+
+              {/* Desktop Custom CSS */}
+              <div className="border-t border-gray-200 pt-4">
+                <button
+                  type="button"
+                  onClick={() => toggleAccordion('desktop')}
+                  className="w-full flex items-center justify-between text-sm font-semibold text-gray-800 mb-3 hover:text-indigo-600 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Desktop Custom CSS (min-width: 1024px)
+                  </div>
+                  {openAccordions.desktop ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+                {openAccordions.desktop && (
+                  <textarea
+                    value={editingElementCss.desktopCustomCss || ''}
+                    onChange={(e) => handleChange('desktopCustomCss', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono text-sm"
+                    rows={4}
+                    placeholder="/* Add custom CSS for desktop devices */"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Typography - Always visible, but more prominent for text elements */}
           <div>
