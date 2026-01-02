@@ -63,13 +63,77 @@ const extractPopupContent = (html: string): string => {
   if (styleEl) {
     let styleContent = styleEl.textContent || '';
     
-    // Extract only CSS rules that target #popup- IDs
+    // First, extract media queries that contain popup-related selectors
+    // Use a more robust regex that handles nested braces
+    const preservedMediaQueries: string[] = [];
+    let mediaQueryStart = -1;
+    let braceCount = 0;
+    let inMediaQuery = false;
+    let mediaQueryText = '';
+    
+    for (let i = 0; i < styleContent.length; i++) {
+      const char = styleContent[i];
+      const nextChars = styleContent.substring(i, i + 6);
+      
+      // Detect start of media query
+      if (nextChars.startsWith('@media')) {
+        inMediaQuery = true;
+        mediaQueryStart = i;
+        mediaQueryText = '@media';
+        braceCount = 0;
+        i += 5; // Skip '@media'
+        continue;
+      }
+      
+      if (inMediaQuery) {
+        mediaQueryText += char;
+        
+        if (char === '{') {
+          braceCount++;
+        } else if (char === '}') {
+          braceCount--;
+          
+          // End of media query
+          if (braceCount === 0) {
+            // Check if this media query contains popup-related selectors
+            // Check for any popup-related selector patterns
+            const hasPopupSelector = 
+              /#popup-[\w-]+/.test(mediaQueryText) ||
+              /\.przio-[\w-]+/.test(mediaQueryText) ||
+              /#przio-el-[\w-]+/.test(mediaQueryText) ||
+              /\.przio[\s{:]/.test(mediaQueryText) ||
+              /\.przio-popup[\s{:]/.test(mediaQueryText) ||
+              mediaQueryText.includes('#popup-') ||
+              mediaQueryText.includes('.przio-') ||
+              mediaQueryText.includes('#przio-el-') ||
+              mediaQueryText.includes('.przio') ||
+              mediaQueryText.includes('.przio-popup');
+            
+            if (hasPopupSelector) {
+              preservedMediaQueries.push(mediaQueryText);
+              console.log('[extractPopupContent] Preserved media query:', mediaQueryText.substring(0, 100));
+            }
+            
+            inMediaQuery = false;
+            mediaQueryText = '';
+          }
+        }
+      }
+    }
+    
+    // Remove media queries from styleContent to avoid double processing
+    let styleContentWithoutMedia = styleContent;
+    preservedMediaQueries.forEach(mq => {
+      styleContentWithoutMedia = styleContentWithoutMedia.replace(mq, '');
+    });
+    
+    // Extract regular CSS rules that target #popup- IDs
     // Match CSS rules: selector { properties }
     const cssRuleRegex = /([^{]+)\{([^}]+)\}/g;
     const popupRules: string[] = [];
     let match;
     
-    while ((match = cssRuleRegex.exec(styleContent)) !== null) {
+    while ((match = cssRuleRegex.exec(styleContentWithoutMedia)) !== null) {
       const selector = match[1].trim();
       const properties = match[2].trim();
       
@@ -77,17 +141,23 @@ const extractPopupContent = (html: string): string => {
       // 1. #popup-xxx (main popup ID)
       // 2. .przio-xxx (popup element classes)
       // 3. #przio-el-xxx (popup element IDs)
+      // 4. .przio or .przio-popup (popup container classes)
       if (selector.startsWith('#popup-') || 
           selector.startsWith('.przio-') || 
-          selector.startsWith('#przio-el-')) {
+          selector.startsWith('#przio-el-') ||
+          selector.includes('.przio') ||
+          selector.includes('.przio-popup')) {
         popupRules.push(`${selector} { ${properties} }`);
       }
     }
     
+    // Combine regular rules and media queries
+    const allRules = [...popupRules, ...preservedMediaQueries];
+    
     // Create new style element with only popup rules
-    if (popupRules.length > 0) {
+    if (allRules.length > 0) {
       const newStyleEl = doc.createElement('style');
-      newStyleEl.textContent = popupRules.join('\n        ');
+      newStyleEl.textContent = allRules.join('\n        ');
       result += newStyleEl.outerHTML + '\n    ';
     }
   }
@@ -1215,50 +1285,170 @@ export default function PopupActivityPage() {
     let cssFromStyleTag: Record<string, string> = {};
     const elementClass = element?.getAttribute('data-przio-class') || element?.id;
     
-    if (styleTag && elementClass) {
-      const styleContent = styleTag.textContent || '';
-      const classSelector = elementClass.startsWith('przio-') ? `.${elementClass}` : `#${elementClass}`;
-      const ruleRegex = new RegExp(`${classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 's');
-      const match = styleContent.match(ruleRegex);
-      
-      if (match && match[1]) {
-        // Parse CSS properties from the rule
-        const properties = match[1].split(';').filter(p => p.trim());
-        properties.forEach(prop => {
-          const [key, value] = prop.split(':').map(s => s.trim());
-          if (key && value) {
-            cssFromStyleTag[key] = value;
-          }
-        });
-        console.log('📖 Loaded CSS from style tag:', cssFromStyleTag);
-      }
+    // For popup element, prioritize ID over class
+    let actualElementClass = elementClass;
+    if (selector === '.przio' && element?.id && element.id.startsWith('popup-')) {
+      actualElementClass = element.id;
     }
     
-    setEditingElementCss({
-      width: cssFromStyleTag['width'] || '',
-      height: cssFromStyleTag['height'] || '',
-      minWidth: cssFromStyleTag['min-width'] || '',
-      maxWidth: cssFromStyleTag['max-width'] || '',
-      minHeight: cssFromStyleTag['min-height'] || '',
-      maxHeight: cssFromStyleTag['max-height'] || '',
-      padding: cssFromStyleTag['padding'] || '',
-      margin: cssFromStyleTag['margin'] || '',
-      borderWidth: cssFromStyleTag['border-width'] || '',
-      borderStyle: cssFromStyleTag['border-style'] || 'solid',
-      borderColor: cssFromStyleTag['border-color'] || '',
-      backgroundColor: cssFromStyleTag['background-color'] || '',
-      backgroundGradient: cssFromStyleTag['background']?.includes('gradient') ? cssFromStyleTag['background'] : '',
-      color: cssFromStyleTag['color'] || '',
-      fontSize: cssFromStyleTag['font-size'] || '',
-      fontWeight: cssFromStyleTag['font-weight'] || '',
-      fontStyle: cssFromStyleTag['font-style'] || '',
-      fontFamily: cssFromStyleTag['font-family'] || '',
-      borderRadius: cssFromStyleTag['border-radius'] || '',
-      boxShadow: cssFromStyleTag['box-shadow'] || '',
-      mobileCss: {},
-      tabletCss: {},
-      desktopCss: {},
-    });
+    if (styleTag && actualElementClass) {
+      const styleContent = styleTag.textContent || '';
+      const classSelector = actualElementClass.startsWith('przio-') ? `.${actualElementClass}` : `#${actualElementClass}`;
+      const escapedSelector = classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // Load base CSS rule
+      const ruleRegex = new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`, 'g');
+      const match = styleContent.match(ruleRegex);
+      
+      if (match && match[0]) {
+        // Extract CSS properties from the first match (base rule)
+        const ruleContent = match[0].match(/\{([\s\S]*?)\}/);
+        if (ruleContent && ruleContent[1]) {
+          const properties = ruleContent[1].split(';').filter(p => p.trim());
+          properties.forEach(prop => {
+            const [key, value] = prop.split(':').map(s => s.trim());
+            if (key && value) {
+              cssFromStyleTag[key] = value;
+            }
+          });
+        }
+        console.log('📖 Loaded CSS from style tag:', cssFromStyleTag);
+      }
+      
+      // Parse responsive CSS from media queries
+      let mobileCss: Record<string, string> = {};
+      let tabletCss: Record<string, string> = {};
+      let desktopCss: Record<string, string> = {};
+      
+      // Helper function to convert kebab-case to camelCase
+      const toCamelCase = (str: string): string => {
+        return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+      };
+      
+      // Helper function to extract CSS from media query
+      const extractCssFromMediaQuery = (mediaQueryContent: string, selector: string): Record<string, string> => {
+        const css: Record<string, string> = {};
+        // Find the selector rule inside the media query
+        const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Match the selector and its CSS properties
+        const selectorRegex = new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`, 'g');
+        let match;
+        while ((match = selectorRegex.exec(mediaQueryContent)) !== null) {
+          if (match[1]) {
+            const properties = match[1].split(';').filter(p => p.trim());
+            properties.forEach(prop => {
+              const colonIndex = prop.indexOf(':');
+              if (colonIndex > 0) {
+                const key = prop.substring(0, colonIndex).trim();
+                const value = prop.substring(colonIndex + 1).trim();
+                if (key && value) {
+                  // Convert kebab-case to camelCase for object keys
+                  const camelKey = toCamelCase(key);
+                  css[camelKey] = value;
+                }
+              }
+            });
+          }
+        }
+        return css;
+      };
+      
+      // Mobile CSS (max-width: 767px)
+      const mobileMediaRegex = /@media\s*\(max-width:\s*767px\)\s*\{([\s\S]*?)\}/g;
+      let mobileMatch;
+      while ((mobileMatch = mobileMediaRegex.exec(styleContent)) !== null) {
+        if (mobileMatch[1] && mobileMatch[1].includes(classSelector)) {
+          const extracted = extractCssFromMediaQuery(mobileMatch[1], classSelector);
+          if (Object.keys(extracted).length > 0) {
+            mobileCss = { ...mobileCss, ...extracted };
+          }
+        }
+      }
+      
+      // Tablet CSS (768px - 1023px)
+      const tabletMediaRegex = /@media\s*\(min-width:\s*768px\)\s*and\s*\(max-width:\s*1023px\)\s*\{([\s\S]*?)\}/g;
+      let tabletMatch;
+      while ((tabletMatch = tabletMediaRegex.exec(styleContent)) !== null) {
+        if (tabletMatch[1] && tabletMatch[1].includes(classSelector)) {
+          const extracted = extractCssFromMediaQuery(tabletMatch[1], classSelector);
+          if (Object.keys(extracted).length > 0) {
+            tabletCss = { ...tabletCss, ...extracted };
+          }
+        }
+      }
+      
+      // Desktop CSS (min-width: 1024px)
+      const desktopMediaRegex = /@media\s*\(min-width:\s*1024px\)\s*\{([\s\S]*?)\}/g;
+      let desktopMatch;
+      while ((desktopMatch = desktopMediaRegex.exec(styleContent)) !== null) {
+        if (desktopMatch[1] && desktopMatch[1].includes(classSelector)) {
+          const extracted = extractCssFromMediaQuery(desktopMatch[1], classSelector);
+          if (Object.keys(extracted).length > 0) {
+            desktopCss = { ...desktopCss, ...extracted };
+          }
+        }
+      }
+      
+      console.log('📖 Loaded responsive CSS:', { 
+        selector: classSelector,
+        mobileCss, 
+        tabletCss, 
+        desktopCss 
+      });
+      
+      setEditingElementCss({
+        width: cssFromStyleTag['width'] || '',
+        height: cssFromStyleTag['height'] || '',
+        minWidth: cssFromStyleTag['min-width'] || '',
+        maxWidth: cssFromStyleTag['max-width'] || '',
+        minHeight: cssFromStyleTag['min-height'] || '',
+        maxHeight: cssFromStyleTag['max-height'] || '',
+        padding: cssFromStyleTag['padding'] || '',
+        margin: cssFromStyleTag['margin'] || '',
+        borderWidth: cssFromStyleTag['border-width'] || '',
+        borderStyle: cssFromStyleTag['border-style'] || 'solid',
+        borderColor: cssFromStyleTag['border-color'] || '',
+        backgroundColor: cssFromStyleTag['background-color'] || '',
+        backgroundGradient: cssFromStyleTag['background']?.includes('gradient') ? cssFromStyleTag['background'] : '',
+        color: cssFromStyleTag['color'] || '',
+        fontSize: cssFromStyleTag['font-size'] || '',
+        fontWeight: cssFromStyleTag['font-weight'] || '',
+        fontStyle: cssFromStyleTag['font-style'] || '',
+        fontFamily: cssFromStyleTag['font-family'] || '',
+        borderRadius: cssFromStyleTag['border-radius'] || '',
+        boxShadow: cssFromStyleTag['box-shadow'] || '',
+        mobileCss: Object.keys(mobileCss).length > 0 ? mobileCss : {},
+        tabletCss: Object.keys(tabletCss).length > 0 ? tabletCss : {},
+        desktopCss: Object.keys(desktopCss).length > 0 ? desktopCss : {},
+      });
+    } else {
+      // Reset to empty if no element found
+      setEditingElementCss({
+        width: '',
+        height: '',
+        minWidth: '',
+        maxWidth: '',
+        minHeight: '',
+        maxHeight: '',
+        padding: '',
+        margin: '',
+        borderWidth: '',
+        borderStyle: 'solid',
+        borderColor: '',
+        backgroundColor: '',
+        backgroundGradient: '',
+        color: '',
+        fontSize: '',
+        fontWeight: '',
+        fontStyle: '',
+        fontFamily: '',
+        borderRadius: '',
+        boxShadow: '',
+        mobileCss: {},
+        tabletCss: {},
+        desktopCss: {},
+      });
+    }
   }, [formData.html]);
 
   // Handle element click for selection
@@ -1439,21 +1629,26 @@ export default function PopupActivityPage() {
         if (editingElementCss.mobileCss && typeof editingElementCss.mobileCss === 'object') {
           let mobileCssProps = '';
           const mobile = editingElementCss.mobileCss as any;
-          if (mobile?.width) mobileCssProps += `width: ${mobile.width}; `;
-          if (mobile?.height) mobileCssProps += `height: ${mobile.height}; `;
-          if (mobile?.minWidth) mobileCssProps += `min-width: ${mobile.minWidth}; `;
-          if (mobile?.maxWidth) mobileCssProps += `max-width: ${mobile.maxWidth}; `;
-          if (mobile?.minHeight) mobileCssProps += `min-height: ${mobile.minHeight}; `;
-          if (mobile?.maxHeight) mobileCssProps += `max-height: ${mobile.maxHeight}; `;
-          if (mobile?.padding) mobileCssProps += `padding: ${mobile.padding}; `;
-          if (mobile?.margin) mobileCssProps += `margin: ${mobile.margin}; `;
+          if (mobile?.width && mobile.width.trim()) mobileCssProps += `width: ${mobile.width.trim()}; `;
+          if (mobile?.height && mobile.height.trim()) mobileCssProps += `height: ${mobile.height.trim()}; `;
+          if (mobile?.minWidth && mobile.minWidth.trim()) mobileCssProps += `min-width: ${mobile.minWidth.trim()}; `;
+          if (mobile?.maxWidth && mobile.maxWidth.trim()) mobileCssProps += `max-width: ${mobile.maxWidth.trim()}; `;
+          if (mobile?.minHeight && mobile.minHeight.trim()) mobileCssProps += `min-height: ${mobile.minHeight.trim()}; `;
+          if (mobile?.maxHeight && mobile.maxHeight.trim()) mobileCssProps += `max-height: ${mobile.maxHeight.trim()}; `;
+          if (mobile?.padding && mobile.padding.trim()) mobileCssProps += `padding: ${mobile.padding.trim()}; `;
+          if (mobile?.margin && mobile.margin.trim()) mobileCssProps += `margin: ${mobile.margin.trim()}; `;
           
           if (mobileCssProps.trim()) {
             const mobileMediaQuery = `\n        @media (max-width: 767px) {\n            ${classSelector} { ${mobileCssProps.trim()} }\n        }`;
             responsiveCss += mobileMediaQuery;
             console.log('[CSS Editor] Adding mobile responsive CSS:', mobileMediaQuery);
+            console.log('[CSS Editor] Mobile CSS object:', mobile);
             console.log('[CSS Editor] Selector used:', classSelector);
+          } else {
+            console.log('[CSS Editor] Mobile CSS props empty, mobile object:', mobile);
           }
+        } else {
+          console.log('[CSS Editor] Mobile CSS not an object or missing:', editingElementCss.mobileCss);
         }
         
         // Tablet CSS (768px - 1023px)
@@ -1493,9 +1688,13 @@ export default function PopupActivityPage() {
         }
         
         styleTag.textContent = styleContent + responsiveCss;
+        console.log('[applyCssChanges] Final style content:', styleTag.textContent);
+        console.log('[applyCssChanges] Responsive CSS added:', responsiveCss);
       }
       
       const nextHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+      console.log('[applyCssChanges] Extracted HTML length:', nextHtml.length);
+      console.log('[applyCssChanges] Extracted HTML contains mobile media query:', nextHtml.includes('@media (max-width: 767px)'));
       return { ...prev, html: nextHtml };
     });
 
@@ -2171,6 +2370,16 @@ export default function PopupActivityPage() {
     const domain = formData.domain?.trim() || '';
     let websiteUrl = '';
     
+    // Get viewport width based on preview mode
+    let viewportWidth = 'device-width';
+    if (previewMode === 'mobile') {
+      viewportWidth = '375';
+    } else if (previewMode === 'tablet') {
+      viewportWidth = '768';
+    } else {
+      viewportWidth = 'device-width';
+    }
+    
     if (domain) {
       // Add protocol if not present
       if (domain.startsWith('http://') || domain.startsWith('https://')) {
@@ -2334,7 +2543,7 @@ export default function PopupActivityPage() {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=${viewportWidth}, initial-scale=1.0">
     <title>Popup Preview</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 </head>
@@ -2349,7 +2558,7 @@ export default function PopupActivityPage() {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=${viewportWidth}, initial-scale=1.0">
     <title>Popup Preview</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <style>
@@ -2393,7 +2602,7 @@ export default function PopupActivityPage() {
     ${popupHTML}${closeButtonScript}
 </body>
 </html>`;
-  }, [formData.html, formData.domain, closeIconSettings]);
+  }, [formData.html, formData.domain, closeIconSettings, previewMode]);
 
   // Placeholder CSS is not saved in HTML - it's only applied dynamically in preview
   // This useEffect is removed as placeholder is not part of saved HTML
@@ -2901,6 +3110,7 @@ export default function PopupActivityPage() {
                           }}
                         >
                           <iframe
+                            key={`preview-split-${formData.html?.length || 0}-${formData.html?.slice(-20) || ''}-${previewMode}`}
                             ref={previewIframeRef}
                             srcDoc={getPreviewHTML()}
                             className="w-full h-full border-0"
@@ -2988,6 +3198,7 @@ export default function PopupActivityPage() {
                         }}
                       >
                         <iframe
+                          key={`preview-full-${formData.html?.length || 0}-${formData.html?.slice(-20) || ''}-${previewMode}`}
                           ref={previewIframeRef}
                           srcDoc={getPreviewHTML()}
                           className="w-full h-full border-0"
