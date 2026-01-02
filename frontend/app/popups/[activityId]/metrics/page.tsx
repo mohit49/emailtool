@@ -69,7 +69,7 @@ export default function PopupMetricsPage() {
   const [hasMoreEvents, setHasMoreEvents] = useState(false);
   const [eventsSkip, setEventsSkip] = useState(0);
   const [formSubmissions, setFormSubmissions] = useState<Record<string, FormSubmission[]>>({});
-  const [expandedVisitors, setExpandedVisitors] = useState<Set<string>>(new Set());
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set()); // Track by metric._id instead of visitorId
   const [loadingSubmissions, setLoadingSubmissions] = useState<Set<string>>(new Set());
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
   const [filters, setFilters] = useState({
@@ -132,15 +132,15 @@ export default function PopupMetricsPage() {
     }
   };
 
-  const toggleVisitorExpansion = (visitorId: string) => {
-    const newExpanded = new Set(expandedVisitors);
-    if (newExpanded.has(visitorId)) {
-      newExpanded.delete(visitorId);
+  const toggleRowExpansion = (metricId: string, visitorId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(metricId)) {
+      newExpanded.delete(metricId);
     } else {
-      newExpanded.add(visitorId);
+      newExpanded.add(metricId);
       fetchFormSubmissions(visitorId);
     }
-    setExpandedVisitors(newExpanded);
+    setExpandedRows(newExpanded);
   };
 
   useEffect(() => {
@@ -778,11 +778,11 @@ export default function PopupMetricsPage() {
                               <td className="px-6 py-4 text-sm text-gray-700">
                                 <div className="flex items-center gap-2">
                                   <button
-                                    onClick={() => toggleVisitorExpansion(metric.visitorId)}
+                                    onClick={() => toggleRowExpansion(metric._id, metric.visitorId)}
                                     className="p-1 hover:bg-gray-100 rounded transition-colors"
-                                    title={expandedVisitors.has(metric.visitorId) ? 'Hide form submissions' : 'Show form submissions'}
+                                    title={expandedRows.has(metric._id) ? 'Hide form submissions' : 'Show form submissions'}
                                   >
-                                    {expandedVisitors.has(metric.visitorId) ? (
+                                    {expandedRows.has(metric._id) ? (
                                       <ChevronDown className="w-4 h-4 text-gray-500" />
                                     ) : (
                                       <ChevronRight className="w-4 h-4 text-gray-500" />
@@ -823,7 +823,7 @@ export default function PopupMetricsPage() {
                                 {metric.url}
                               </td>
                             </tr>
-                            {expandedVisitors.has(metric.visitorId) && (
+                            {expandedRows.has(metric._id) && (
                               <tr key={`${metric._id}-submissions`} className="bg-gray-50">
                                 <td colSpan={6} className="px-6 py-4">
                                   {loadingSubmissions.has(metric.visitorId) ? (
