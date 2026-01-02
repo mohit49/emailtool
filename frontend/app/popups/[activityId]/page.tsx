@@ -129,7 +129,8 @@ const extractPopupContent = (html: string): string => {
     
     // Extract regular CSS rules that target #popup- IDs
     // Match CSS rules: selector { properties }
-    const cssRuleRegex = /([^{]+)\{([^}]+)\}/g;
+    // Updated regex to handle multi-line selectors and properties
+    const cssRuleRegex = /([^{]+)\{([^}]+)\}/gs;
     const popupRules: string[] = [];
     let match;
     
@@ -138,15 +139,17 @@ const extractPopupContent = (html: string): string => {
       const properties = match[2].trim();
       
       // Keep rules that target:
-      // 1. #popup-xxx (main popup ID)
+      // 1. #popup-xxx (main popup ID) - including combined selectors like #popup-123.przio-popup
       // 2. .przio-xxx (popup element classes)
       // 3. #przio-el-xxx (popup element IDs)
       // 4. .przio or .przio-popup (popup container classes)
-      if (selector.startsWith('#popup-') || 
+      // 5. Combined selectors with ID and class (e.g., #popup-123.przio-popup)
+      if (selector.includes('#popup-') || 
           selector.startsWith('.przio-') || 
           selector.startsWith('#przio-el-') ||
           selector.includes('.przio') ||
-          selector.includes('.przio-popup')) {
+          selector.includes('.przio-popup') ||
+          /#popup-[\w-]+/.test(selector)) {
         popupRules.push(`${selector} { ${properties} }`);
       }
     }
@@ -520,6 +523,17 @@ export default function PopupActivityPage() {
   });
   const previewIframeRef = useRef<HTMLIFrameElement>(null);
   const htmlEditorRef = useRef<HTMLEditorRef>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isAutoSavingRef = useRef(false);
+
+  // Cleanup auto-save timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Drag items for toolbar
@@ -1300,22 +1314,59 @@ export default function PopupActivityPage() {
     const element = doc.querySelector(selector) as HTMLElement;
     
     let cssFromStyleTag: Record<string, string> = {};
-    const elementClass = element?.getAttribute('data-przio-class') || element?.id;
     
-    // For popup element, prioritize ID over class
-    let actualElementClass = elementClass;
-    if (selector === '.przio' && element?.id && element.id.startsWith('popup-')) {
-      actualElementClass = element.id;
-    }
-    
-    if (styleTag && actualElementClass) {
+    if (styleTag && element) {
       const styleContent = styleTag.textContent || '';
-      const classSelector = actualElementClass.startsWith('przio-') ? `.${actualElementClass}` : `#${actualElementClass}`;
+      
+      // Build selector with both ID and class (same as when saving)
+      let classSelector = '';
+      if (element.id) {
+        classSelector = `#${element.id}`;
+        // Also include class if it exists
+        if (element.className) {
+          const classes = element.className.split(' ').filter(c => c.trim()).map(c => `.${c.trim()}`).join('');
+          if (classes) {
+            classSelector += classes;
+          }
+        }
+      } else {
+        // Fallback to class or data attribute
+        const elementClass = element.getAttribute('data-przio-class') || element.className?.split(' ')[0] || '';
+        if (elementClass) {
+          classSelector = elementClass.startsWith('przio-') || elementClass.startsWith('.') ? `.${elementClass.replace(/^\./, '')}` : `#${elementClass}`;
+        } else {
+          classSelector = selector;
+        }
+      }
+      
+      console.log('[loadElementCss] Looking for selector:', classSelector);
       const escapedSelector = classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       
-      // Load base CSS rule
-      const ruleRegex = new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`, 'g');
-      const match = styleContent.match(ruleRegex);
+      // Load base CSS rule - try multiple selector patterns
+      // First try the exact combined selector
+      let ruleRegex = new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`, 'g');
+      let match = styleContent.match(ruleRegex);
+      
+      // If no match, try ID only
+      if (!match && element.id) {
+        const idSelector = `#${element.id}`;
+        const escapedIdSelector = idSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        ruleRegex = new RegExp(`${escapedIdSelector}\\s*\\{([\\s\\S]*?)\\}`, 'g');
+        match = styleContent.match(ruleRegex);
+        console.log('[loadElementCss] Trying ID-only selector:', idSelector);
+      }
+      
+      // If still no match, try class only
+      if (!match && element.className) {
+        const firstClass = element.className.split(' ')[0];
+        if (firstClass) {
+          const classSelector = `.${firstClass}`;
+          const escapedClassSelector = classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          ruleRegex = new RegExp(`${escapedClassSelector}\\s*\\{([\\s\\S]*?)\\}`, 'g');
+          match = styleContent.match(ruleRegex);
+          console.log('[loadElementCss] Trying class-only selector:', classSelector);
+        }
+      }
       
       if (match && match[0]) {
         // Extract CSS properties from the first match (base rule)
@@ -1323,13 +1374,22 @@ export default function PopupActivityPage() {
         if (ruleContent && ruleContent[1]) {
           const properties = ruleContent[1].split(';').filter(p => p.trim());
           properties.forEach(prop => {
-            const [key, value] = prop.split(':').map(s => s.trim());
-            if (key && value) {
-              cssFromStyleTag[key] = value;
+            const colonIndex = prop.indexOf(':');
+            if (colonIndex > 0) {
+              const key = prop.substring(0, colonIndex).trim();
+              const value = prop.substring(colonIndex + 1).trim();
+              if (key && value) {
+                cssFromStyleTag[key] = value;
+              }
             }
           });
         }
         console.log('📖 Loaded CSS from style tag:', cssFromStyleTag);
+        console.log('📖 Matched rule:', match[0].substring(0, 300));
+      } else {
+        console.log('📖 No CSS rule found for selector:', classSelector);
+        console.log('📖 Available style content length:', styleContent.length);
+        console.log('📖 Style content preview:', styleContent.substring(0, 500));
       }
       
       // Parse responsive CSS from media queries
@@ -1347,7 +1407,7 @@ export default function PopupActivityPage() {
         const css: Record<string, string> = {};
         // Find the selector rule inside the media query
         const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // Match the selector and its CSS properties
+        // Match the selector and its CSS properties - use non-greedy match
         const selectorRegex = new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\}`, 'g');
         let match;
         while ((match = selectorRegex.exec(mediaQueryContent)) !== null) {
@@ -1359,7 +1419,8 @@ export default function PopupActivityPage() {
                 const key = prop.substring(0, colonIndex).trim();
                 const value = prop.substring(colonIndex + 1).trim();
                 if (key && value) {
-                  // Convert kebab-case to camelCase for object keys
+                  // Convert kebab-case to camelCase for object keys to match UI expectations
+                  // UI expects: width, height, flexDirection, display, etc.
                   const camelKey = toCamelCase(key);
                   css[camelKey] = value;
                 }
@@ -1367,41 +1428,136 @@ export default function PopupActivityPage() {
             });
           }
         }
+        console.log('[extractCssFromMediaQuery] Extracted CSS for selector', selector, ':', css);
         return css;
       };
       
-      // Mobile CSS (max-width: 767px)
-      const mobileMediaRegex = /@media\s*\(max-width:\s*767px\)\s*\{([\s\S]*?)\}/g;
+      // Mobile CSS (max-width: 767px) - Improved regex to handle nested braces
+      const mobileMediaRegex = /@media\s*\(max-width:\s*767px\)\s*\{/g;
       let mobileMatch;
+      let mobileStartIndex = -1;
+      
+      // Find all mobile media queries and extract with proper brace matching
       while ((mobileMatch = mobileMediaRegex.exec(styleContent)) !== null) {
-        if (mobileMatch[1] && mobileMatch[1].includes(classSelector)) {
-          const extracted = extractCssFromMediaQuery(mobileMatch[1], classSelector);
+        mobileStartIndex = mobileMatch.index + mobileMatch[0].length;
+        let braceCount = 1;
+        let i = mobileStartIndex;
+        let mobileContent = '';
+        
+        // Extract content until matching closing brace
+        while (i < styleContent.length && braceCount > 0) {
+          if (styleContent[i] === '{') braceCount++;
+          else if (styleContent[i] === '}') braceCount--;
+          if (braceCount > 0) {
+            mobileContent += styleContent[i];
+          }
+          i++;
+        }
+        
+        if (mobileContent) {
+          console.log('[loadElementCss] Mobile media query content found, length:', mobileContent.length);
+          // Try combined selector first, then fallback to ID or class
+          let extracted = extractCssFromMediaQuery(mobileContent, classSelector);
+          console.log('[loadElementCss] Mobile CSS extracted with combined selector:', Object.keys(extracted).length);
+          
+          if (Object.keys(extracted).length === 0 && element.id) {
+            extracted = extractCssFromMediaQuery(mobileContent, `#${element.id}`);
+            console.log('[loadElementCss] Mobile CSS extracted with ID selector:', Object.keys(extracted).length);
+          }
+          if (Object.keys(extracted).length === 0 && element.className) {
+            const firstClass = element.className.split(' ')[0];
+            if (firstClass) {
+              extracted = extractCssFromMediaQuery(mobileContent, `.${firstClass}`);
+              console.log('[loadElementCss] Mobile CSS extracted with class selector:', Object.keys(extracted).length);
+            }
+          }
           if (Object.keys(extracted).length > 0) {
             mobileCss = { ...mobileCss, ...extracted };
+            console.log('[loadElementCss] Mobile CSS loaded:', mobileCss);
           }
         }
       }
       
-      // Tablet CSS (768px - 1023px)
-      const tabletMediaRegex = /@media\s*\(min-width:\s*768px\)\s*and\s*\(max-width:\s*1023px\)\s*\{([\s\S]*?)\}/g;
+      // Tablet CSS (768px - 1023px) - Improved regex to handle nested braces
+      const tabletMediaRegex = /@media\s*\(min-width:\s*768px\)\s*and\s*\(max-width:\s*1023px\)\s*\{/g;
       let tabletMatch;
+      let tabletStartIndex = -1;
+      
+      // Find all tablet media queries and extract with proper brace matching
       while ((tabletMatch = tabletMediaRegex.exec(styleContent)) !== null) {
-        if (tabletMatch[1] && tabletMatch[1].includes(classSelector)) {
-          const extracted = extractCssFromMediaQuery(tabletMatch[1], classSelector);
+        tabletStartIndex = tabletMatch.index + tabletMatch[0].length;
+        let braceCount = 1;
+        let i = tabletStartIndex;
+        let tabletContent = '';
+        
+        // Extract content until matching closing brace
+        while (i < styleContent.length && braceCount > 0) {
+          if (styleContent[i] === '{') braceCount++;
+          else if (styleContent[i] === '}') braceCount--;
+          if (braceCount > 0) {
+            tabletContent += styleContent[i];
+          }
+          i++;
+        }
+        
+        if (tabletContent) {
+          console.log('[loadElementCss] Tablet media query content found, length:', tabletContent.length);
+          // Try combined selector first, then fallback to ID or class
+          let extracted = extractCssFromMediaQuery(tabletContent, classSelector);
+          if (Object.keys(extracted).length === 0 && element.id) {
+            extracted = extractCssFromMediaQuery(tabletContent, `#${element.id}`);
+          }
+          if (Object.keys(extracted).length === 0 && element.className) {
+            const firstClass = element.className.split(' ')[0];
+            if (firstClass) {
+              extracted = extractCssFromMediaQuery(tabletContent, `.${firstClass}`);
+            }
+          }
           if (Object.keys(extracted).length > 0) {
             tabletCss = { ...tabletCss, ...extracted };
+            console.log('[loadElementCss] Tablet CSS loaded:', tabletCss);
           }
         }
       }
       
-      // Desktop CSS (min-width: 1024px)
-      const desktopMediaRegex = /@media\s*\(min-width:\s*1024px\)\s*\{([\s\S]*?)\}/g;
+      // Desktop CSS (min-width: 1024px) - Improved regex to handle nested braces
+      const desktopMediaRegex = /@media\s*\(min-width:\s*1024px\)\s*\{/g;
       let desktopMatch;
+      let desktopStartIndex = -1;
+      
+      // Find all desktop media queries and extract with proper brace matching
       while ((desktopMatch = desktopMediaRegex.exec(styleContent)) !== null) {
-        if (desktopMatch[1] && desktopMatch[1].includes(classSelector)) {
-          const extracted = extractCssFromMediaQuery(desktopMatch[1], classSelector);
+        desktopStartIndex = desktopMatch.index + desktopMatch[0].length;
+        let braceCount = 1;
+        let i = desktopStartIndex;
+        let desktopContent = '';
+        
+        // Extract content until matching closing brace
+        while (i < styleContent.length && braceCount > 0) {
+          if (styleContent[i] === '{') braceCount++;
+          else if (styleContent[i] === '}') braceCount--;
+          if (braceCount > 0) {
+            desktopContent += styleContent[i];
+          }
+          i++;
+        }
+        
+        if (desktopContent) {
+          console.log('[loadElementCss] Desktop media query content found, length:', desktopContent.length);
+          // Try combined selector first, then fallback to ID or class
+          let extracted = extractCssFromMediaQuery(desktopContent, classSelector);
+          if (Object.keys(extracted).length === 0 && element.id) {
+            extracted = extractCssFromMediaQuery(desktopContent, `#${element.id}`);
+          }
+          if (Object.keys(extracted).length === 0 && element.className) {
+            const firstClass = element.className.split(' ')[0];
+            if (firstClass) {
+              extracted = extractCssFromMediaQuery(desktopContent, `.${firstClass}`);
+            }
+          }
           if (Object.keys(extracted).length > 0) {
             desktopCss = { ...desktopCss, ...extracted };
+            console.log('[loadElementCss] Desktop CSS loaded:', desktopCss);
           }
         }
       }
@@ -1413,39 +1569,44 @@ export default function PopupActivityPage() {
         desktopCss 
       });
       
+      // Helper to get CSS value (check both kebab-case and camelCase)
+      const getCssValue = (kebabKey: string, camelKey?: string): string => {
+        return cssFromStyleTag[kebabKey] || (camelKey ? cssFromStyleTag[camelKey] : '') || '';
+      };
+      
       setEditingElementCss({
-        width: cssFromStyleTag['width'] || '',
-        height: cssFromStyleTag['height'] || '',
-        minWidth: cssFromStyleTag['min-width'] || '',
-        maxWidth: cssFromStyleTag['max-width'] || '',
-        minHeight: cssFromStyleTag['min-height'] || '',
-        maxHeight: cssFromStyleTag['max-height'] || '',
-        padding: cssFromStyleTag['padding'] || '',
-        margin: cssFromStyleTag['margin'] || '',
-        borderWidth: cssFromStyleTag['border-width'] || '',
-        borderStyle: cssFromStyleTag['border-style'] || 'solid',
-        borderColor: cssFromStyleTag['border-color'] || '',
-        backgroundColor: cssFromStyleTag['background-color'] || '',
-        backgroundGradient: cssFromStyleTag['background']?.includes('gradient') ? cssFromStyleTag['background'] : '',
-        color: cssFromStyleTag['color'] || '',
-        fontSize: cssFromStyleTag['font-size'] || '',
-        fontWeight: cssFromStyleTag['font-weight'] || '',
-        fontStyle: cssFromStyleTag['font-style'] || '',
-        fontFamily: cssFromStyleTag['font-family'] || '',
-        borderRadius: cssFromStyleTag['border-radius'] || '',
-        boxShadow: cssFromStyleTag['box-shadow'] || '',
+        width: getCssValue('width'),
+        height: getCssValue('height'),
+        minWidth: getCssValue('min-width', 'minWidth'),
+        maxWidth: getCssValue('max-width', 'maxWidth'),
+        minHeight: getCssValue('min-height', 'minHeight'),
+        maxHeight: getCssValue('max-height', 'maxHeight'),
+        padding: getCssValue('padding'),
+        margin: getCssValue('margin'),
+        borderWidth: getCssValue('border-width', 'borderWidth'),
+        borderStyle: getCssValue('border-style', 'borderStyle') || 'solid',
+        borderColor: getCssValue('border-color', 'borderColor'),
+        backgroundColor: getCssValue('background-color', 'backgroundColor'),
+        backgroundGradient: (cssFromStyleTag['background']?.includes('gradient') ? cssFromStyleTag['background'] : '') || '',
+        color: getCssValue('color'),
+        fontSize: getCssValue('font-size', 'fontSize'),
+        fontWeight: getCssValue('font-weight', 'fontWeight'),
+        fontStyle: getCssValue('font-style', 'fontStyle'),
+        fontFamily: getCssValue('font-family', 'fontFamily'),
+        borderRadius: getCssValue('border-radius', 'borderRadius'),
+        boxShadow: getCssValue('box-shadow', 'boxShadow'),
         // Flexbox properties
-        display: cssFromStyleTag['display'] || '',
-        flexDirection: cssFromStyleTag['flex-direction'] || '',
-        flexWrap: cssFromStyleTag['flex-wrap'] || '',
-        justifyContent: cssFromStyleTag['justify-content'] || '',
-        alignItems: cssFromStyleTag['align-items'] || '',
-        alignContent: cssFromStyleTag['align-content'] || '',
-        gap: cssFromStyleTag['gap'] || '',
-        flexGrow: cssFromStyleTag['flex-grow'] || '',
-        flexShrink: cssFromStyleTag['flex-shrink'] || '',
-        flexBasis: cssFromStyleTag['flex-basis'] || '',
-        alignSelf: cssFromStyleTag['align-self'] || '',
+        display: getCssValue('display'),
+        flexDirection: getCssValue('flex-direction', 'flexDirection'),
+        flexWrap: getCssValue('flex-wrap', 'flexWrap'),
+        justifyContent: getCssValue('justify-content', 'justifyContent'),
+        alignItems: getCssValue('align-items', 'alignItems'),
+        alignContent: getCssValue('align-content', 'alignContent'),
+        gap: getCssValue('gap'),
+        flexGrow: getCssValue('flex-grow', 'flexGrow'),
+        flexShrink: getCssValue('flex-shrink', 'flexShrink'),
+        flexBasis: getCssValue('flex-basis', 'flexBasis'),
+        alignSelf: getCssValue('align-self', 'alignSelf'),
         mobileCss: Object.keys(mobileCss).length > 0 ? mobileCss : {},
         tabletCss: Object.keys(tabletCss).length > 0 ? tabletCss : {},
         desktopCss: Object.keys(desktopCss).length > 0 ? desktopCss : {},
@@ -1605,37 +1766,49 @@ export default function PopupActivityPage() {
   }, [selectedElement]);
 
   // Apply CSS changes to element
-  const applyCssChanges = useCallback(() => {
-    if (!selectedElement.id) return;
+  const applyCssChanges = useCallback(async () => {
+    if (!selectedElement.id || !activityId || !token) return;
 
     const selector = selectedElement.id;
     
     // Build CSS string from editing state
     let cssProperties = '';
-    if (editingElementCss.width) cssProperties += `width: ${editingElementCss.width}; `;
-    if (editingElementCss.height) cssProperties += `height: ${editingElementCss.height}; `;
-    if (editingElementCss.minWidth) cssProperties += `min-width: ${editingElementCss.minWidth}; `;
-    if (editingElementCss.maxWidth) cssProperties += `max-width: ${editingElementCss.maxWidth}; `;
-    if (editingElementCss.minHeight) cssProperties += `min-height: ${editingElementCss.minHeight}; `;
-    if (editingElementCss.maxHeight) cssProperties += `max-height: ${editingElementCss.maxHeight}; `;
-    if (editingElementCss.padding) cssProperties += `padding: ${editingElementCss.padding}; `;
-    if (editingElementCss.margin) cssProperties += `margin: ${editingElementCss.margin}; `;
-    if (editingElementCss.borderWidth) cssProperties += `border-width: ${editingElementCss.borderWidth}; `;
-    if (editingElementCss.borderStyle) cssProperties += `border-style: ${editingElementCss.borderStyle}; `;
-    if (editingElementCss.borderColor) cssProperties += `border-color: ${editingElementCss.borderColor}; `;
+    if (editingElementCss.width && editingElementCss.width.trim()) cssProperties += `width: ${editingElementCss.width.trim()}; `;
+    if (editingElementCss.height && editingElementCss.height.trim()) cssProperties += `height: ${editingElementCss.height.trim()}; `;
+    if (editingElementCss.minWidth && editingElementCss.minWidth.trim()) cssProperties += `min-width: ${editingElementCss.minWidth.trim()}; `;
+    if (editingElementCss.maxWidth && editingElementCss.maxWidth.trim()) cssProperties += `max-width: ${editingElementCss.maxWidth.trim()}; `;
+    if (editingElementCss.minHeight && editingElementCss.minHeight.trim()) cssProperties += `min-height: ${editingElementCss.minHeight.trim()}; `;
+    if (editingElementCss.maxHeight && editingElementCss.maxHeight.trim()) cssProperties += `max-height: ${editingElementCss.maxHeight.trim()}; `;
+    if (editingElementCss.padding && editingElementCss.padding.trim()) cssProperties += `padding: ${editingElementCss.padding.trim()}; `;
+    if (editingElementCss.margin && editingElementCss.margin.trim()) cssProperties += `margin: ${editingElementCss.margin.trim()}; `;
+    if (editingElementCss.borderWidth && editingElementCss.borderWidth.trim()) cssProperties += `border-width: ${editingElementCss.borderWidth.trim()}; `;
+    if (editingElementCss.borderStyle && editingElementCss.borderStyle.trim()) cssProperties += `border-style: ${editingElementCss.borderStyle.trim()}; `;
+    if (editingElementCss.borderColor && editingElementCss.borderColor.trim()) cssProperties += `border-color: ${editingElementCss.borderColor.trim()}; `;
     // Background: gradient takes precedence over color
-    if (editingElementCss.backgroundGradient) {
-      cssProperties += `background: ${editingElementCss.backgroundGradient}; `;
-    } else if (editingElementCss.backgroundColor) {
-      cssProperties += `background-color: ${editingElementCss.backgroundColor}; `;
+    if (editingElementCss.backgroundGradient && editingElementCss.backgroundGradient.trim()) {
+      cssProperties += `background: ${editingElementCss.backgroundGradient.trim()}; `;
+    } else if (editingElementCss.backgroundColor && editingElementCss.backgroundColor.trim()) {
+      cssProperties += `background-color: ${editingElementCss.backgroundColor.trim()}; `;
     }
-    if (editingElementCss.color) cssProperties += `color: ${editingElementCss.color}; `;
-    if (editingElementCss.fontSize) cssProperties += `font-size: ${editingElementCss.fontSize}; `;
-    if (editingElementCss.fontWeight) cssProperties += `font-weight: ${editingElementCss.fontWeight}; `;
-    if (editingElementCss.fontStyle) cssProperties += `font-style: ${editingElementCss.fontStyle}; `;
-    if (editingElementCss.fontFamily) cssProperties += `font-family: ${editingElementCss.fontFamily}; `;
-    if (editingElementCss.borderRadius) cssProperties += `border-radius: ${editingElementCss.borderRadius}; `;
-    if (editingElementCss.boxShadow) cssProperties += `box-shadow: ${editingElementCss.boxShadow}; `;
+    if (editingElementCss.color && editingElementCss.color.trim()) cssProperties += `color: ${editingElementCss.color.trim()}; `;
+    if (editingElementCss.fontSize && editingElementCss.fontSize.trim()) cssProperties += `font-size: ${editingElementCss.fontSize.trim()}; `;
+    if (editingElementCss.fontWeight && editingElementCss.fontWeight.trim()) cssProperties += `font-weight: ${editingElementCss.fontWeight.trim()}; `;
+    if (editingElementCss.fontStyle && editingElementCss.fontStyle.trim()) cssProperties += `font-style: ${editingElementCss.fontStyle.trim()}; `;
+    if (editingElementCss.fontFamily && editingElementCss.fontFamily.trim()) cssProperties += `font-family: ${editingElementCss.fontFamily.trim()}; `;
+    if (editingElementCss.borderRadius && editingElementCss.borderRadius.trim()) cssProperties += `border-radius: ${editingElementCss.borderRadius.trim()}; `;
+    if (editingElementCss.boxShadow && editingElementCss.boxShadow.trim()) cssProperties += `box-shadow: ${editingElementCss.boxShadow.trim()}; `;
+    // Add Flexbox properties
+    if (editingElementCss.display && editingElementCss.display.trim()) cssProperties += `display: ${editingElementCss.display.trim()}; `;
+    if (editingElementCss.flexDirection && editingElementCss.flexDirection.trim()) cssProperties += `flex-direction: ${editingElementCss.flexDirection.trim()}; `;
+    if (editingElementCss.flexWrap && editingElementCss.flexWrap.trim()) cssProperties += `flex-wrap: ${editingElementCss.flexWrap.trim()}; `;
+    if (editingElementCss.justifyContent && editingElementCss.justifyContent.trim()) cssProperties += `justify-content: ${editingElementCss.justifyContent.trim()}; `;
+    if (editingElementCss.alignItems && editingElementCss.alignItems.trim()) cssProperties += `align-items: ${editingElementCss.alignItems.trim()}; `;
+    if (editingElementCss.alignContent && editingElementCss.alignContent.trim()) cssProperties += `align-content: ${editingElementCss.alignContent.trim()}; `;
+    if (editingElementCss.gap && editingElementCss.gap.trim()) cssProperties += `gap: ${editingElementCss.gap.trim()}; `;
+    if (editingElementCss.flexGrow && editingElementCss.flexGrow.trim()) cssProperties += `flex-grow: ${editingElementCss.flexGrow.trim()}; `;
+    if (editingElementCss.flexShrink && editingElementCss.flexShrink.trim()) cssProperties += `flex-shrink: ${editingElementCss.flexShrink.trim()}; `;
+    if (editingElementCss.flexBasis && editingElementCss.flexBasis.trim()) cssProperties += `flex-basis: ${editingElementCss.flexBasis.trim()}; `;
+    if (editingElementCss.alignSelf && editingElementCss.alignSelf.trim()) cssProperties += `align-self: ${editingElementCss.alignSelf.trim()}; `;
     // Add custom CSS if provided
     if (editingElementCss.customCss && editingElementCss.customCss.trim()) {
       // Parse custom CSS and add it (remove comments and trim)
@@ -1645,6 +1818,7 @@ export default function PopupActivityPage() {
       }
     }
 
+    let updatedHtml = '';
     setFormData(prev => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(wrapForParsing(prev.html || ''), 'text/html');
@@ -1653,13 +1827,26 @@ export default function PopupActivityPage() {
       
       if (styleTag && targetElement) {
         let styleContent = styleTag.textContent || '';
-        // For popup element, prioritize ID over class for better specificity
-        let elementClass = targetElement.getAttribute('data-przio-class') || targetElement.id;
-        // If selector is .przio but element has an ID (like popup-xxx), use the ID
-        if (selector === '.przio' && targetElement.id && targetElement.id.startsWith('popup-')) {
-          elementClass = targetElement.id;
+        // Build selector with both ID and class for better specificity
+        let classSelector = '';
+        if (targetElement.id) {
+          classSelector = `#${targetElement.id}`;
+          // Also include class if it exists
+          if (targetElement.className) {
+            const classes = targetElement.className.split(' ').filter(c => c.trim()).map(c => `.${c.trim()}`).join('');
+            if (classes) {
+              classSelector += classes;
+            }
+          }
+        } else {
+          // Fallback to class or data attribute
+          const elementClass = targetElement.getAttribute('data-przio-class') || targetElement.className?.split(' ')[0] || '';
+          if (elementClass) {
+            classSelector = elementClass.startsWith('przio-') || elementClass.startsWith('.') ? `.${elementClass.replace(/^\./, '')}` : `#${elementClass}`;
+          } else {
+            classSelector = selector;
+          }
         }
-        const classSelector = elementClass ? (elementClass.startsWith('przio-') ? `.${elementClass}` : `#${elementClass}`) : selector;
         
         // Remove existing rules for this selector (including media queries)
         const escapedSelector = classSelector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1789,16 +1976,119 @@ export default function PopupActivityPage() {
         styleTag.textContent = styleContent + responsiveCss;
         console.log('[applyCssChanges] Final style content:', styleTag.textContent);
         console.log('[applyCssChanges] Responsive CSS added:', responsiveCss);
+        console.log('[applyCssChanges] Base CSS properties:', cssProperties);
+        console.log('[applyCssChanges] Selector used:', classSelector);
+        console.log('[applyCssChanges] All flexbox properties:', {
+          display: editingElementCss.display,
+          flexDirection: editingElementCss.flexDirection,
+          flexWrap: editingElementCss.flexWrap,
+          justifyContent: editingElementCss.justifyContent,
+          alignItems: editingElementCss.alignItems,
+          alignContent: editingElementCss.alignContent,
+          gap: editingElementCss.gap,
+          flexGrow: editingElementCss.flexGrow,
+          flexShrink: editingElementCss.flexShrink,
+          flexBasis: editingElementCss.flexBasis,
+          alignSelf: editingElementCss.alignSelf,
+        });
       }
       
       const nextHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
       console.log('[applyCssChanges] Extracted HTML length:', nextHtml.length);
       console.log('[applyCssChanges] Extracted HTML contains mobile media query:', nextHtml.includes('@media (max-width: 767px)'));
+      console.log('[applyCssChanges] Extracted HTML contains flexbox:', nextHtml.includes('flex-direction') || nextHtml.includes('display: flex') || nextHtml.includes('display:flex'));
+      updatedHtml = nextHtml;
       return { ...prev, html: nextHtml };
     });
 
+    // Save to database immediately
+    if (updatedHtml) {
+      setSaving(true);
+      try {
+        // Clean HTML before saving - remove any placeholder elements
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(wrapForParsing(updatedHtml || ''), 'text/html');
+        const placeholderEl = doc.querySelector('.przio-placeholder');
+        if (placeholderEl) {
+          placeholderEl.remove();
+        }
+        const htmlToSave = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+
+        // Validate URL conditions
+        const validConditions = formData.urlConditions.filter(
+          cond => cond.value.trim() || cond.type === 'landing'
+        );
+
+        // Apply single domain to all conditions
+        const conditionsWithDomain = validConditions.map(cond => ({
+          ...cond,
+          domain: formData.domain.trim() || undefined,
+        }));
+
+        // Use the first logic operator, or default to 'OR' if none
+        const logicOperator = formData.logicOperators.length > 0 
+          ? formData.logicOperators[0] 
+          : 'OR';
+
+        const response = await axios.put(
+          `${API_URL}/popup-activities/${activityId}`,
+          {
+            name: formData.name.trim(),
+            urlConditions: conditionsWithDomain,
+            logicOperator: logicOperator,
+            html: htmlToSave,
+            status: formData.status,
+            popupSettings: {
+              position: formData.position,
+              placeholderCss: popupCssSettings,
+              animation: formData.animation,
+              domain: formData.domain.trim() || undefined,
+              showCloseButton: closeIconSettings.showCloseButton,
+              closeButtonColor: closeIconSettings.closeButtonColor,
+              closeButtonSize: closeIconSettings.closeButtonSize,
+              closeButtonPosition: closeIconSettings.closeButtonPosition,
+              trigger: triggerSettings.trigger,
+              timeout: triggerSettings.trigger === 'timeout' ? triggerSettings.timeout : undefined,
+              elementSelector: triggerSettings.trigger === 'elementExists' ? triggerSettings.elementSelector : undefined,
+              inactivityTimeout: triggerSettings.trigger === 'exitIntent' ? triggerSettings.inactivityTimeout : undefined,
+              scrollPercentage: triggerSettings.trigger === 'scrollPercentage' ? triggerSettings.scrollPercentage : undefined,
+              cookieEnabled: triggerSettings.cookieEnabled,
+              cookieExpiry: triggerSettings.cookieEnabled ? triggerSettings.cookieExpiry : undefined,
+              sessionEnabled: triggerSettings.sessionEnabled,
+              exitIntentMinTimeOnPage: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentMinTimeOnPage : undefined,
+              exitIntentMinScrollPercentage: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentMinScrollPercentage : undefined,
+              exitIntentCooldownDays: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentCooldownDays : undefined,
+              exitIntentMaxPerSession: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentMaxPerSession : undefined,
+              backdropEnabled: backdropSettings.backdropEnabled,
+              backdropColor: backdropSettings.backdropEnabled ? backdropSettings.backdropColor : undefined,
+              backdropOpacity: backdropSettings.backdropEnabled ? backdropSettings.backdropOpacity : undefined,
+              closeOnSuccessfulSubmit: submitTriggerSettings.closeOnSuccessfulSubmit,
+            },
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        setActivity(response.data.activity);
+        setAlert({
+          isOpen: true,
+          message: 'CSS changes saved successfully',
+          type: 'success',
+        });
+      } catch (error: any) {
+        setAlert({
+          isOpen: true,
+          message: error.response?.data?.error || 'Failed to save CSS changes',
+          type: 'error',
+        });
+      } finally {
+        setSaving(false);
+      }
+    }
+
     setShowCssEditor(false);
-  }, [selectedElement, editingElementCss]);
+  }, [selectedElement, editingElementCss, activityId, token, formData, popupCssSettings, closeIconSettings, triggerSettings, backdropSettings, submitTriggerSettings]);
 
   // Handle image upload
   const handleImageUpload = useCallback(async (file: File, elementSelector: string) => {
@@ -2878,6 +3168,92 @@ export default function PopupActivityPage() {
     });
   }, [activityId]);
 
+  // Auto-save function (debounced)
+  const autoSave = useCallback(async (htmlToSave: string) => {
+    if (!activityId || !token || !formData.name.trim() || isAutoSavingRef.current) {
+      return;
+    }
+
+    isAutoSavingRef.current = true;
+    try {
+      // Validate URL conditions
+      const validConditions = formData.urlConditions.filter(
+        cond => cond.value.trim() || cond.type === 'landing'
+      );
+
+      // Apply single domain to all conditions
+      const conditionsWithDomain = validConditions.map(cond => ({
+        ...cond,
+        domain: formData.domain.trim() || undefined,
+      }));
+
+      // Use the first logic operator, or default to 'OR' if none
+      const logicOperator = formData.logicOperators.length > 0 
+        ? formData.logicOperators[0] 
+        : 'OR';
+
+      // Clean HTML before saving - remove any placeholder elements
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(wrapForParsing(htmlToSave || ''), 'text/html');
+      const placeholderEl = doc.querySelector('.przio-placeholder');
+      if (placeholderEl) {
+        placeholderEl.remove();
+      }
+      const cleanedHtml = extractPopupContent('<!doctype html>' + doc.documentElement.outerHTML);
+
+      await axios.put(
+        `${API_URL}/popup-activities/${activityId}`,
+        {
+          name: formData.name.trim(),
+          urlConditions: conditionsWithDomain,
+          logicOperator: logicOperator,
+          html: cleanedHtml,
+          status: formData.status,
+          popupSettings: {
+            position: formData.position,
+            placeholderCss: popupCssSettings,
+            animation: formData.animation,
+            domain: formData.domain.trim() || undefined,
+            showCloseButton: closeIconSettings.showCloseButton,
+            closeButtonColor: closeIconSettings.closeButtonColor,
+            closeButtonSize: closeIconSettings.closeButtonSize,
+            closeButtonPosition: closeIconSettings.closeButtonPosition,
+            trigger: triggerSettings.trigger,
+            timeout: triggerSettings.trigger === 'timeout' ? triggerSettings.timeout : undefined,
+            elementSelector: triggerSettings.trigger === 'elementExists' ? triggerSettings.elementSelector : undefined,
+            inactivityTimeout: triggerSettings.trigger === 'exitIntent' ? triggerSettings.inactivityTimeout : undefined,
+            scrollPercentage: triggerSettings.trigger === 'scrollPercentage' ? triggerSettings.scrollPercentage : undefined,
+            cookieEnabled: triggerSettings.cookieEnabled,
+            cookieExpiry: triggerSettings.cookieEnabled ? triggerSettings.cookieExpiry : undefined,
+            sessionEnabled: triggerSettings.sessionEnabled,
+            exitIntentMinTimeOnPage: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentMinTimeOnPage : undefined,
+            exitIntentMinScrollPercentage: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentMinScrollPercentage : undefined,
+            exitIntentCooldownDays: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentCooldownDays : undefined,
+            exitIntentMaxPerSession: triggerSettings.trigger === 'exitIntent' ? triggerSettings.exitIntentMaxPerSession : undefined,
+            backdropEnabled: backdropSettings.backdropEnabled,
+            backdropColor: backdropSettings.backdropEnabled ? backdropSettings.backdropColor : undefined,
+            backdropOpacity: backdropSettings.backdropEnabled ? backdropSettings.backdropOpacity : undefined,
+            closeOnSuccessfulSubmit: submitTriggerSettings.closeOnSuccessfulSubmit,
+          },
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Update activity state silently (no alert for auto-save)
+      const response = await axios.get(`${API_URL}/popup-activities/${activityId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setActivity(response.data.activity);
+    } catch (error: any) {
+      console.error('Auto-save failed:', error);
+      // Don't show alert for auto-save failures to avoid interrupting user
+    } finally {
+      isAutoSavingRef.current = false;
+    }
+  }, [activityId, token, formData, popupCssSettings, closeIconSettings, triggerSettings, backdropSettings, submitTriggerSettings]);
+
   const handleSave = async () => {
     if (!activityId || !formData.name.trim()) {
       setAlert({
@@ -3151,9 +3527,19 @@ export default function PopupActivityPage() {
                   <HTMLEditor
                     value={formData.html}
                     onChange={(val) => {
-                      // Extract only style and div, remove body/html tags
-                      const cleaned = val ? extractPopupContent(val) : '';
-                      setFormData(prev => ({ ...prev, html: cleaned }));
+                      // Allow full HTML editing - user can edit everything including popup container
+                      const htmlValue = val || '';
+                      setFormData(prev => ({ ...prev, html: htmlValue }));
+                      
+                      // Clear existing timeout
+                      if (autoSaveTimeoutRef.current) {
+                        clearTimeout(autoSaveTimeoutRef.current);
+                      }
+                      
+                      // Auto-save after 2 seconds of inactivity
+                      autoSaveTimeoutRef.current = setTimeout(() => {
+                        autoSave(htmlValue);
+                      }, 2000);
                     }}
                     isFullscreen={false}
                     onFullscreenChange={() => {}}
@@ -3171,9 +3557,19 @@ export default function PopupActivityPage() {
                     <HTMLEditor
                       value={formData.html}
                       onChange={(val) => {
-                        // Extract only style and div, remove body/html tags
-                        const cleaned = val ? extractPopupContent(val) : '';
-                        setFormData(prev => ({ ...prev, html: cleaned }));
+                        // Allow full HTML editing - user can edit everything including popup container
+                        const htmlValue = val || '';
+                        setFormData(prev => ({ ...prev, html: htmlValue }));
+                        
+                        // Clear existing timeout
+                        if (autoSaveTimeoutRef.current) {
+                          clearTimeout(autoSaveTimeoutRef.current);
+                        }
+                        
+                        // Auto-save after 2 seconds of inactivity
+                        autoSaveTimeoutRef.current = setTimeout(() => {
+                          autoSave(htmlValue);
+                        }, 2000);
                       }}
                       isFullscreen={false}
                       onFullscreenChange={() => {}}
