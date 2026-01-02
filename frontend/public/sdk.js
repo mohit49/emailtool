@@ -1056,16 +1056,8 @@
 
       // Helper function to add close button
       const addCloseButton = () => {
-        // Ensure popup element has non-static position for close button absolute positioning
-        const computedStyle = window.getComputedStyle(popupElement);
-        if (computedStyle.position === 'static') {
-          popupElement.style.position = 'relative';
-        }
-        
-        // Ensure popup element allows overflow for absolute positioned close button
-        if (computedStyle.overflow === 'hidden') {
-          popupElement.style.overflow = 'visible';
-        }
+        // Position and overflow are now controlled via CSS, not inline styles
+        // These properties are set through the popup CSS settings in the editor
 
         // Create close icon button
         const closeButton = document.createElement('button');
