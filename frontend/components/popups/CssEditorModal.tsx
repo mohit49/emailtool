@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import Editor from '@monaco-editor/react';
 
 interface EditingElementCss {
   width: string;
@@ -1167,13 +1168,26 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Default (All Devices)</label>
-                <textarea
-                  value={editingElementCss.customCss || ''}
-                  onChange={(e) => handleChange('customCss', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono text-sm"
-                  rows={4}
-                  placeholder="/* Add custom CSS for this element */&#10;transform: rotate(5deg);&#10;opacity: 0.9;"
-                />
+                <div className="border border-gray-300 rounded-lg overflow-hidden">
+                  <Editor
+                    height="200px"
+                    defaultLanguage="css"
+                    value={editingElementCss.customCss || ''}
+                    onChange={(value) => handleChange('customCss', value || '')}
+                    theme="vs-light"
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      lineNumbers: 'on',
+                      scrollBeyondLastLine: false,
+                      wordWrap: 'on',
+                      automaticLayout: true,
+                      tabSize: 2,
+                      formatOnPaste: true,
+                      formatOnType: true,
+                    }}
+                  />
+                </div>
                 <p className="text-xs text-gray-500 mt-1">Add any custom CSS properties. These will be applied to the element.</p>
               </div>
 
@@ -1197,13 +1211,26 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                   )}
                 </button>
                 {openAccordions.mobile && (
-                  <textarea
-                    value={editingElementCss.mobileCustomCss || ''}
-                    onChange={(e) => handleChange('mobileCustomCss', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono text-sm"
-                    rows={4}
-                    placeholder="/* Add custom CSS for mobile devices */&#10;transform: scale(0.9);"
-                  />
+                  <div className="border border-gray-300 rounded-lg overflow-hidden">
+                    <Editor
+                      height="200px"
+                      defaultLanguage="css"
+                      value={editingElementCss.mobileCustomCss || ''}
+                      onChange={(value) => handleChange('mobileCustomCss', value || '')}
+                      theme="vs-light"
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        wordWrap: 'on',
+                        automaticLayout: true,
+                        tabSize: 2,
+                        formatOnPaste: true,
+                        formatOnType: true,
+                      }}
+                    />
+                  </div>
                 )}
               </div>
 
@@ -1227,13 +1254,26 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                   )}
                 </button>
                 {openAccordions.tablet && (
-                  <textarea
-                    value={editingElementCss.tabletCustomCss || ''}
-                    onChange={(e) => handleChange('tabletCustomCss', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono text-sm"
-                    rows={4}
-                    placeholder="/* Add custom CSS for tablet devices */"
-                  />
+                  <div className="border border-gray-300 rounded-lg overflow-hidden">
+                    <Editor
+                      height="200px"
+                      defaultLanguage="css"
+                      value={editingElementCss.tabletCustomCss || ''}
+                      onChange={(value) => handleChange('tabletCustomCss', value || '')}
+                      theme="vs-light"
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        wordWrap: 'on',
+                        automaticLayout: true,
+                        tabSize: 2,
+                        formatOnPaste: true,
+                        formatOnType: true,
+                      }}
+                    />
+                  </div>
                 )}
               </div>
 
@@ -1257,13 +1297,26 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                   )}
                 </button>
                 {openAccordions.desktop && (
-                  <textarea
-                    value={editingElementCss.desktopCustomCss || ''}
-                    onChange={(e) => handleChange('desktopCustomCss', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none font-mono text-sm"
-                    rows={4}
-                    placeholder="/* Add custom CSS for desktop devices */"
-                  />
+                  <div className="border border-gray-300 rounded-lg overflow-hidden">
+                    <Editor
+                      height="200px"
+                      defaultLanguage="css"
+                      value={editingElementCss.desktopCustomCss || ''}
+                      onChange={(value) => handleChange('desktopCustomCss', value || '')}
+                      theme="vs-light"
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        wordWrap: 'on',
+                        automaticLayout: true,
+                        tabSize: 2,
+                        formatOnPaste: true,
+                        formatOnType: true,
+                      }}
+                    />
+                  </div>
                 )}
               </div>
             </div>
