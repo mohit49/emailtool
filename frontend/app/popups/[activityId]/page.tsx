@@ -130,7 +130,8 @@ const extractPopupContent = (html: string): string => {
     // Extract regular CSS rules that target #popup- IDs
     // Match CSS rules: selector { properties }
     // Updated regex to handle multi-line selectors and properties
-    const cssRuleRegex = /([^{]+)\{([^}]+)\}/gs;
+    // Use [\s\S] instead of . with s flag for ES2017 compatibility
+    const cssRuleRegex = /([^{]+)\{([^}]+)\}/g;
     const popupRules: string[] = [];
     let match;
     
@@ -2591,7 +2592,7 @@ export default function PopupActivityPage() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [injectSnippet, loadElementCss]);
+  }, [injectSnippet, loadElementCss, activityId, formData.html]);
 
   // Setup iframe when HTML changes or tab changes
   useEffect(() => {
