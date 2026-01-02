@@ -429,6 +429,7 @@ export default function PopupActivityPage() {
     backdropEnabled: false,
     backdropColor: '#000000',
     backdropOpacity: 0.5, // 0-1 range
+    backdropZIndex: '999998',
   });
   const [submitTriggerSettings, setSubmitTriggerSettings] = useState({
     closeOnSuccessfulSubmit: true,
@@ -819,6 +820,7 @@ export default function PopupActivityPage() {
           backdropOpacity: (fetchedActivity.popupSettings as any)?.backdropOpacity !== undefined 
             ? (fetchedActivity.popupSettings as any).backdropOpacity 
             : 0.5,
+          backdropZIndex: (fetchedActivity.popupSettings as any)?.backdropZIndex || '999998',
         };
         setBackdropSettings(savedBackdropSettings);
 
@@ -3375,6 +3377,7 @@ export default function PopupActivityPage() {
             backdropEnabled: backdropSettings.backdropEnabled,
             backdropColor: backdropSettings.backdropEnabled ? backdropSettings.backdropColor : undefined,
             backdropOpacity: backdropSettings.backdropEnabled ? backdropSettings.backdropOpacity : undefined,
+            backdropZIndex: backdropSettings.backdropEnabled ? backdropSettings.backdropZIndex : undefined,
             closeOnSuccessfulSubmit: submitTriggerSettings.closeOnSuccessfulSubmit,
           },
         },
@@ -3470,6 +3473,7 @@ export default function PopupActivityPage() {
             backdropEnabled: backdropSettings.backdropEnabled,
             backdropColor: backdropSettings.backdropEnabled ? backdropSettings.backdropColor : undefined,
             backdropOpacity: backdropSettings.backdropEnabled ? backdropSettings.backdropOpacity : undefined,
+            backdropZIndex: backdropSettings.backdropEnabled ? backdropSettings.backdropZIndex : undefined,
             closeOnSuccessfulSubmit: submitTriggerSettings.closeOnSuccessfulSubmit,
           },
         },
@@ -4672,6 +4676,21 @@ export default function PopupActivityPage() {
                           <span>100%</span>
                         </div>
                         <p className="mt-1 text-xs text-gray-500">Adjust the transparency of the backdrop overlay</p>
+                      </div>
+
+                      {/* Backdrop Z-Index */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Z-Index
+                        </label>
+                        <input
+                          type="text"
+                          value={backdropSettings.backdropZIndex || '999998'}
+                          onChange={(e) => setBackdropSettings(prev => ({ ...prev, backdropZIndex: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          placeholder="999998"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Controls stacking order. Backdrop should be below the popup (lower z-index).</p>
                       </div>
 
                       {/* Preview Info */}

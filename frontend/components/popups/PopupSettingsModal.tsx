@@ -21,6 +21,7 @@ interface BackdropSettings {
   backdropEnabled: boolean;
   backdropColor: string;
   backdropOpacity: number;
+  backdropZIndex: string;
 }
 
 interface TriggerSettings {
