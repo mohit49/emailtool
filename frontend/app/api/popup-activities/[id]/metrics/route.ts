@@ -120,6 +120,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const visitorType = searchParams.get('visitorType'); // 'unique' | 'repeat'
     const elementSelector = searchParams.get('elementSelector');
     const search = searchParams.get('search'); // General search for visitor ID
+    const limit = parseInt(searchParams.get('limit') || '50'); // Default 50 events per page
+    const skip = parseInt(searchParams.get('skip') || '0'); // Default skip 0
+    const eventsOnly = searchParams.get('eventsOnly') === 'true'; // If true, only return events, not stats
 
     // Build query
     const query: any = { activityId };
@@ -147,24 +150,56 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       query.elementSelector = elementSelector;
     }
 
-    // Get all metrics
-    const metrics = await PopupMetrics.find(query).sort({ timestamp: -1 }).limit(10000);
+    // Get total count for pagination
+    const totalCount = await PopupMetrics.countDocuments(query);
 
-    // Calculate aggregate statistics
-    const impressions = metrics.filter(m => m.eventType === 'impression').length;
-    const clicks = metrics.filter(m => m.eventType === 'click').length;
-    const closes = metrics.filter(m => m.eventType === 'close').length;
+    // Get metrics with pagination (only if limit > 0)
+    let metrics: any[] = [];
+    if (limit > 0) {
+      metrics = await PopupMetrics.find(query)
+        .sort({ timestamp: -1 })
+        .skip(skip)
+        .limit(limit);
+    }
+
+    // If eventsOnly is true, return only events (for lazy loading)
+    if (eventsOnly) {
+      return NextResponse.json({
+        success: true,
+        metrics,
+        pagination: {
+          total: totalCount,
+          limit,
+          skip,
+          hasMore: skip + limit < totalCount,
+        },
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      });
+    }
+
+    // Get all metrics for stats calculation (without pagination, limit to 10000 for performance)
+    const allMetrics = await PopupMetrics.find(query).sort({ timestamp: -1 }).limit(10000);
+
+    // Calculate aggregate statistics using allMetrics (for stats)
+    const impressions = allMetrics.filter(m => m.eventType === 'impression').length;
+    const clicks = allMetrics.filter(m => m.eventType === 'click').length;
+    const closes = allMetrics.filter(m => m.eventType === 'close').length;
     
     // Unique visitors
-    const uniqueVisitors = new Set(metrics.map(m => m.visitorId)).size;
-    const repeatVisitors = metrics.filter(m => m.isRepeatVisitor).length;
+    const uniqueVisitors = new Set(allMetrics.map(m => m.visitorId)).size;
+    const repeatVisitors = allMetrics.filter(m => m.isRepeatVisitor).length;
     
     // Click-through rate
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
     
     // Element click breakdown
     const elementClicks: { [key: string]: number } = {};
-    metrics.filter(m => m.eventType === 'click' && m.elementSelector).forEach(m => {
+    allMetrics.filter(m => m.eventType === 'click' && m.elementSelector).forEach(m => {
       const selector = m.elementSelector || 'unknown';
       elementClicks[selector] = (elementClicks[selector] || 0) + 1;
     });
@@ -172,7 +207,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Time-based statistics
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayMetrics = metrics.filter(m => m.timestamp >= today);
+    const todayMetrics = allMetrics.filter(m => m.timestamp >= today);
     const todayImpressions = todayMetrics.filter(m => m.eventType === 'impression').length;
     const todayClicks = todayMetrics.filter(m => m.eventType === 'click').length;
 
@@ -193,7 +228,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         },
         elementClicks,
       },
-      metrics: metrics.slice(0, 1000), // Return latest 1000 for detail view
+      metrics, // Return paginated metrics
+      pagination: {
+        total: totalCount,
+        limit,
+        skip,
+        hasMore: skip + limit < totalCount,
+      },
     }, {
       headers: {
         'Access-Control-Allow-Origin': '*',

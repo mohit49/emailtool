@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../providers/AuthProvider';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import axios from 'axios';
@@ -65,6 +65,9 @@ export default function PopupMetricsPage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<MetricsStats | null>(null);
   const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [loadingMoreEvents, setLoadingMoreEvents] = useState(false);
+  const [hasMoreEvents, setHasMoreEvents] = useState(false);
+  const [eventsSkip, setEventsSkip] = useState(0);
   const [formSubmissions, setFormSubmissions] = useState<Record<string, FormSubmission[]>>({});
   const [expandedVisitors, setExpandedVisitors] = useState<Set<string>>(new Set());
   const [loadingSubmissions, setLoadingSubmissions] = useState<Set<string>>(new Set());
@@ -146,33 +149,80 @@ export default function PopupMetricsPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const params: any = {};
-        if (dateRange.startDate) params.startDate = dateRange.startDate;
-        if (dateRange.endDate) params.endDate = dateRange.endDate;
-        if (filters.eventType) params.eventType = filters.eventType;
-        if (filters.visitorType) params.visitorType = filters.visitorType;
-        if (filters.elementSelector) params.elementSelector = filters.elementSelector;
-        if (filters.search) params.search = filters.search;
+  // Fetch stats (without events)
+  const fetchStats = useCallback(async () => {
+    if (!token || !activityId) return;
+    try {
+      const params: any = {};
+      if (dateRange.startDate) params.startDate = dateRange.startDate;
+      if (dateRange.endDate) params.endDate = dateRange.endDate;
+      if (filters.eventType) params.eventType = filters.eventType;
+      if (filters.visitorType) params.visitorType = filters.visitorType;
+      if (filters.elementSelector) params.elementSelector = filters.elementSelector;
+      if (filters.search) params.search = filters.search;
+      params.limit = 0; // Don't fetch events, only stats
 
-        const response = await axios.get(`${API_URL}/popup-activities/${activityId}/metrics`, {
-          headers: { Authorization: `Bearer ${token}` },
-          params,
-        });
+      const response = await axios.get(`${API_URL}/popup-activities/${activityId}/metrics`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      });
 
-        setStats(response.data.stats);
+      setStats(response.data.stats);
+    } catch (error: any) {
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to fetch stats',
+        type: 'error',
+      });
+    }
+  }, [token, activityId, dateRange, filters]);
+
+  // Fetch events with pagination
+  const fetchEvents = useCallback(async (skip: number = 0, append: boolean = false) => {
+    if (!token || !activityId) return;
+    try {
+      const params: any = {
+        limit: 50,
+        skip,
+        eventsOnly: 'true', // Only fetch events, not stats
+      };
+      if (dateRange.startDate) params.startDate = dateRange.startDate;
+      if (dateRange.endDate) params.endDate = dateRange.endDate;
+      if (filters.eventType) params.eventType = filters.eventType;
+      if (filters.visitorType) params.visitorType = filters.visitorType;
+      if (filters.elementSelector) params.elementSelector = filters.elementSelector;
+      if (filters.search) params.search = filters.search;
+
+      const response = await axios.get(`${API_URL}/popup-activities/${activityId}/metrics`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      });
+
+      if (append) {
+        setMetrics(prev => [...prev, ...(response.data.metrics || [])]);
+      } else {
         setMetrics(response.data.metrics || []);
-      } catch (error: any) {
-        setAlert({
-          isOpen: true,
-          message: error.response?.data?.error || 'Failed to fetch metrics',
-          type: 'error',
-        });
       }
-    };
+      setHasMoreEvents(response.data.pagination?.hasMore || false);
+      setEventsSkip(skip + (response.data.metrics?.length || 0));
+    } catch (error: any) {
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to fetch events',
+        type: 'error',
+      });
+    }
+  }, [token, activityId, dateRange, filters]);
 
+  // Load more events
+  const loadMoreEvents = async () => {
+    if (loadingMoreEvents || !hasMoreEvents) return;
+    setLoadingMoreEvents(true);
+    await fetchEvents(eventsSkip, true);
+    setLoadingMoreEvents(false);
+  };
+
+  useEffect(() => {
     const fetchData = async () => {
       if (!user || !token || !activityId || !projectId) {
         setLoading(false);
@@ -195,8 +245,11 @@ export default function PopupMetricsPage() {
         });
         setActivity({ name: activityResponse.data.activity.name });
 
-        // Fetch metrics
-        await fetchMetrics();
+        // Fetch stats and initial events
+        await Promise.all([
+          fetchStats(),
+          fetchEvents(0, false),
+        ]);
       } catch (error: any) {
         console.error('Fetch error:', error);
         if (error.response?.status === 403 || error.response?.status === 404) {
@@ -208,7 +261,17 @@ export default function PopupMetricsPage() {
     };
 
     fetchData();
-  }, [user, token, activityId, projectId, router, dateRange, filters]);
+  }, [user, token, activityId, projectId, router]);
+
+  // Refetch when filters change
+  useEffect(() => {
+    if (!user || !token || !activityId || !projectId) return;
+    setEventsSkip(0);
+    Promise.all([
+      fetchStats(),
+      fetchEvents(0, false),
+    ]);
+  }, [user, token, activityId, projectId, dateRange, filters, fetchStats, fetchEvents]);
 
   const clearFilters = () => {
     setDateRange({ startDate: '', endDate: '' });
@@ -397,6 +460,216 @@ export default function PopupMetricsPage() {
               <Download className="w-4 h-4" />
               Export CSV
             </button>
+          </div>
+
+          {/* Recent Events - Moved to Top */}
+          <div className="bg-white rounded-lg shadow mb-6">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Recent Events</h2>
+              {hasMoreEvents && (
+                <button
+                  onClick={loadMoreEvents}
+                  disabled={loadingMoreEvents}
+                  className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {loadingMoreEvents ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4" />
+                      Load More
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Element</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Element Text</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visitor</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">URL</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {metrics.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                        No metrics data available yet
+                      </td>
+                    </tr>
+                  ) : (
+                    metrics.map((metric) => (
+                      <>
+                        <tr key={metric._id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {new Date(metric.timestamp).toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 text-xs font-medium rounded ${
+                              metric.eventType === 'impression' ? 'bg-blue-100 text-blue-800' :
+                              metric.eventType === 'click' ? 'bg-purple-100 text-purple-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {metric.eventType}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {metric.elementSelector ? (
+                              <code className="text-xs bg-gray-100 px-2 py-1 rounded">{metric.elementSelector}</code>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {metric.elementText ? (
+                              <span className="text-gray-900" title={metric.elementText}>
+                                {metric.elementText.length > 50 
+                                  ? `${metric.elementText.substring(0, 50)}...` 
+                                  : metric.elementText}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => toggleVisitorExpansion(metric.visitorId)}
+                                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                                title={expandedVisitors.has(metric.visitorId) ? 'Hide form submissions' : 'Show form submissions'}
+                              >
+                                {expandedVisitors.has(metric.visitorId) ? (
+                                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                                )}
+                              </button>
+                              <div className="flex items-center gap-1.5 group">
+                                <span 
+                                  className="font-mono text-xs cursor-pointer hover:text-indigo-600 transition-colors" 
+                                  title={`Full ID: ${metric.visitorId}\nClick to copy`}
+                                  onClick={() => copyVisitorId(metric.visitorId)}
+                                >
+                                  {metric.visitorId.substring(0, 8)}...
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    copyVisitorId(metric.visitorId);
+                                  }}
+                                  className="opacity-60 group-hover:opacity-100 hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
+                                  title="Copy full visitor ID"
+                                >
+                                  {copiedVisitorId === metric.visitorId ? (
+                                    <Check className="w-3.5 h-3.5 text-green-600" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5 text-gray-500 hover:text-indigo-600" />
+                                  )}
+                                </button>
+                              </div>
+                              {metric.isUniqueVisitor && (
+                                <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded">New</span>
+                              )}
+                              {metric.isRepeatVisitor && (
+                                <span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">Return</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">
+                            {metric.url}
+                          </td>
+                        </tr>
+                        {expandedVisitors.has(metric.visitorId) && (
+                          <tr key={`${metric._id}-submissions`} className="bg-gray-50">
+                            <td colSpan={6} className="px-6 py-4">
+                              {loadingSubmissions.has(metric.visitorId) ? (
+                                <div className="text-center py-4 text-gray-500 text-sm">
+                                  Loading form submissions...
+                                </div>
+                              ) : formSubmissions[metric.visitorId]?.length > 0 ? (
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <FileText className="w-4 h-4 text-indigo-600" />
+                                    <h4 className="text-sm font-semibold text-gray-900">
+                                      Form Submissions ({formSubmissions[metric.visitorId].length})
+                                    </h4>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {formSubmissions[metric.visitorId].map((submission) => (
+                                      <div
+                                        key={submission._id}
+                                        className="bg-white border border-gray-200 rounded-lg p-4"
+                                      >
+                                        <div className="flex items-start justify-between mb-2">
+                                          <div className="flex items-center gap-3">
+                                            <span className="px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 rounded">
+                                              Form ID: {submission.formId}
+                                            </span>
+                                            <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
+                                              Popup ID: {submission.activityId.substring(0, 8)}...
+                                            </span>
+                                          </div>
+                                          <span className="text-xs text-gray-500">
+                                            {new Date(submission.submittedAt).toLocaleString()}
+                                          </span>
+                                        </div>
+                                        <div className="mt-2 space-y-1">
+                                          {Object.entries(submission.data).map(([key, value]) => (
+                                            <div key={key} className="text-sm">
+                                              <span className="font-medium text-gray-700">{key}:</span>{' '}
+                                              <span className="text-gray-900">
+                                                {Array.isArray(value) ? value.join(', ') : String(value)}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-center py-4 text-gray-500 text-sm">
+                                  No form submissions found for this visitor
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {hasMoreEvents && (
+              <div className="px-6 py-4 border-t border-gray-200 text-center">
+                <button
+                  onClick={loadMoreEvents}
+                  disabled={loadingMoreEvents}
+                  className="px-6 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                >
+                  {loadingMoreEvents ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Loading more events...
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-4 h-4" />
+                      Load More Events
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Filters Section */}
@@ -629,175 +902,6 @@ export default function PopupMetricsPage() {
             </div>
           )}
 
-          {/* Metrics Table */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Events</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Element</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Element Text</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visitor</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">URL</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {metrics.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                        No metrics data available yet
-                      </td>
-                    </tr>
-                  ) : (
-                    metrics.map((metric) => (
-                      <>
-                        <tr key={metric._id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {new Date(metric.timestamp).toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 text-xs font-medium rounded ${
-                              metric.eventType === 'impression' ? 'bg-blue-100 text-blue-800' :
-                              metric.eventType === 'click' ? 'bg-purple-100 text-purple-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {metric.eventType}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-700">
-                            {metric.elementSelector ? (
-                              <code className="text-xs bg-gray-100 px-2 py-1 rounded">{metric.elementSelector}</code>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-700">
-                            {metric.elementText ? (
-                              <span className="text-gray-900" title={metric.elementText}>
-                                {metric.elementText.length > 50 
-                                  ? `${metric.elementText.substring(0, 50)}...` 
-                                  : metric.elementText}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-700">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => toggleVisitorExpansion(metric.visitorId)}
-                                className="p-1 hover:bg-gray-100 rounded transition-colors"
-                                title={expandedVisitors.has(metric.visitorId) ? 'Hide form submissions' : 'Show form submissions'}
-                              >
-                                {expandedVisitors.has(metric.visitorId) ? (
-                                  <ChevronDown className="w-4 h-4 text-gray-500" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4 text-gray-500" />
-                                )}
-                              </button>
-                              <div className="flex items-center gap-1.5 group">
-                                <span 
-                                  className="font-mono text-xs cursor-pointer hover:text-indigo-600 transition-colors" 
-                                  title={`Full ID: ${metric.visitorId}\nClick to copy`}
-                                  onClick={() => copyVisitorId(metric.visitorId)}
-                                >
-                                  {metric.visitorId.substring(0, 8)}...
-                                </span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    copyVisitorId(metric.visitorId);
-                                  }}
-                                  className="opacity-60 group-hover:opacity-100 hover:opacity-100 transition-opacity p-1 hover:bg-gray-100 rounded"
-                                  title="Copy full visitor ID"
-                                >
-                                  {copiedVisitorId === metric.visitorId ? (
-                                    <Check className="w-3.5 h-3.5 text-green-600" />
-                                  ) : (
-                                    <Copy className="w-3.5 h-3.5 text-gray-500 hover:text-indigo-600" />
-                                  )}
-                                </button>
-                              </div>
-                              {metric.isUniqueVisitor && (
-                                <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-800 rounded">New</span>
-                              )}
-                              {metric.isRepeatVisitor && (
-                                <span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">Return</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">
-                            {metric.url}
-                          </td>
-                        </tr>
-                        {expandedVisitors.has(metric.visitorId) && (
-                          <tr key={`${metric._id}-submissions`} className="bg-gray-50">
-                            <td colSpan={6} className="px-6 py-4">
-                              {loadingSubmissions.has(metric.visitorId) ? (
-                                <div className="text-center py-4 text-gray-500 text-sm">
-                                  Loading form submissions...
-                                </div>
-                              ) : formSubmissions[metric.visitorId]?.length > 0 ? (
-                                <div className="space-y-3">
-                                  <div className="flex items-center gap-2 mb-3">
-                                    <FileText className="w-4 h-4 text-indigo-600" />
-                                    <h4 className="text-sm font-semibold text-gray-900">
-                                      Form Submissions ({formSubmissions[metric.visitorId].length})
-                                    </h4>
-                                  </div>
-                                  <div className="space-y-2">
-                                    {formSubmissions[metric.visitorId].map((submission) => (
-                                      <div
-                                        key={submission._id}
-                                        className="bg-white border border-gray-200 rounded-lg p-4"
-                                      >
-                                        <div className="flex items-start justify-between mb-2">
-                                          <div className="flex items-center gap-3">
-                                            <span className="px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 rounded">
-                                              Form ID: {submission.formId}
-                                            </span>
-                                            <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">
-                                              Popup ID: {submission.activityId.substring(0, 8)}...
-                                            </span>
-                                          </div>
-                                          <span className="text-xs text-gray-500">
-                                            {new Date(submission.submittedAt).toLocaleString()}
-                                          </span>
-                                        </div>
-                                        <div className="mt-2 space-y-1">
-                                          {Object.entries(submission.data).map(([key, value]) => (
-                                            <div key={key} className="text-sm">
-                                              <span className="font-medium text-gray-700">{key}:</span>{' '}
-                                              <span className="text-gray-900">
-                                                {Array.isArray(value) ? value.join(', ') : String(value)}
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="text-center py-4 text-gray-500 text-sm">
-                                  No form submissions found for this visitor
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        )}
-                      </>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       </div>
 
