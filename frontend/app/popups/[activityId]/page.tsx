@@ -449,6 +449,8 @@ export default function PopupActivityPage() {
   const [draggingSnippet, setDraggingSnippet] = useState<string | null>(null);
   const [isOverCanvas, setIsOverCanvas] = useState(false);
   const draggingSnippetRef = useRef<string | null>(null);
+  const draggingItemRef = useRef<{ key: string; isForm?: boolean } | null>(null);
+  const formDropPositionRef = useRef<{ selector?: string; position?: 'before' | 'after' | 'inside' } | null>(null);
   const [selectedElement, setSelectedElement] = useState<{ id: string; element: HTMLElement | null; tagName?: string }>({ id: '', element: null });
   const [showElementToolbar, setShowElementToolbar] = useState(false);
   const [toolbarPosition, setToolbarPosition] = useState({ top: 0, left: 0 });
@@ -1102,7 +1104,7 @@ export default function PopupActivityPage() {
   };
 
   // Handle opening form modal
-  const handleOpenFormModal = async () => {
+  const handleOpenFormModal = useCallback(async () => {
     setShowFormModal(true);
     
     // Fetch forms immediately when modal opens
@@ -1127,13 +1129,20 @@ export default function PopupActivityPage() {
     } finally {
       setLoadingForms(false);
     }
-  };
+  }, [user, token, projectId]);
 
   // Handle form selection
   const handleFormSelect = (form: { formId: string; name: string; fields: any[] }) => {
     const formHTML = generateFormHTML(form);
-    injectSnippet(formHTML);
+    // Use stored drop position if available, otherwise default to inside .przio
+    const dropPos = formDropPositionRef.current;
+    if (dropPos && dropPos.selector && dropPos.position) {
+      injectSnippet(formHTML, dropPos.selector, dropPos.position);
+    } else {
+      injectSnippet(formHTML, '.przio', 'inside');
+    }
     setShowFormModal(false);
+    formDropPositionRef.current = null; // Clear drop position
     setAlert({
       isOpen: true,
       message: `Form "${form.name}" added successfully`,
@@ -1669,12 +1678,36 @@ export default function PopupActivityPage() {
 
   // Direct drop handler for visual editor
   const handleDirectDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     const snippet = draggingSnippetRef.current;
-    if (!snippet) return;
+    const item = draggingItemRef.current;
+    
+    console.log('🎯 Direct drop handler', { snippet: snippet?.substring(0, 30), item, isForm: item?.isForm });
+    
+    // Check if it's a form element first
+    if (item?.isForm || item?.key === 'form') {
+      console.log('📋 Form element detected in direct drop, opening form modal');
+      formDropPositionRef.current = { selector: '.przio', position: 'inside' };
+      handleOpenFormModal();
+      setDraggingSnippet(null);
+      draggingSnippetRef.current = null;
+      draggingItemRef.current = null;
+      return;
+    }
+    
+    // For non-form elements, require a snippet
+    if (!snippet) {
+      console.warn('⚠️ No snippet available for direct drop');
+      return;
+    }
+    
     injectSnippet(snippet, '.przio', 'inside');
     setDraggingSnippet(null);
     draggingSnippetRef.current = null;
-  }, [injectSnippet]);
+    draggingItemRef.current = null;
+  }, [injectSnippet, handleOpenFormModal]);
 
   // Delete selected element
   const deleteSelectedElement = useCallback(() => {
@@ -2522,9 +2555,39 @@ export default function PopupActivityPage() {
       if (e.data?.type === 'przio-iframe-drop') {
         let { selector, position } = e.data;
         const snippet = draggingSnippetRef.current;
+        const item = draggingItemRef.current;
         
-        console.log('📥 Parent received drop message', { snippet: snippet?.substring(0, 30), selector, position });
+        console.log('📥 Parent received drop message', { 
+          snippet: snippet?.substring(0, 30), 
+          selector, 
+          position,
+          item,
+          isForm: item?.isForm,
+          key: item?.key
+        });
         
+        // Check if it's a form element first (before checking snippet)
+        // Forms have empty snippets and isForm flag, or key === 'form'
+        const isFormElement = item?.isForm === true || item?.key === 'form' || (!snippet && item?.key === 'form');
+        
+        console.log('🔍 Form check:', { 
+          isFormElement, 
+          itemIsForm: item?.isForm, 
+          itemKey: item?.key, 
+          hasSnippet: !!snippet 
+        });
+        
+        // If form element was dropped, show form selection modal
+        if (isFormElement) {
+          console.log('📋 Form element detected, opening form modal');
+          formDropPositionRef.current = { selector, position };
+          handleOpenFormModal();
+          draggingItemRef.current = null;
+          draggingSnippetRef.current = null;
+          return;
+        }
+        
+        // For non-form elements, require a snippet
         if (!snippet) {
           console.warn('⚠️ No snippet available for drop in parent');
           return;
@@ -2592,7 +2655,7 @@ export default function PopupActivityPage() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [injectSnippet, loadElementCss, activityId, formData.html]);
+  }, [injectSnippet, loadElementCss, activityId, formData.html, handleOpenFormModal]);
 
   // Setup iframe when HTML changes or tab changes
   useEffect(() => {
@@ -3620,32 +3683,29 @@ export default function PopupActivityPage() {
                     <div className="w-12 bg-gray-50 border-l border-gray-200 flex-shrink-0 flex flex-col">
                       <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
                         {DRAG_ITEMS.map((item) => {
-                          if ((item as any).isForm) {
-                            return (
-                              <TooltipWrapper key={item.key} label={item.label}>
-                                <div
-                                  onClick={handleOpenFormModal}
-                                  className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 cursor-pointer transition-all shadow-sm"
-                                >
-                                  <div className="text-gray-500 group-hover:text-purple-600 transition-colors">
-                                    {item.icon}
-                                  </div>
-                                </div>
-                              </TooltipWrapper>
-                            );
-                          }
                           return (
                             <TooltipWrapper key={item.key} label={item.label}>
                               <div
                                 draggable
                                 onDragStart={(e) => {
-                                  setDraggingSnippet(item.snippet);
-                                  draggingSnippetRef.current = item.snippet;
-                                  e.dataTransfer.setData('text/plain', item.snippet);
+                                  console.log('🎯 Drag start:', { key: item.key, isForm: item.isForm, snippet: item.snippet?.substring(0, 30) });
+                                  setDraggingSnippet(item.snippet || '');
+                                  draggingSnippetRef.current = item.snippet || '';
+                                  draggingItemRef.current = { key: item.key, isForm: item.isForm };
+                                  e.dataTransfer.setData('text/plain', item.snippet || '');
+                                  e.dataTransfer.setData('application/json', JSON.stringify({ key: item.key, isForm: item.isForm }));
                                 }}
-                                className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 cursor-grab active:cursor-grabbing transition-all shadow-sm"
+                                className={`group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg cursor-grab active:cursor-grabbing transition-all shadow-sm ${
+                                  item.isForm 
+                                    ? 'hover:border-purple-500 hover:bg-purple-50' 
+                                    : 'hover:border-indigo-500 hover:bg-indigo-50'
+                                }`}
                               >
-                                <div className="text-gray-500 group-hover:text-indigo-600 transition-colors">
+                                <div className={`text-gray-500 transition-colors ${
+                                  item.isForm 
+                                    ? 'group-hover:text-purple-600' 
+                                    : 'group-hover:text-indigo-600'
+                                }`}>
                                   {item.icon}
                                 </div>
                               </div>
@@ -3708,32 +3768,29 @@ export default function PopupActivityPage() {
                   <div className="w-12 bg-gray-50 border-l border-gray-200 flex-shrink-0 flex flex-col">
                     <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5">
                       {DRAG_ITEMS.map((item) => {
-                        if ((item as any).isForm) {
-                          return (
-                            <TooltipWrapper key={item.key} label={item.label}>
-                              <div
-                                onClick={handleOpenFormModal}
-                                className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 cursor-pointer transition-all shadow-sm"
-                              >
-                                <div className="text-gray-500 group-hover:text-purple-600 transition-colors">
-                                  {item.icon}
-                                </div>
-                              </div>
-                            </TooltipWrapper>
-                          );
-                        }
                         return (
                           <TooltipWrapper key={item.key} label={item.label}>
                             <div
                               draggable
                               onDragStart={(e) => {
-                                setDraggingSnippet(item.snippet);
-                                draggingSnippetRef.current = item.snippet;
-                                e.dataTransfer.setData('text/plain', item.snippet);
+                                console.log('🎯 Drag start:', { key: item.key, isForm: item.isForm, snippet: item.snippet?.substring(0, 30) });
+                                setDraggingSnippet(item.snippet || '');
+                                draggingSnippetRef.current = item.snippet || '';
+                                draggingItemRef.current = { key: item.key, isForm: item.isForm };
+                                e.dataTransfer.setData('text/plain', item.snippet || '');
+                                e.dataTransfer.setData('application/json', JSON.stringify({ key: item.key, isForm: item.isForm }));
                               }}
-                              className="group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 cursor-grab active:cursor-grabbing transition-all shadow-sm"
+                              className={`group flex items-center justify-center p-2 bg-white border border-gray-200 rounded-lg cursor-grab active:cursor-grabbing transition-all shadow-sm ${
+                                item.isForm 
+                                  ? 'hover:border-purple-500 hover:bg-purple-50' 
+                                  : 'hover:border-indigo-500 hover:bg-indigo-50'
+                              }`}
                             >
-                              <div className="text-gray-500 group-hover:text-indigo-600 transition-colors">
+                              <div className={`text-gray-500 transition-colors ${
+                                item.isForm 
+                                  ? 'group-hover:text-purple-600' 
+                                  : 'group-hover:text-indigo-600'
+                              }`}>
                                 {item.icon}
                               </div>
                             </div>
