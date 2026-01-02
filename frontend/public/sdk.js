@@ -232,24 +232,51 @@
     if (domain && domain.trim()) {
       const conditionDomain = domain.replace(/^https?:\/\//, '').split('/')[0];
       if (currentHostname !== conditionDomain && !currentHostname.endsWith('.' + conditionDomain)) {
+        log(`Domain mismatch: ${currentHostname} !== ${conditionDomain}`);
         return false;
       }
     }
 
     // Check URL condition
+    let result = false;
     switch (type) {
       case 'contains':
-        return currentUrl.includes(value);
+        result = currentUrl.includes(value);
+        log(`Condition check [contains "${value}"]: ${currentUrl} ${result ? 'matches' : 'does not match'}`);
+        return result;
+        
       case 'equals':
-        return currentUrl === value || currentUrl === (value.startsWith('/') ? value : '/' + value);
+        result = currentUrl === value || currentUrl === (value.startsWith('/') ? value : '/' + value);
+        log(`Condition check [equals "${value}"]: ${currentUrl} ${result ? 'matches' : 'does not match'}`);
+        return result;
+        
       case 'startsWith':
-        return currentUrl.startsWith(value);
+        result = currentUrl.startsWith(value);
+        log(`Condition check [startsWith "${value}"]: ${currentUrl} ${result ? 'matches' : 'does not match'}`);
+        return result;
+        
       case 'doesNotContain':
-        return !currentUrl.includes(value);
+        // Special handling for "/" - if value is "/", check if it's NOT the home page
+        if (value === '/') {
+          // doesNotContain "/" means: not the home page (i.e., URL is not exactly "/")
+          const urlWithoutQuery = currentUrl.split('?')[0];
+          result = urlWithoutQuery !== '/';
+          log(`Condition check [doesNotContain "/"]: ${currentUrl} (${urlWithoutQuery}) ${result ? 'matches (not home page)' : 'does not match (is home page)'}`);
+        } else {
+          // For other values, check if URL does not contain the value
+          result = !currentUrl.includes(value);
+          log(`Condition check [doesNotContain "${value}"]: ${currentUrl} ${result ? 'matches' : 'does not match'}`);
+        }
+        return result;
+        
       case 'landing':
         // Landing page = root path with no query params
-        return currentUrl === '/' || currentUrl.split('?')[0] === '/';
+        result = currentUrl === '/' || currentUrl.split('?')[0] === '/';
+        log(`Condition check [landing]: ${currentUrl} ${result ? 'matches (is landing page)' : 'does not match'}`);
+        return result;
+        
       default:
+        log(`Unknown condition type: ${type}`);
         return false;
     }
   }
@@ -396,17 +423,33 @@
     const { urlConditions, logicOperator } = activity;
 
     if (!urlConditions || urlConditions.length === 0) {
+      log('No URL conditions, showing popup everywhere');
       return true; // No conditions = show everywhere
     }
 
-    const results = urlConditions.map(condition => matchesCondition(getCurrentUrl(), condition));
+    const currentUrl = getCurrentUrl();
+    log(`Checking URL conditions for popup "${activity.name}" on URL: ${currentUrl}`);
+    log(`Logic operator: ${logicOperator || 'OR'}`);
+    log(`Number of conditions: ${urlConditions.length}`);
 
+    const results = urlConditions.map((condition, index) => {
+      const result = matchesCondition(currentUrl, condition);
+      log(`Condition ${index + 1} (${condition.type} "${condition.value}"): ${result ? 'PASS' : 'FAIL'}`);
+      return result;
+    });
+
+    let shouldShow = false;
     if (logicOperator === 'AND') {
-      return results.every(result => result === true);
+      // AND: All conditions must be true
+      shouldShow = results.every(result => result === true);
+      log(`AND logic: All ${results.length} conditions must pass. Result: ${shouldShow ? 'SHOW' : 'HIDE'} (${results.filter(r => r).length}/${results.length} passed)`);
     } else {
-      // OR (default)
-      return results.some(result => result === true);
+      // OR (default): At least one condition must be true
+      shouldShow = results.some(result => result === true);
+      log(`OR logic: At least one condition must pass. Result: ${shouldShow ? 'SHOW' : 'HIDE'} (${results.filter(r => r).length}/${results.length} passed)`);
     }
+
+    return shouldShow;
   }
 
   /**
