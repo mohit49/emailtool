@@ -2566,8 +2566,16 @@ export default function PopupActivityPage() {
     );
   }
 
+  // Add editor mode class to body for CSS scoping
+  useEffect(() => {
+    document.body.classList.add('przio-editor-mode');
+    return () => {
+      document.body.classList.remove('przio-editor-mode');
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 przio-editor-container">
       <AuthHeader showProjectInfo={projectInfo} projectId={projectId || ''} />
 
       <div className="flex-1 overflow-hidden flex flex-col">
