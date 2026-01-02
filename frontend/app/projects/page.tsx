@@ -55,8 +55,6 @@ export default function ProjectsPage() {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', description: '' });
   const [creating, setCreating] = useState(false);
-  const [showProjectTypeSelection, setShowProjectTypeSelection] = useState(false);
-  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [newMember, setNewMember] = useState({ email: '', role: 'emailDeveloper' as 'emailDeveloper' | 'ProjectAdmin' });
   const [addingMember, setAddingMember] = useState(false);
@@ -125,14 +123,15 @@ export default function ProjectsPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setProjects([response.data.project, ...projects]);
-      setCreatedProjectId(response.data.project._id);
       setShowCreateModal(false);
-      setShowProjectTypeSelection(true);
+      setNewProject({ name: '', description: '' });
       setAlert({
         isOpen: true,
         message: 'Project created successfully',
         type: 'success',
       });
+      // Redirect to unified project dashboard
+      router.push(`/popups?projectId=${response.data.project._id}`);
     } catch (error: any) {
       setAlert({
         isOpen: true,
@@ -144,46 +143,9 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleSelectProjectType = async (type: 'email' | 'popup') => {
-    if (!createdProjectId) return;
-
-    try {
-      // Update the project with the selected type
-      await axios.put(
-        `${API_URL}/projects/${createdProjectId}`,
-        { projectType: type },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (type === 'email') {
-        localStorage.setItem('selectedProjectId', createdProjectId);
-        router.push(`/tool?projectId=${createdProjectId}`);
-      } else if (type === 'popup') {
-        router.push(`/popups?projectId=${createdProjectId}`);
-      }
-
-      setShowProjectTypeSelection(false);
-      setCreatedProjectId(null);
-      setNewProject({ name: '', description: '' });
-    } catch (error: any) {
-      setAlert({
-        isOpen: true,
-        message: error.response?.data?.error || 'Failed to set project type',
-        type: 'error',
-      });
-    }
-  };
-
   const handleOpenProject = (project: Project) => {
-    // Check project type and redirect accordingly
-    if (project.projectType === 'popup') {
-      // This is a popup project, redirect to popups page
-      router.push(`/popups?projectId=${project._id}`);
-    } else {
-      // This is an email project (or no type set), redirect to tool page
-      localStorage.setItem('selectedProjectId', project._id);
-      router.push(`/tool?projectId=${project._id}`);
-    }
+    // Always redirect to unified project dashboard
+    router.push(`/popups?projectId=${project._id}`);
   };
 
   const handleViewMembers = async (project: Project) => {
@@ -513,8 +475,6 @@ export default function ProjectsPage() {
                   onClick={() => {
                     setShowCreateModal(false);
                     setNewProject({ name: '', description: '' });
-                    setShowProjectTypeSelection(false);
-                    setCreatedProjectId(null);
                   }}
                   className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
@@ -529,75 +489,6 @@ export default function ProjectsPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Project Type Selection Modal */}
-      {showProjectTypeSelection && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={(e) => {
-            // Prevent closing by clicking outside
-            e.stopPropagation();
-          }}
-        >
-          <div 
-            className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4"
-            onClick={(e) => {
-              // Prevent event bubbling
-              e.stopPropagation();
-            }}
-          >
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Choose Project Type</h2>
-              <p className="text-sm text-gray-500 mt-1">Please select a project type to continue</p>
-            </div>
-            <div className="px-6 py-6">
-              <p className="text-sm text-gray-600 mb-6">
-                Select the type of project you want to create:
-              </p>
-              <div className="space-y-4">
-                <button
-                  onClick={() => handleSelectProjectType('email')}
-                  className="w-full p-4 border-2 border-indigo-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                      <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">Email Project</h3>
-                      <p className="text-sm text-gray-600">Create and manage email templates</p>
-                    </div>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </button>
-                <button
-                  onClick={() => handleSelectProjectType('popup')}
-                  className="w-full p-4 border-2 border-purple-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h10m-7 4h7" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">Popup Project</h3>
-                      <p className="text-sm text-gray-600">Create and manage popup activities</p>
-                    </div>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

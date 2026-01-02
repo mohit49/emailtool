@@ -7,7 +7,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import AuthHeader from '../../components/AuthHeader';
 import Alert from '../../components/Alert';
-import { Plus, Settings, Trash2, Edit, ChevronLeft, X } from 'lucide-react';
+import { Plus, Settings, Trash2, Edit, ChevronLeft, X, Mail, Layout, FileText } from 'lucide-react';
 
 const API_URL = '/api';
 
@@ -30,11 +30,14 @@ interface PopupActivity {
   updatedAt: string;
 }
 
+type TabType = 'email' | 'popup' | 'form';
+
 export default function PopupsPage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectId = searchParams.get('projectId');
+  const activeTab = (searchParams.get('tab') as TabType) || 'popup';
 
   const [projectInfo, setProjectInfo] = useState<{ name: string; role: 'owner' | 'ProjectAdmin' | 'emailDeveloper' } | null>(null);
   const [activities, setActivities] = useState<PopupActivity[]>([]);
@@ -249,6 +252,10 @@ export default function PopupsPage() {
     );
   }
 
+  const handleTabChange = (tab: TabType) => {
+    router.push(`/popups?projectId=${projectId}&tab=${tab}`);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <AuthHeader showProjectInfo={projectInfo} projectId={projectId} />
@@ -256,8 +263,8 @@ export default function PopupsPage() {
       <div className="flex-1 overflow-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="mb-6">
+            <div className="flex items-center gap-4 mb-6">
               <Link
                 href="/projects"
                 className="text-gray-500 hover:text-gray-700"
@@ -265,88 +272,161 @@ export default function PopupsPage() {
                 <ChevronLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Popup Activities</h1>
-                <p className="text-sm text-gray-500 mt-1">Manage your popup activities</p>
+                <h1 className="text-2xl font-bold text-gray-900">{projectInfo?.name || 'Project'}</h1>
+                <p className="text-sm text-gray-500 mt-1">Manage your project services</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push(`/forms?projectId=${projectId}`)}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Create Forms
-              </button>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Create Popup Activity
-              </button>
+
+            {/* Tabs */}
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => handleTabChange('email')}
+                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'email'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Mail className="w-4 h-4" />
+                  Email Services
+                </button>
+                <button
+                  onClick={() => handleTabChange('popup')}
+                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'popup'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Layout className="w-4 h-4" />
+                  Popup Builder
+                </button>
+                <button
+                  onClick={() => handleTabChange('form')}
+                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === 'form'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  Form Builder
+                </button>
+              </nav>
             </div>
           </div>
 
-          {/* Activities List */}
-          {activities.length === 0 ? (
+          {/* Tab Content */}
+          {activeTab === 'email' && (
             <div className="bg-white rounded-lg shadow p-12 text-center">
-              <p className="text-gray-500 mb-4">No popup activities yet</p>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              <Mail className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Email Services</h2>
+              <p className="text-gray-600 mb-6">Create and manage email templates for your project</p>
+              <Link
+                href={`/tool?projectId=${projectId}`}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
-                Create Your First Popup
-              </button>
+                <Mail className="w-4 h-4" />
+                Go to Email Services
+              </Link>
             </div>
-          ) : (
-            <div className="grid gap-4">
-              {activities.map((activity) => (
-                <div
-                  key={activity._id}
-                  className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{activity.name}</h3>
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded ${
-                            activity.status === 'activated'
-                              ? 'bg-green-100 text-green-800'
-                              : activity.status === 'draft'
-                              ? 'bg-gray-100 text-gray-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {activity.status}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-500 mb-2">
-                        {activity.urlConditions.length} URL condition{activity.urlConditions.length !== 1 ? 's' : ''} ({activity.logicOperator})
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        Updated: {new Date(activity.updatedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/popups/${activity._id}?projectId=${projectId}`}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(activity._id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
+          )}
+
+          {activeTab === 'popup' && (
+            <>
+              {/* Popup Builder Header */}
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Popup Activities</h2>
+                  <p className="text-sm text-gray-500 mt-1">Manage your popup activities</p>
                 </div>
-              ))}
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Popup Activity
+                </button>
+              </div>
+
+              {/* Activities List */}
+              {activities.length === 0 ? (
+                <div className="bg-white rounded-lg shadow p-12 text-center">
+                  <p className="text-gray-500 mb-4">No popup activities yet</p>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Create Your First Popup
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {activities.map((activity) => (
+                    <div
+                      key={activity._id}
+                      className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">{activity.name}</h3>
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded ${
+                                activity.status === 'activated'
+                                  ? 'bg-green-100 text-green-800'
+                                  : activity.status === 'draft'
+                                  ? 'bg-gray-100 text-gray-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {activity.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500 mb-2">
+                            {activity.urlConditions.length} URL condition{activity.urlConditions.length !== 1 ? 's' : ''} ({activity.logicOperator})
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Updated: {new Date(activity.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/popups/${activity._id}?projectId=${projectId}`}
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(activity._id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === 'form' && (
+            <div className="bg-white rounded-lg shadow p-12 text-center">
+              <FileText className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Form Builder</h2>
+              <p className="text-gray-600 mb-6">Create and manage forms for your project</p>
+              <Link
+                href={`/forms?projectId=${projectId}`}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                Go to Form Builder
+              </Link>
             </div>
           )}
         </div>
