@@ -1406,7 +1406,12 @@ export default function PopupActivityPage() {
       
       if (styleTag && targetElement) {
         let styleContent = styleTag.textContent || '';
-        const elementClass = targetElement.getAttribute('data-przio-class') || targetElement.id;
+        // For popup element, prioritize ID over class for better specificity
+        let elementClass = targetElement.getAttribute('data-przio-class') || targetElement.id;
+        // If selector is .przio but element has an ID (like popup-xxx), use the ID
+        if (selector === '.przio' && targetElement.id && targetElement.id.startsWith('popup-')) {
+          elementClass = targetElement.id;
+        }
         const classSelector = elementClass ? (elementClass.startsWith('przio-') ? `.${elementClass}` : `#${elementClass}`) : selector;
         
         // Remove existing rules for this selector (including media queries)
@@ -1444,7 +1449,10 @@ export default function PopupActivityPage() {
           if (mobile?.margin) mobileCssProps += `margin: ${mobile.margin}; `;
           
           if (mobileCssProps.trim()) {
-            responsiveCss += `\n        @media (max-width: 767px) {\n            ${classSelector} { ${mobileCssProps.trim()} }\n        }`;
+            const mobileMediaQuery = `\n        @media (max-width: 767px) {\n            ${classSelector} { ${mobileCssProps.trim()} }\n        }`;
+            responsiveCss += mobileMediaQuery;
+            console.log('[CSS Editor] Adding mobile responsive CSS:', mobileMediaQuery);
+            console.log('[CSS Editor] Selector used:', classSelector);
           }
         }
         
@@ -1946,7 +1954,18 @@ export default function PopupActivityPage() {
           injectSnippet(snippet, selector, position);
         }
       } else if (e.data?.type === 'przio-element-selected') {
-        const { selector, rect, tagName } = e.data;
+        let { selector, rect, tagName } = e.data;
+        
+        // If popup element is selected (.przio), use its ID if available for better CSS specificity
+        if (selector === '.przio' && activityId) {
+          // Try to find the popup element and use its ID
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(wrapForParsing(formData.html || ''), 'text/html');
+          const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
+          if (popupEl && popupEl.id && popupEl.id.startsWith('popup-')) {
+            selector = `#${popupEl.id}`;
+          }
+        }
         console.log('📥 Element selected in iframe:', selector, rect, tagName);
         
         // Get the actual element from iframe
@@ -1954,6 +1973,10 @@ export default function PopupActivityPage() {
         let element: HTMLElement | null = null;
         if (iframe && iframe.contentDocument) {
           element = iframe.contentDocument.querySelector(selector) as HTMLElement;
+          // If selector is ID but element not found, try .przio as fallback
+          if (!element && selector.startsWith('#popup-')) {
+            element = iframe.contentDocument.querySelector('.przio') as HTMLElement;
+          }
         }
         
         setSelectedElement({ id: selector, element, tagName }); 
