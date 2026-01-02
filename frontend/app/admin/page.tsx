@@ -1172,15 +1172,15 @@ export default function AdminDashboard() {
                               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none font-mono text-sm"
                             />
                             <p className="mt-1 text-xs text-gray-500">
-                              Enter the full script tag (e.g., <code className="bg-gray-100 px-1 rounded">&lt;script src="..."&gt;&lt;/script&gt;</code> or inline scripts)
+                              Enter the full script tag (e.g., <code className="bg-gray-100 px-1 rounded">&lt;script src=&quot;...&quot;&gt;&lt;/script&gt;</code> or inline scripts)
                             </p>
                             <p className="mt-1 text-xs text-gray-500">
                               Examples:
                             </p>
                             <ul className="mt-1 text-xs text-gray-500 list-disc list-inside space-y-1">
-                              <li><code className="bg-gray-100 px-1 rounded">&lt;script src="/sdk.js"&gt;&lt;/script&gt;</code></li>
-                              <li><code className="bg-gray-100 px-1 rounded">&lt;script src="https://cdn.example.com/script.js" async&gt;&lt;/script&gt;</code></li>
-                              <li><code className="bg-gray-100 px-1 rounded">&lt;script&gt;console.log('Hello');&lt;/script&gt;</code></li>
+                              <li><code className="bg-gray-100 px-1 rounded">&lt;script src=&quot;/sdk.js&quot;&gt;&lt;/script&gt;</code></li>
+                              <li><code className="bg-gray-100 px-1 rounded">&lt;script src=&quot;https://cdn.example.com/script.js&quot; async&gt;&lt;/script&gt;</code></li>
+                              <li><code className="bg-gray-100 px-1 rounded">&lt;script&gt;console.log(&apos;Hello&apos;);&lt;/script&gt;</code></li>
                             </ul>
                           </div>
 
