@@ -9,7 +9,7 @@ A lightweight JavaScript SDK for injecting popups into your website.
 Add this script tag to your website's `<head>` or before the closing `</body>` tag:
 
 ```html
-<script src="https://yourdomain.com/sdk.js" data-project-id="YOUR_PROJECT_ID"></script>
+<script src="https://przio.com/sdk.js" data-project-id="YOUR_PROJECT_ID"></script>
 ```
 
 Replace `YOUR_PROJECT_ID` with your actual project ID.
@@ -17,7 +17,7 @@ Replace `YOUR_PROJECT_ID` with your actual project ID.
 ### Method 2: Manual Initialization
 
 ```html
-<script src="https://yourdomain.com/sdk.js"></script>
+<script src="https://przio.com/sdk.js"></script>
 <script>
   window.PrzioSDK.init({
     projectId: 'YOUR_PROJECT_ID',
@@ -41,7 +41,7 @@ Replace `YOUR_PROJECT_ID` with your actual project ID.
 ```javascript
 window.PrzioSDK.init({
   projectId: 'YOUR_PROJECT_ID',  // Required
-  apiUrl: 'https://yourdomain.com/api/sdk', // Optional: defaults to same origin
+  apiUrl: 'https://przio.com/api/sdk', // Optional: defaults to same origin
   debug: false // Optional: enable console logging
 });
 ```
@@ -88,7 +88,7 @@ Get SDK version string.
 <html>
 <head>
   <title>My Website</title>
-  <script src="https://yourdomain.com/sdk.js" data-project-id="507f1f77bcf86cd799439011"></script>
+  <script src="https://przio.com/sdk.js" data-project-id="507f1f77bcf86cd799439011"></script>
 </head>
 <body>
   <h1>Welcome to my website</h1>
@@ -105,7 +105,7 @@ function MyApp() {
   useEffect(() => {
     // Load SDK script
     const script = document.createElement('script');
-    script.src = 'https://yourdomain.com/sdk.js';
+    script.src = 'https://przio.com/sdk.js';
     script.setAttribute('data-project-id', 'YOUR_PROJECT_ID');
     document.body.appendChild(script);
 
@@ -130,7 +130,7 @@ function MyApp() {
 export default {
   mounted() {
     const script = document.createElement('script');
-    script.src = 'https://yourdomain.com/sdk.js';
+    script.src = 'https://przio.com/sdk.js';
     script.setAttribute('data-project-id', 'YOUR_PROJECT_ID');
     document.body.appendChild(script);
   }
@@ -172,6 +172,7 @@ if (window.PrzioSDK) {
 ## License
 
 Proprietary - All rights reserved
+
 
 
 

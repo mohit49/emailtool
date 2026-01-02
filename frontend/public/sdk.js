@@ -2,7 +2,7 @@
  * Przio Popup SDK
  * 
  * Usage:
- * <script src="https://yourdomain.com/sdk.js" data-project-id="YOUR_PROJECT_ID"></script>
+ * <script src="https://przio.com/sdk.js" data-project-id="YOUR_PROJECT_ID"></script>
  * 
  * Or initialize manually:
  * <script>

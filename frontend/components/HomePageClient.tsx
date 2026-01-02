@@ -1,13 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Carousel from './Carousel';
 import { 
   Mail, FileText, Layout, Eye, Code, Folder, Settings, Palette, Zap, Target, Plug, CheckCircle, BarChart, Link2, 
-  UserCircle, GitBranch
+  UserCircle, GitBranch, Edit3
 } from 'lucide-react';
 
 export default function HomePageClient() {
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   // Product carousel slides
   const productSlides = [
@@ -133,8 +135,21 @@ export default function HomePageClient() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       {/* Section 1: Product Carousel */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-        <Carousel items={productSlides.map((slide, index) => {
+      <section className="w-full bg-orange-400 relative overflow-hidden">
+        {/* Faded background icons - different for each slide */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {currentSlideIndex === 0 && (
+            <Edit3 className="w-[800px] h-[800px] text-white/10 transition-opacity duration-500" />
+          )}
+          {currentSlideIndex === 1 && (
+            <FileText className="w-[800px] h-[800px] text-white/10 transition-opacity duration-500" />
+          )}
+          {currentSlideIndex === 2 && (
+            <Layout className="w-[800px] h-[800px] text-white/10 transition-opacity duration-500" />
+          )}
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 relative z-10">
+          <Carousel items={productSlides.map((slide, index) => {
           const colorClasses = {
             indigo: {
               check: 'text-indigo-600',
@@ -168,17 +183,17 @@ export default function HomePageClient() {
                     {slide.icon}
                   </div>
                 </div>
-                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-gray-900">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white">
                   {slide.title}
                 </h2>
-                <p className="text-xl md:text-2xl mb-8 text-gray-600 leading-relaxed">
+                <p className="text-xl md:text-2xl mb-8 text-white leading-relaxed">
                   {slide.description}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 text-left">
                   {slide.features.map((feature, idx) => (
                     <div key={idx} className="flex items-start">
-                      <CheckCircle className={`w-6 h-6 mr-3 mt-1 flex-shrink-0 ${colors.check}`} />
-                      <span className="text-lg text-gray-700">{feature}</span>
+                      <CheckCircle className="w-6 h-6 mr-3 mt-1 flex-shrink-0 text-white" />
+                      <span className="text-lg text-white">{feature}</span>
                     </div>
                   ))}
                 </div>
@@ -191,7 +206,7 @@ export default function HomePageClient() {
                   </Link>
                   <Link
                     href="/signup"
-                    className={`px-8 py-4 bg-transparent border-2 ${colors.border} ${colors.text} rounded-lg font-semibold text-lg ${colors.hover} transition-all`}
+                    className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-semibold text-lg hover:bg-white/10 transition-all"
                   >
                     Get Started Free
                   </Link>
@@ -199,7 +214,8 @@ export default function HomePageClient() {
               </div>
             </div>
           );
-        })} />
+        })} onSlideChange={setCurrentSlideIndex} />
+        </div>
       </section>
 
       {/* Section 2: About Us */}

@@ -9,6 +9,7 @@ interface CarouselProps {
   interval?: number;
   showDots?: boolean;
   showArrows?: boolean;
+  onSlideChange?: (index: number) => void;
 }
 
 export default function Carousel({ 
@@ -16,7 +17,8 @@ export default function Carousel({
   autoPlay = true, 
   interval = 5000,
   showDots = true,
-  showArrows = true 
+  showArrows = true,
+  onSlideChange
 }: CarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -24,22 +26,35 @@ export default function Carousel({
     if (!autoPlay || items.length <= 1) return;
 
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % items.length);
+      setCurrentIndex((prev) => {
+        const newIndex = (prev + 1) % items.length;
+        onSlideChange?.(newIndex);
+        return newIndex;
+      });
     }, interval);
 
     return () => clearInterval(timer);
-  }, [autoPlay, interval, items.length]);
+  }, [autoPlay, interval, items.length, onSlideChange]);
+
+  useEffect(() => {
+    onSlideChange?.(currentIndex);
+  }, [currentIndex, onSlideChange]);
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
+    onSlideChange?.(index);
   };
 
   const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
+    const newIndex = (currentIndex - 1 + items.length) % items.length;
+    setCurrentIndex(newIndex);
+    onSlideChange?.(newIndex);
   };
 
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % items.length);
+    const newIndex = (currentIndex + 1) % items.length;
+    setCurrentIndex(newIndex);
+    onSlideChange?.(newIndex);
   };
 
   if (items.length === 0) return null;
@@ -88,8 +103,8 @@ export default function Carousel({
               onClick={() => goToSlide(index)}
               className={`h-2 rounded-full transition-all ${
                 index === currentIndex 
-                  ? 'bg-black w-8' 
-                  : 'bg-black/50 w-2 hover:bg-black/75'
+                  ? 'bg-white w-8' 
+                  : 'bg-white/50 w-2 hover:bg-white/75'
               }`}
               aria-label={`Go to slide ${index + 1}`}
             />

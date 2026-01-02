@@ -3,12 +3,12 @@
  * Third-party integration SDK for sending emails via PRZIO
  * 
  * Usage:
- *   <script src="https://yourdomain.com/przio-sdk.js"></script>
+ *   <script src="https://przio.com/przio-sdk.js"></script>
  *   <script>
  *     const przio = new PrzioSDK({
  *       apiKey: 'your-api-key',
  *       projectId: 'your-project-id',
- *       baseUrl: 'https://yourdomain.com' // optional, defaults to current origin
+ *       baseUrl: 'https://przio.com' // optional, defaults to current origin
  *     });
  *     
  *     przio.connect().then(() => {

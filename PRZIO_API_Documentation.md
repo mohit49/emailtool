@@ -47,7 +47,7 @@ After importing, configure the collection variables:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `baseUrl` | Your PRZIO instance URL | `http://localhost:3000` or `https://your-domain.com` |
+| `baseUrl` | Your PRZIO instance URL | `http://localhost:3000` or `https://przio.com` |
 | `apiKey` | Your API key | `przio_abc123...` |
 | `projectId` | Your project ID | `507f1f77bcf86cd799439011` |
 | `templateId` | Template ID (optional) | `507f1f77bcf86cd799439011` or `welcome-email-v1` |

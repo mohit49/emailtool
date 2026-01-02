@@ -481,51 +481,281 @@ export default function PopupTutorialPage() {
               </h2>
               <p className="text-lg text-gray-600 leading-relaxed mb-6">
                 Add our lightweight JavaScript SDK to your website to enable popup functionality. 
-                Just one script tag and you&apos;re ready to go!
+                The SDK automatically handles popup injection, trigger evaluation, and URL condition checking.
               </p>
               
-              <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Step 1: Get Your API Key</h3>
-                <ol className="space-y-2 text-gray-700 text-sm list-decimal list-inside">
-                  <li>Go to your project settings</li>
-                  <li>Navigate to &quot;API Keys&quot; section</li>
-                  <li>Copy your project API key (or create a new one if needed)</li>
-                </ol>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Step 2: Add SDK Script to Your Website</h3>
-                <p className="text-gray-700 mb-3 text-sm">
-                  Add this script tag before the closing <code className="bg-gray-200 px-1 rounded">&lt;/body&gt;</code> tag on all pages where you want popups to appear:
-                </p>
-                <pre className="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-x-auto">
-{`<script src="https://your-domain.com/sdk.js" 
-        data-api-key="YOUR_API_KEY_HERE">
+              <div className="space-y-6">
+                {/* Installation Methods */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Installation Methods</h3>
+                  
+                  <div className="mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-3">Method 1: Simple Script Tag (Recommended)</h4>
+                    <p className="text-gray-700 mb-3 text-sm">
+                      Add this script tag to your website&apos;s <code className="bg-gray-200 px-1 rounded">&lt;head&gt;</code> or before the closing <code className="bg-gray-200 px-1 rounded">&lt;/body&gt;</code> tag:
+                    </p>
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-x-auto">
+{`<script src="https://przio.com/sdk.js" 
+        data-project-id="YOUR_PROJECT_ID">
 </script>`}
-                </pre>
-                <p className="text-gray-600 text-xs mt-2">
-                  Replace <code className="bg-gray-200 px-1 rounded">YOUR_API_KEY_HERE</code> with your actual API key.
-                </p>
-              </div>
+                    </pre>
+                    <p className="text-gray-600 text-xs mt-2">
+                      Replace <code className="bg-gray-200 px-1 rounded">YOUR_PROJECT_ID</code> with your actual project ID. You can find this in your project settings.
+                    </p>
+                  </div>
 
-              <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Step 3: Verify Integration</h3>
-                <p className="text-gray-700 mb-3 text-sm">
-                  Once the SDK is added, it will automatically:
-                </p>
-                <ul className="space-y-2 text-gray-700 text-sm list-disc list-inside">
-                  <li>Check URL conditions for each popup</li>
-                  <li>Evaluate trigger conditions (timeout, scroll, exit intent, etc.)</li>
-                  <li>Respect cookie/session settings</li>
-                  <li>Inject and display popups when conditions are met</li>
-                </ul>
-              </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-3">Method 2: Manual Initialization</h4>
+                    <p className="text-gray-700 mb-3 text-sm">
+                      Load the SDK script first, then initialize it manually:
+                    </p>
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-x-auto">
+{`<script src="https://przio.com/sdk.js"></script>
+<script>
+  window.PrzioSDK.init({
+    projectId: 'YOUR_PROJECT_ID',
+    debug: true // Optional: enable debug logging
+  });
+</script>`}
+                    </pre>
+                  </div>
+                </div>
 
-              <div className="bg-green-50 border-l-4 border-green-500 p-4">
-                <p className="text-green-800 text-sm">
-                  <strong>Best Practice:</strong> Add the SDK script to your website&apos;s main template or header file 
-                  so it loads on all pages. The SDK is lightweight and won&apos;t impact your page load speed.
-                </p>
+                {/* SDK Features */}
+                <div className="bg-blue-50 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">SDK Features</h3>
+                  <ul className="space-y-2 text-gray-700 text-sm">
+                    <li className="flex items-start">
+                      <span className="text-green-600 mr-2">✓</span>
+                      <span>Automatic popup injection based on URL conditions</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-green-600 mr-2">✓</span>
+                      <span>Support for multiple popups per page</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-green-600 mr-2">✓</span>
+                      <span>SPA (Single Page Application) support with automatic URL change detection</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-green-600 mr-2">✓</span>
+                      <span>Caching for better performance (5-minute cache)</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-green-600 mr-2">✓</span>
+                      <span>Animate.css animation support</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-green-600 mr-2">✓</span>
+                      <span>Close button functionality</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-green-600 mr-2">✓</span>
+                      <span>Lightweight and fast</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Configuration Options */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Configuration Options</h3>
+                  <p className="text-gray-700 mb-3 text-sm">
+                    When initializing the SDK manually, you can configure these options:
+                  </p>
+                  <pre className="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-x-auto">
+{`window.PrzioSDK.init({
+  projectId: 'YOUR_PROJECT_ID',  // Required
+  apiUrl: 'https://przio.com/api/sdk', // Optional: defaults to same origin
+  debug: false // Optional: enable console logging
+});`}
+                  </pre>
+                  <ul className="space-y-2 text-gray-700 text-xs mt-3 list-disc list-inside">
+                    <li><strong>projectId:</strong> Your project ID (required)</li>
+                    <li><strong>apiUrl:</strong> Custom API endpoint (optional, defaults to same origin)</li>
+                    <li><strong>debug:</strong> Enable debug logging to console (optional, default: false)</li>
+                  </ul>
+                </div>
+
+                {/* Framework Examples */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Framework Integration Examples</h3>
+                  
+                  <div className="mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-2">React/Next.js</h4>
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-x-auto">
+{`import { useEffect } from 'react';
+
+function MyApp() {
+  useEffect(() => {
+    // Load SDK script
+    const script = document.createElement('script');
+    script.src = 'https://przio.com/sdk.js';
+    script.setAttribute('data-project-id', 'YOUR_PROJECT_ID');
+    document.body.appendChild(script);
+
+    return () => {
+      // Cleanup
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  return <div>My App</div>;
+}`}
+                    </pre>
+                  </div>
+
+                  <div className="mb-6">
+                    <h4 className="font-semibold text-gray-900 mb-2">Vue.js</h4>
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-x-auto">
+{`<template>
+  <div>My App</div>
+</template>
+
+<script>
+export default {
+  mounted() {
+    const script = document.createElement('script');
+    script.src = 'https://przio.com/sdk.js';
+    script.setAttribute('data-project-id', 'YOUR_PROJECT_ID');
+    document.body.appendChild(script);
+  }
+}
+</script>`}
+                    </pre>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Plain HTML</h4>
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-x-auto">
+{`<!DOCTYPE html>
+<html>
+<head>
+  <title>My Website</title>
+  <script src="https://przio.com/sdk.js" 
+          data-project-id="YOUR_PROJECT_ID">
+  </script>
+</head>
+<body>
+  <h1>Welcome to my website</h1>
+</body>
+</html>`}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* API Methods */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">SDK API Methods</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="border-l-4 border-indigo-500 pl-4">
+                      <h4 className="font-semibold text-gray-900 mb-2">PrzioSDK.init(options)</h4>
+                      <p className="text-gray-700 text-sm">
+                        Initialize the SDK with configuration options. Required before using other methods.
+                      </p>
+                    </div>
+
+                    <div className="border-l-4 border-purple-500 pl-4">
+                      <h4 className="font-semibold text-gray-900 mb-2">PrzioSDK.processPopups()</h4>
+                      <p className="text-gray-700 text-sm">
+                        Manually trigger popup processing. Useful for Single Page Applications (SPAs) after route changes.
+                      </p>
+                      <pre className="bg-gray-800 text-gray-100 p-2 rounded text-xs mt-2">
+{`// Example: Call after SPA route change
+window.PrzioSDK.processPopups();`}
+                      </pre>
+                    </div>
+
+                    <div className="border-l-4 border-pink-500 pl-4">
+                      <h4 className="font-semibold text-gray-900 mb-2">PrzioSDK.config()</h4>
+                      <p className="text-gray-700 text-sm">
+                        Get current SDK configuration object.
+                      </p>
+                    </div>
+
+                    <div className="border-l-4 border-blue-500 pl-4">
+                      <h4 className="font-semibold text-gray-900 mb-2">PrzioSDK.version</h4>
+                      <p className="text-gray-700 text-sm">
+                        Get SDK version string.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* URL Conditions */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">How URL Conditions Work</h3>
+                  <p className="text-gray-700 mb-3 text-sm">
+                    The SDK automatically checks URL conditions before showing popups. These are configured in Step 2:
+                  </p>
+                  <ul className="space-y-2 text-gray-700 text-sm">
+                    <li>• <strong>contains:</strong> URL contains the specified value</li>
+                    <li>• <strong>equals:</strong> URL exactly matches the value</li>
+                    <li>• <strong>startsWith:</strong> URL starts with the value</li>
+                    <li>• <strong>doesNotContain:</strong> URL does not contain the value</li>
+                    <li>• <strong>landing:</strong> Is the landing page (home page)</li>
+                  </ul>
+                  <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 mt-4">
+                    <p className="text-yellow-800 text-xs">
+                      <strong>Logic Operators:</strong> Use OR (default) to show popup if ANY condition matches, 
+                      or AND to show popup only if ALL conditions match.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Troubleshooting */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Troubleshooting</h3>
+                  
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">Enable Debug Mode</h4>
+                    <p className="text-gray-700 text-sm mb-2">
+                      Enable debug logging to see detailed information in the browser console:
+                    </p>
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-x-auto">
+{`window.PrzioSDK.init({
+  projectId: 'YOUR_PROJECT_ID',
+  debug: true
+});`}
+                    </pre>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Check if SDK Loaded</h4>
+                    <p className="text-gray-700 text-sm mb-2">
+                      Verify the SDK loaded successfully:
+                    </p>
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded text-sm overflow-x-auto">
+{`if (window.PrzioSDK) {
+  console.log('SDK loaded successfully');
+  console.log('Version:', window.PrzioSDK.version);
+} else {
+  console.error('SDK failed to load');
+}`}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Browser Support */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Browser Support</h3>
+                  <ul className="space-y-2 text-gray-700 text-sm">
+                    <li>• Chrome/Edge (latest)</li>
+                    <li>• Firefox (latest)</li>
+                    <li>• Safari (latest)</li>
+                    <li>• Mobile browsers (iOS Safari, Chrome Mobile)</li>
+                  </ul>
+                </div>
+
+                <div className="bg-green-50 border-l-4 border-green-500 p-4">
+                  <p className="text-green-800 text-sm">
+                    <strong>Best Practice:</strong> Add the SDK script to your website&apos;s main template or header file 
+                    so it loads on all pages. The SDK is lightweight (~50KB) and won&apos;t impact your page load speed. 
+                    For Single Page Applications, call <code className="bg-green-100 px-1 rounded">PrzioSDK.processPopups()</code> after route changes.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
