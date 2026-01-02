@@ -1922,9 +1922,15 @@ export default function PopupActivityPage() {
           // Mobile Flexbox
           if (mobile?.display && mobile.display.trim()) mobileCssProps += `display: ${mobile.display.trim()}; `;
           if (mobile?.flexDirection && mobile.flexDirection.trim()) mobileCssProps += `flex-direction: ${mobile.flexDirection.trim()}; `;
+          if (mobile?.flexWrap && mobile.flexWrap.trim()) mobileCssProps += `flex-wrap: ${mobile.flexWrap.trim()}; `;
           if (mobile?.justifyContent && mobile.justifyContent.trim()) mobileCssProps += `justify-content: ${mobile.justifyContent.trim()}; `;
           if (mobile?.alignItems && mobile.alignItems.trim()) mobileCssProps += `align-items: ${mobile.alignItems.trim()}; `;
+          if (mobile?.alignContent && mobile.alignContent.trim()) mobileCssProps += `align-content: ${mobile.alignContent.trim()}; `;
           if (mobile?.gap && mobile.gap.trim()) mobileCssProps += `gap: ${mobile.gap.trim()}; `;
+          if (mobile?.flexGrow && mobile.flexGrow.trim()) mobileCssProps += `flex-grow: ${mobile.flexGrow.trim()}; `;
+          if (mobile?.flexShrink && mobile.flexShrink.trim()) mobileCssProps += `flex-shrink: ${mobile.flexShrink.trim()}; `;
+          if (mobile?.flexBasis && mobile.flexBasis.trim()) mobileCssProps += `flex-basis: ${mobile.flexBasis.trim()}; `;
+          if (mobile?.alignSelf && mobile.alignSelf.trim()) mobileCssProps += `align-self: ${mobile.alignSelf.trim()}; `;
           
           // Add mobile custom CSS if provided
           if (editingElementCss.mobileCustomCss && editingElementCss.mobileCustomCss.trim()) {
@@ -1962,9 +1968,15 @@ export default function PopupActivityPage() {
           // Tablet Flexbox
           if (tablet?.display && tablet.display.trim()) tabletCssProps += `display: ${tablet.display.trim()}; `;
           if (tablet?.flexDirection && tablet.flexDirection.trim()) tabletCssProps += `flex-direction: ${tablet.flexDirection.trim()}; `;
+          if (tablet?.flexWrap && tablet.flexWrap.trim()) tabletCssProps += `flex-wrap: ${tablet.flexWrap.trim()}; `;
           if (tablet?.justifyContent && tablet.justifyContent.trim()) tabletCssProps += `justify-content: ${tablet.justifyContent.trim()}; `;
           if (tablet?.alignItems && tablet.alignItems.trim()) tabletCssProps += `align-items: ${tablet.alignItems.trim()}; `;
+          if (tablet?.alignContent && tablet.alignContent.trim()) tabletCssProps += `align-content: ${tablet.alignContent.trim()}; `;
           if (tablet?.gap && tablet.gap.trim()) tabletCssProps += `gap: ${tablet.gap.trim()}; `;
+          if (tablet?.flexGrow && tablet.flexGrow.trim()) tabletCssProps += `flex-grow: ${tablet.flexGrow.trim()}; `;
+          if (tablet?.flexShrink && tablet.flexShrink.trim()) tabletCssProps += `flex-shrink: ${tablet.flexShrink.trim()}; `;
+          if (tablet?.flexBasis && tablet.flexBasis.trim()) tabletCssProps += `flex-basis: ${tablet.flexBasis.trim()}; `;
+          if (tablet?.alignSelf && tablet.alignSelf.trim()) tabletCssProps += `align-self: ${tablet.alignSelf.trim()}; `;
           
           // Add tablet custom CSS if provided
           if (editingElementCss.tabletCustomCss && editingElementCss.tabletCustomCss.trim()) {
@@ -1994,9 +2006,15 @@ export default function PopupActivityPage() {
           // Desktop Flexbox
           if (desktop?.display && desktop.display.trim()) desktopCssProps += `display: ${desktop.display.trim()}; `;
           if (desktop?.flexDirection && desktop.flexDirection.trim()) desktopCssProps += `flex-direction: ${desktop.flexDirection.trim()}; `;
+          if (desktop?.flexWrap && desktop.flexWrap.trim()) desktopCssProps += `flex-wrap: ${desktop.flexWrap.trim()}; `;
           if (desktop?.justifyContent && desktop.justifyContent.trim()) desktopCssProps += `justify-content: ${desktop.justifyContent.trim()}; `;
           if (desktop?.alignItems && desktop.alignItems.trim()) desktopCssProps += `align-items: ${desktop.alignItems.trim()}; `;
+          if (desktop?.alignContent && desktop.alignContent.trim()) desktopCssProps += `align-content: ${desktop.alignContent.trim()}; `;
           if (desktop?.gap && desktop.gap.trim()) desktopCssProps += `gap: ${desktop.gap.trim()}; `;
+          if (desktop?.flexGrow && desktop.flexGrow.trim()) desktopCssProps += `flex-grow: ${desktop.flexGrow.trim()}; `;
+          if (desktop?.flexShrink && desktop.flexShrink.trim()) desktopCssProps += `flex-shrink: ${desktop.flexShrink.trim()}; `;
+          if (desktop?.flexBasis && desktop.flexBasis.trim()) desktopCssProps += `flex-basis: ${desktop.flexBasis.trim()}; `;
+          if (desktop?.alignSelf && desktop.alignSelf.trim()) desktopCssProps += `align-self: ${desktop.alignSelf.trim()}; `;
           
           // Add desktop custom CSS if provided
           if (editingElementCss.desktopCustomCss && editingElementCss.desktopCustomCss.trim()) {

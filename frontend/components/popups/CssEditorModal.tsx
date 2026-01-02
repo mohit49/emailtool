@@ -495,6 +495,7 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                       <option value="inline-flex">Inline Flex</option>
                       <option value="block">Block</option>
                       <option value="inline-block">Inline Block</option>
+                      <option value="grid">Grid</option>
                     </select>
                   </div>
                   <div>
@@ -512,6 +513,22 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                       <option value="column">Column</option>
                       <option value="row-reverse">Row Reverse</option>
                       <option value="column-reverse">Column Reverse</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Wrap</label>
+                    <select
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.flexWrap ? editingElementCss.mobileCss.flexWrap : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, flexWrap: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="nowrap">No Wrap</option>
+                      <option value="wrap">Wrap</option>
+                      <option value="wrap-reverse">Wrap Reverse</option>
                     </select>
                   </div>
                   <div>
@@ -552,6 +569,25 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                     </select>
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Align Content</label>
+                    <select
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.alignContent ? editingElementCss.mobileCss.alignContent : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, alignContent: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="space-between">Space Between</option>
+                      <option value="space-around">Space Around</option>
+                      <option value="stretch">Stretch</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Gap</label>
                     <input
                       type="text"
@@ -563,6 +599,64 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                       placeholder="10px, 1rem"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Grow</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.flexGrow ? editingElementCss.mobileCss.flexGrow : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, flexGrow: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="0, 1, 2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Shrink</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.flexShrink ? editingElementCss.mobileCss.flexShrink : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, flexShrink: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="0, 1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Basis</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.flexBasis ? editingElementCss.mobileCss.flexBasis : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, flexBasis: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="auto, 200px, 50%"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Align Self</label>
+                    <select
+                      value={typeof editingElementCss.mobileCss === 'object' && editingElementCss.mobileCss?.alignSelf ? editingElementCss.mobileCss.alignSelf : ''}
+                      onChange={(e) => {
+                        const mobileCss = typeof editingElementCss.mobileCss === 'object' ? (editingElementCss.mobileCss || {}) : {};
+                        handleChange('mobileCss', { ...mobileCss, alignSelf: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="auto">Auto</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="baseline">Baseline</option>
+                      <option value="stretch">Stretch</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -717,6 +811,7 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                       <option value="inline-flex">Inline Flex</option>
                       <option value="block">Block</option>
                       <option value="inline-block">Inline Block</option>
+                      <option value="grid">Grid</option>
                     </select>
                   </div>
                   <div>
@@ -734,6 +829,22 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                       <option value="column">Column</option>
                       <option value="row-reverse">Row Reverse</option>
                       <option value="column-reverse">Column Reverse</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Wrap</label>
+                    <select
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.flexWrap ? editingElementCss.tabletCss.flexWrap : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, flexWrap: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="nowrap">No Wrap</option>
+                      <option value="wrap">Wrap</option>
+                      <option value="wrap-reverse">Wrap Reverse</option>
                     </select>
                   </div>
                   <div>
@@ -774,6 +885,25 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                     </select>
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Align Content</label>
+                    <select
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.alignContent ? editingElementCss.tabletCss.alignContent : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, alignContent: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="space-between">Space Between</option>
+                      <option value="space-around">Space Around</option>
+                      <option value="stretch">Stretch</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Gap</label>
                     <input
                       type="text"
@@ -785,6 +915,64 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                       placeholder="10px, 1rem"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Grow</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.flexGrow ? editingElementCss.tabletCss.flexGrow : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, flexGrow: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="0, 1, 2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Shrink</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.flexShrink ? editingElementCss.tabletCss.flexShrink : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, flexShrink: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="0, 1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Basis</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.flexBasis ? editingElementCss.tabletCss.flexBasis : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, flexBasis: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="auto, 200px, 50%"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Align Self</label>
+                    <select
+                      value={typeof editingElementCss.tabletCss === 'object' && editingElementCss.tabletCss?.alignSelf ? editingElementCss.tabletCss.alignSelf : ''}
+                      onChange={(e) => {
+                        const tabletCss = typeof editingElementCss.tabletCss === 'object' ? (editingElementCss.tabletCss || {}) : {};
+                        handleChange('tabletCss', { ...tabletCss, alignSelf: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="auto">Auto</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="baseline">Baseline</option>
+                      <option value="stretch">Stretch</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -939,6 +1127,7 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                       <option value="inline-flex">Inline Flex</option>
                       <option value="block">Block</option>
                       <option value="inline-block">Inline Block</option>
+                      <option value="grid">Grid</option>
                     </select>
                   </div>
                   <div>
@@ -956,6 +1145,22 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                       <option value="column">Column</option>
                       <option value="row-reverse">Row Reverse</option>
                       <option value="column-reverse">Column Reverse</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Wrap</label>
+                    <select
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.flexWrap ? editingElementCss.desktopCss.flexWrap : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, flexWrap: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="nowrap">No Wrap</option>
+                      <option value="wrap">Wrap</option>
+                      <option value="wrap-reverse">Wrap Reverse</option>
                     </select>
                   </div>
                   <div>
@@ -996,6 +1201,25 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                     </select>
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Align Content</label>
+                    <select
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.alignContent ? editingElementCss.desktopCss.alignContent : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, alignContent: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="space-between">Space Between</option>
+                      <option value="space-around">Space Around</option>
+                      <option value="stretch">Stretch</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Gap</label>
                     <input
                       type="text"
@@ -1007,6 +1231,64 @@ const CssEditorModal: React.FC<CssEditorModalProps> = ({
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                       placeholder="10px, 1rem"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Grow</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.flexGrow ? editingElementCss.desktopCss.flexGrow : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, flexGrow: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="0, 1, 2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Shrink</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.flexShrink ? editingElementCss.desktopCss.flexShrink : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, flexShrink: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="0, 1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Flex Basis</label>
+                    <input
+                      type="text"
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.flexBasis ? editingElementCss.desktopCss.flexBasis : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, flexBasis: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      placeholder="auto, 200px, 50%"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Align Self</label>
+                    <select
+                      value={typeof editingElementCss.desktopCss === 'object' && editingElementCss.desktopCss?.alignSelf ? editingElementCss.desktopCss.alignSelf : ''}
+                      onChange={(e) => {
+                        const desktopCss = typeof editingElementCss.desktopCss === 'object' ? (editingElementCss.desktopCss || {}) : {};
+                        handleChange('desktopCss', { ...desktopCss, alignSelf: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">Default</option>
+                      <option value="auto">Auto</option>
+                      <option value="flex-start">Flex Start</option>
+                      <option value="flex-end">Flex End</option>
+                      <option value="center">Center</option>
+                      <option value="baseline">Baseline</option>
+                      <option value="stretch">Stretch</option>
+                    </select>
                   </div>
                 </div>
               </div>
