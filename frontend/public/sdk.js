@@ -1026,15 +1026,8 @@
       
       // Ensure popup has proper z-index and positioning
       const popupElement = popupClone;
-      // Popup should be above backdrop (backdrop is 999998, popup should be 999999 or higher)
-      if (!popupElement.style.zIndex) {
-        popupElement.style.zIndex = '999999';
-      }
-      if (!popupElement.style.position) {
-        popupElement.style.position = 'fixed';
-      }
-      // Ensure popup can receive pointer events (overrides container's pointer-events: none)
-      popupElement.style.pointerEvents = 'auto';
+      // Note: z-index, position, and overflow should be set via CSS, not inline styles
+      // These properties are now controlled through the popup CSS settings in the editor
 
       container.appendChild(popupElement);
 

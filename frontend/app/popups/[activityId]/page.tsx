@@ -458,7 +458,7 @@ export default function PopupActivityPage() {
   const [showPopupSettings, setShowPopupSettings] = useState(false);
   const [showCssEditor, setShowCssEditor] = useState(false);
   const [showPositionSettings, setShowPositionSettings] = useState(false);
-  const [showAnimationSettings, setShowAnimationSettings] = useState<'position' | 'animation' | 'closeIcon' | 'trigger' | 'backdrop' | 'code'>('position');
+  const [showAnimationSettings, setShowAnimationSettings] = useState<'position' | 'animation' | 'closeIcon' | 'trigger' | 'backdrop' | 'code' | 'positionLayout'>('position');
   const [showImageModal, setShowImageModal] = useState(false);
   const [showLayersPanel, setShowLayersPanel] = useState(false);
   const [layersPanelPosition, setLayersPanelPosition] = useState({ x: 100, y: 100 });
@@ -480,6 +480,9 @@ export default function PopupActivityPage() {
     textAlign: 'center',
     mobileWidth: '',
     desktopWidth: '',
+    zIndex: '',
+    position: '',
+    overflow: '',
   });
   const [editingElementCss, setEditingElementCss] = useState({
     width: '',
@@ -627,6 +630,9 @@ export default function PopupActivityPage() {
           textAlign: currentCssSettings.textAlign || 'center',
           mobileWidth: currentCssSettings.mobileWidth || '',
           desktopWidth: currentCssSettings.desktopWidth || '',
+          zIndex: currentCssSettings.zIndex || '',
+          position: currentCssSettings.position || '',
+          overflow: currentCssSettings.overflow || '',
         });
         
         // Ensure HTML has przio wrapper if it doesn't exist
@@ -3159,6 +3165,56 @@ export default function PopupActivityPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [popupCssSettings.mobileWidth, popupCssSettings.desktopWidth, activityId]);
 
+  // Apply z-index, position, and overflow to popup CSS
+  useEffect(() => {
+    if (!activityId || !formData.html) return;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(wrapForParsing(formData.html || ''), 'text/html');
+    const styleEl = doc.querySelector('style');
+    const popupId = `popup-${activityId}`;
+
+    if (!styleEl) return;
+
+    let styleContent = styleEl.textContent || '';
+    
+    // Find or create popup CSS rule
+    const popupRuleRegex = new RegExp(`#${popupId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([\\s\\S]*?)\\}`, 'g');
+    const match = popupRuleRegex.exec(styleContent);
+    
+    if (match) {
+      let ruleContent = match[1];
+      
+      // Remove existing z-index, position, and overflow properties
+      ruleContent = ruleContent.replace(/z-index\s*:\s*[^;]+;?/gi, '');
+      ruleContent = ruleContent.replace(/position\s*:\s*[^;]+;?/gi, '');
+      ruleContent = ruleContent.replace(/overflow\s*:\s*[^;]+;?/gi, '');
+      
+      // Add new properties if they are set
+      if (popupCssSettings.zIndex && popupCssSettings.zIndex.trim()) {
+        ruleContent += `\n            z-index: ${popupCssSettings.zIndex.trim()};`;
+      }
+      if (popupCssSettings.position && popupCssSettings.position.trim()) {
+        ruleContent += `\n            position: ${popupCssSettings.position.trim()};`;
+      }
+      if (popupCssSettings.overflow && popupCssSettings.overflow.trim()) {
+        ruleContent += `\n            overflow: ${popupCssSettings.overflow.trim()};`;
+      }
+      
+      // Update the rule
+      const updatedRule = `#${popupId} {${ruleContent}\n        }`;
+      styleContent = styleContent.replace(popupRuleRegex, updatedRule);
+      styleEl.textContent = styleContent;
+      
+      // Update formData.html with the new styles
+      const updatedHtml = extractPopupContent('<!DOCTYPE html>' + doc.documentElement.outerHTML);
+      if (updatedHtml !== formData.html) {
+        setFormData(prev => ({ ...prev, html: updatedHtml }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [popupCssSettings.zIndex, popupCssSettings.position, popupCssSettings.overflow, activityId]);
+
   // Apply position styling to HTML
   const applyPositionToHTML = useCallback((position: 'left-top' | 'right-top' | 'left-bottom' | 'right-bottom' | 'center-top' | 'center' | 'center-bottom') => {
     setFormData((prev) => {
@@ -3889,7 +3945,7 @@ export default function PopupActivityPage() {
       {/* Position Settings Popup */}
       {showPositionSettings && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000000] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
               <h2 className="text-xl font-semibold text-gray-900">Popup Settings</h2>
               <button
@@ -3962,6 +4018,16 @@ export default function PopupActivityPage() {
                   }`}
                 >
                   Code
+                </button>
+                <button
+                  onClick={() => setShowAnimationSettings('positionLayout')}
+                  className={`px-4 py-2 font-medium transition-colors ${
+                    showAnimationSettings === 'positionLayout'
+                      ? 'text-indigo-600 border-b-2 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Position & Layout
                 </button>
               </div>
 
@@ -4670,6 +4736,66 @@ document.head.appendChild(script);`}
                     <p className="text-sm text-blue-800">
                       <strong>Note:</strong> Make sure you&apos;re on a page where the SDK is loaded. The popup will appear regardless of URL conditions when using <code className="bg-blue-100 px-1 rounded">showPopup()</code>.
                     </p>
+                  </div>
+                </div>
+              ) : showAnimationSettings === 'positionLayout' ? (
+                /* Position & Layout Tab */
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Position & Layout</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Z-Index
+                        </label>
+                        <input
+                          type="text"
+                          value={popupCssSettings.zIndex || ''}
+                          onChange={(e) => setPopupCssSettings(prev => ({ ...prev, zIndex: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          placeholder="999999"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Controls stacking order. Higher values appear on top.</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Position
+                        </label>
+                        <select
+                          value={popupCssSettings.position || ''}
+                          onChange={(e) => setPopupCssSettings(prev => ({ ...prev, position: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        >
+                          <option value="">Default</option>
+                          <option value="static">Static</option>
+                          <option value="relative">Relative</option>
+                          <option value="fixed">Fixed</option>
+                          <option value="absolute">Absolute</option>
+                          <option value="sticky">Sticky</option>
+                        </select>
+                        <p className="mt-1 text-xs text-gray-500">CSS position property for the popup container.</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Overflow
+                        </label>
+                        <select
+                          value={popupCssSettings.overflow || ''}
+                          onChange={(e) => setPopupCssSettings(prev => ({ ...prev, overflow: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        >
+                          <option value="">Default</option>
+                          <option value="visible">Visible</option>
+                          <option value="hidden">Hidden</option>
+                          <option value="scroll">Scroll</option>
+                          <option value="auto">Auto</option>
+                        </select>
+                        <p className="mt-1 text-xs text-gray-500">Controls how content overflows the container.</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : null}

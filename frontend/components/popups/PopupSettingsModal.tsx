@@ -12,6 +12,9 @@ interface PopupCssSettings {
   textAlign: string;
   mobileWidth: string;
   desktopWidth: string;
+  zIndex: string;
+  position: string;
+  overflow: string;
 }
 
 interface BackdropSettings {
