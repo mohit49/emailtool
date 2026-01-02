@@ -246,8 +246,12 @@
         return result;
         
       case 'equals':
-        result = currentUrl === value || currentUrl === (value.startsWith('/') ? value : '/' + value);
-        log(`Condition check [equals "${value}"]: ${currentUrl} ${result ? 'matches' : 'does not match'}`);
+        // Normalize both URLs for comparison (remove query params, ensure leading slash)
+        const urlWithoutQuery = currentUrl.split('?')[0];
+        const normalizedCurrentUrl = urlWithoutQuery === '' ? '/' : (urlWithoutQuery.startsWith('/') ? urlWithoutQuery : '/' + urlWithoutQuery);
+        const normalizedValue = value === '' || value === '/' ? '/' : (value.startsWith('/') ? value : '/' + value);
+        result = normalizedCurrentUrl === normalizedValue;
+        log(`Condition check [equals "${value}"]: ${currentUrl} -> ${normalizedCurrentUrl} ${result ? 'matches' : 'does not match'} (comparing to ${normalizedValue})`);
         return result;
         
       case 'startsWith':
@@ -259,20 +263,28 @@
         // Special handling for "/" - if value is "/", check if it's NOT the home page
         if (value === '/') {
           // doesNotContain "/" means: not the home page (i.e., URL is not exactly "/")
+          // NOTE: This will show popup on ALL pages EXCEPT home page
+          // If you want to show ONLY on home page, use "equals /" or "landing" instead
           const urlWithoutQuery = currentUrl.split('?')[0];
           result = urlWithoutQuery !== '/';
-          log(`Condition check [doesNotContain "/"]: ${currentUrl} (${urlWithoutQuery}) ${result ? 'matches (not home page)' : 'does not match (is home page)'}`);
+          log(`Condition check [doesNotContain "/"]: ${currentUrl} (${urlWithoutQuery}) ${result ? 'matches (not home page - popup WILL show)' : 'does not match (is home page - popup will NOT show)'}`);
+          if (result) {
+            log(`⚠️ NOTE: "doesNotContain /" shows popup on all pages EXCEPT home. For home page only, use "equals /" or "landing"`);
+          }
         } else {
           // For other values, check if URL does not contain the value
+          // Important: Every URL path contains "/" (it's the path separator)
+          // So "doesNotContain /" will only work for the special case above
           result = !currentUrl.includes(value);
           log(`Condition check [doesNotContain "${value}"]: ${currentUrl} ${result ? 'matches' : 'does not match'}`);
         }
         return result;
         
       case 'landing':
-        // Landing page = root path with no query params
-        result = currentUrl === '/' || currentUrl.split('?')[0] === '/';
-        log(`Condition check [landing]: ${currentUrl} ${result ? 'matches (is landing page)' : 'does not match'}`);
+        // Landing page = root path with no query params or empty path
+        const urlPathOnly = currentUrl.split('?')[0];
+        result = urlPathOnly === '/' || urlPathOnly === '';
+        log(`Condition check [landing]: ${currentUrl} (path: ${urlPathOnly}) ${result ? 'matches (is landing page)' : 'does not match'}`);
         return result;
         
       default:
