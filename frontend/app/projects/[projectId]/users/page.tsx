@@ -23,6 +23,18 @@ interface CustomField {
   value: string;
 }
 
+interface FormSubmission {
+  _id: string;
+  formId: string;
+  formObjectId: string;
+  formName: string;
+  data: Record<string, any>;
+  submittedAt: string;
+  ipAddress?: string;
+  userAgent?: string;
+  visitorId?: string;
+}
+
 export default function UsersPage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -60,6 +72,8 @@ export default function UsersPage() {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [draggedRecipient, setDraggedRecipient] = useState<string | null>(null);
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+  const [formSubmissions, setFormSubmissions] = useState<Record<string, FormSubmission[]>>({});
+  const [loadingFormSubmissions, setLoadingFormSubmissions] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -132,8 +146,26 @@ export default function UsersPage() {
   useEffect(() => {
     if (user && token && projectId && !checkingProject) {
       fetchRecipients();
+      fetchFormSubmissions();
     }
   }, [user, token, projectId, checkingProject, fetchRecipients]);
+
+  const fetchFormSubmissions = useCallback(async () => {
+    if (!projectId) return;
+    
+    try {
+      setLoadingFormSubmissions(true);
+      const response = await axios.get(`/api/projects/${projectId}/form-submissions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFormSubmissions(response.data.formSubmissions || {});
+    } catch (error: any) {
+      console.error('Error fetching form submissions:', error);
+      // Don't show error message for form submissions, just log it
+    } finally {
+      setLoadingFormSubmissions(false);
+    }
+  }, [token, projectId]);
 
   const handleAddRecipient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -469,6 +501,105 @@ export default function UsersPage() {
             </div>
           )}
         </div>
+
+        {/* Form Submissions (Leads) */}
+        {Object.keys(formSubmissions).length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Form Leads ({Object.values(formSubmissions).flat().length})
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">Leads generated from form submissions, organized by form name</p>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {Object.entries(formSubmissions).map(([formName, submissions]) => {
+                const isExpanded = expandedFolders.has(`form-${formName}`);
+                return (
+                  <div key={formName} className="border-b border-gray-200">
+                    <div
+                      className="p-4 bg-green-50 hover:bg-green-100 cursor-pointer"
+                      onClick={() => {
+                        const folderKey = `form-${formName}`;
+                        const newExpanded = new Set(expandedFolders);
+                        if (newExpanded.has(folderKey)) {
+                          newExpanded.delete(folderKey);
+                        } else {
+                          newExpanded.add(folderKey);
+                        }
+                        setExpandedFolders(newExpanded);
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <svg
+                            className={`w-5 h-5 text-gray-500 transform transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <h3 className="text-sm font-semibold text-gray-900">{formName}</h3>
+                          <span className="text-xs text-gray-500">({submissions.length} lead{submissions.length !== 1 ? 's' : ''})</span>
+                        </div>
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="p-4">
+                        {submissions.length === 0 ? (
+                          <div className="text-center py-8 text-gray-500">
+                            <p className="text-sm">No leads yet</p>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Submitted At</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Form Data</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Visitor ID</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {submissions.map((submission) => (
+                                  <tr key={submission._id} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                      {new Date(submission.submittedAt).toLocaleString()}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-500">
+                                      <div className="flex flex-wrap gap-1">
+                                        {Object.entries(submission.data).map(([key, value]) => (
+                                          <span key={key} className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 text-xs">
+                                            <span className="font-medium">{key}:</span>
+                                            <span className="ml-1">{String(value)}</span>
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                      {submission.ipAddress || 'N/A'}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 font-mono text-xs">
+                                      {submission.visitorId || 'N/A'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Recipients List with Folders */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
