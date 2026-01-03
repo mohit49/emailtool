@@ -130,8 +130,8 @@ export default function ProjectsPage() {
         message: 'Project created successfully',
         type: 'success',
       });
-      // Redirect to unified project dashboard
-      router.push(`/popups?projectId=${response.data.project._id}`);
+      // Redirect to project details page
+      router.push(`/projects/${response.data.project._id}`);
     } catch (error: any) {
       setAlert({
         isOpen: true,
@@ -144,8 +144,8 @@ export default function ProjectsPage() {
   };
 
   const handleOpenProject = (project: Project) => {
-    // Always redirect to unified project dashboard
-    router.push(`/popups?projectId=${project._id}`);
+    // Redirect to project details page
+    router.push(`/projects/${project._id}`);
   };
 
   const handleViewMembers = async (project: Project) => {

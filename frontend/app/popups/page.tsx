@@ -37,7 +37,10 @@ export default function PopupsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const projectId = searchParams.get('projectId');
-  const activeTab = (searchParams.get('tab') as TabType) || 'popup';
+  const tabParam = searchParams.get('tab');
+  // If no tab parameter, show only popup activities (no tabs)
+  const showTabs = tabParam !== null;
+  const activeTab = (tabParam as TabType) || 'popup';
 
   const [projectInfo, setProjectInfo] = useState<{ name: string; role: 'owner' | 'ProjectAdmin' | 'emailDeveloper' } | null>(null);
   const [activities, setActivities] = useState<PopupActivity[]>([]);
@@ -277,48 +280,50 @@ export default function PopupsPage() {
               </div>
             </div>
 
-            {/* Tabs */}
-            <div className="border-b border-gray-200">
-              <nav className="-mb-px flex space-x-8">
-                <button
-                  onClick={() => handleTabChange('email')}
-                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'email'
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Mail className="w-4 h-4" />
-                  Email Services
-                </button>
-                <button
-                  onClick={() => handleTabChange('popup')}
-                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'popup'
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Layout className="w-4 h-4" />
-                  Popup Builder
-                </button>
-                <button
-                  onClick={() => handleTabChange('form')}
-                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'form'
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  Form Builder
-                </button>
-              </nav>
-            </div>
+            {/* Tabs - Only show if tab parameter is present */}
+            {showTabs && (
+              <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8">
+                  <button
+                    onClick={() => handleTabChange('email')}
+                    className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'email'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Mail className="w-4 h-4" />
+                    Email Services
+                  </button>
+                  <button
+                    onClick={() => handleTabChange('popup')}
+                    className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'popup'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Layout className="w-4 h-4" />
+                    Popup Builder
+                  </button>
+                  <button
+                    onClick={() => handleTabChange('form')}
+                    className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'form'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    Form Builder
+                  </button>
+                </nav>
+              </div>
+            )}
           </div>
 
           {/* Tab Content */}
-          {activeTab === 'email' && (
+          {showTabs && activeTab === 'email' && (
             <div className="bg-white rounded-lg shadow p-12 text-center">
               <Mail className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-gray-900 mb-2">Email Services</h2>
@@ -333,7 +338,7 @@ export default function PopupsPage() {
             </div>
           )}
 
-          {activeTab === 'popup' && (
+          {(!showTabs || activeTab === 'popup') && (
             <>
               {/* Popup Builder Header */}
               <div className="mb-6 flex items-center justify-between">
@@ -415,7 +420,7 @@ export default function PopupsPage() {
             </>
           )}
 
-          {activeTab === 'form' && (
+          {showTabs && activeTab === 'form' && (
             <div className="bg-white rounded-lg shadow p-12 text-center">
               <FileText className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-gray-900 mb-2">Form Builder</h2>
