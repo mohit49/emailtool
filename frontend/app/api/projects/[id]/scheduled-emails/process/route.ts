@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const scheduledEmails = await ScheduledEmail.find({
       status: 'pending',
       scheduledAt: { $lte: now },
-    }).populate('templateId', 'name').lean();
+    }).populate('templateId', 'name').lean() as any[];
 
     if (scheduledEmails.length === 0) {
       return NextResponse.json({ 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         const recipientData = new Map<string, any>();
 
         // Process regular recipient folders
-        const regularFolders = scheduledEmail.recipientFolders.filter(f => !f.startsWith('form-'));
+        const regularFolders = scheduledEmail.recipientFolders.filter((f: string) => !f.startsWith('form-'));
         if (regularFolders.length > 0) {
           const recipients = await Recipient.find({
             projectId: scheduledEmail.projectId,
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Process form lead folders
-        const formFolders = scheduledEmail.recipientFolders.filter(f => f.startsWith('form-'));
+        const formFolders = scheduledEmail.recipientFolders.filter((f: string) => f.startsWith('form-'));
         if (formFolders.length > 0) {
           // Get all forms for this project
           const forms = await Form.find({ projectId: scheduledEmail.projectId })
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
 
           // Get form IDs for the selected form folders
           const formIds: mongoose.Types.ObjectId[] = [];
-          formFolders.forEach(formFolder => {
+          formFolders.forEach((formFolder: string) => {
             const formName = formFolder.replace('form-', '');
             const formId = formNameMap.get(formName);
             if (formId) {
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
           let processedHtml = scheduledEmail.html;
 
           // Replace all variables
-          Object.keys(recipientInfo).forEach(key => {
+          Object.keys(recipientInfo).forEach((key: string) => {
             const value = String(recipientInfo[key] || '');
             const regex = new RegExp(`{{${key}}}`, 'gi');
             processedSubject = processedSubject.replace(regex, value);
@@ -175,11 +175,12 @@ export async function POST(req: NextRequest) {
 
             // Create email history record
             try {
+              const templateId = scheduledEmail.templateId as any;
               await EmailHistory.create({
                 projectId: scheduledEmail.projectId,
                 userId: scheduledEmail.userId,
-                templateId: scheduledEmail.templateId._id,
-                templateName: scheduledEmail.templateId.name,
+                templateId: templateId._id || templateId,
+                templateName: templateId.name || 'Unknown',
                 recipientEmail: email,
                 recipientName: recipientInfo.name || '',
                 subject: processedSubject,
@@ -201,7 +202,7 @@ export async function POST(req: NextRequest) {
         });
 
         const results = await Promise.allSettled(emailPromises);
-        const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+        const successCount = results.filter((r: PromiseSettledResult<any>) => r.status === 'fulfilled' && r.value.success).length;
         const failCount = results.length - successCount;
 
         // Update scheduled email status

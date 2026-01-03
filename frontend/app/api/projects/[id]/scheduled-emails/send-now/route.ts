@@ -182,7 +182,7 @@ export async function POST(
       let processedHtml = html;
 
       // Replace all variables
-      Object.keys(recipientInfo).forEach(key => {
+      Object.keys(recipientInfo).forEach((key: string) => {
         const value = String(recipientInfo[key] || '');
         const regex = new RegExp(`{{${key}}}`, 'gi');
         processedSubject = processedSubject.replace(regex, value);
@@ -224,7 +224,7 @@ export async function POST(
     });
 
     const results = await Promise.allSettled(emailPromises);
-    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const successCount = results.filter((r: PromiseSettledResult<any>) => r.status === 'fulfilled' && r.value.success).length;
     const failCount = results.length - successCount;
 
     return NextResponse.json({

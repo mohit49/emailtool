@@ -310,7 +310,7 @@ export default function ScheduledEmailsPage() {
     setScheduleFormData(prev => {
       const folders = prev.recipientFolders;
       if (folders.includes(folderName)) {
-        return { ...prev, recipientFolders: folders.filter(f => f !== folderName) };
+        return { ...prev, recipientFolders: folders.filter((f: string) => f !== folderName) };
       } else {
         return { ...prev, recipientFolders: [...folders, folderName] };
       }
@@ -504,7 +504,7 @@ export default function ScheduledEmailsPage() {
         const formName = folderName.replace('form-', '');
         const submissions = formSubmissions[formName] || [];
         submissions.forEach((submission: any) => {
-          Object.keys(submission.data || {}).forEach(key => {
+          Object.keys(submission.data || {}).forEach((key: string) => {
             variables.add(key);
           });
         });
@@ -535,7 +535,7 @@ export default function ScheduledEmailsPage() {
     
     if (formName && formSubmissions[formName]) {
       formSubmissions[formName].forEach((submission: any) => {
-        Object.keys(submission.data || {}).forEach(key => {
+        Object.keys(submission.data || {}).forEach((key: string) => {
           variables.add(key);
         });
       });
