@@ -168,14 +168,14 @@ export default function AboutPage() {
 
       {/* Contact Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-12 text-center text-white">
+        <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-3xl p-12 text-center text-white">
           <h2 className="text-4xl font-bold mb-6">Have Questions?</h2>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
             We&apos;re here to help! Reach out to us anytime and we&apos;ll get back to you as soon as possible.
           </p>
           <a
             href="mailto:support@przio.com"
-            className="inline-block px-8 py-4 bg-white text-indigo-600 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all shadow-lg"
+            className="inline-block px-8 py-4 bg-white text-orange-600 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all shadow-lg"
           >
             Contact Support
           </a>

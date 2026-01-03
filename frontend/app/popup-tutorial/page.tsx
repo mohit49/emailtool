@@ -31,28 +31,28 @@ export default function PopupTutorialPage() {
         <div className="bg-white rounded-2xl p-8 shadow-lg">
           <h2 className="text-3xl font-bold text-gray-900 mb-6">Table of Contents</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link href="#step1" className="text-indigo-600 hover:text-indigo-700 hover:underline">
+            <Link href="#step1" className="text-orange-600 hover:text-orange-700 hover:underline">
               1. Create a New Popup Activity
             </Link>
-            <Link href="#step2" className="text-indigo-600 hover:text-indigo-700 hover:underline">
+            <Link href="#step2" className="text-orange-600 hover:text-orange-700 hover:underline">
               2. Configure URL Conditions
             </Link>
-            <Link href="#step3" className="text-indigo-600 hover:text-indigo-700 hover:underline">
+            <Link href="#step3" className="text-orange-600 hover:text-orange-700 hover:underline">
               3. Design Your Popup
             </Link>
-            <Link href="#step4" className="text-indigo-600 hover:text-indigo-700 hover:underline">
+            <Link href="#step4" className="text-orange-600 hover:text-orange-700 hover:underline">
               4. Customize Popup Settings
             </Link>
-            <Link href="#step5" className="text-indigo-600 hover:text-indigo-700 hover:underline">
+            <Link href="#step5" className="text-orange-600 hover:text-orange-700 hover:underline">
               5. Set Up Popup Triggers
             </Link>
-            <Link href="#step6" className="text-indigo-600 hover:text-indigo-700 hover:underline">
+            <Link href="#step6" className="text-orange-600 hover:text-orange-700 hover:underline">
               6. Add Custom CSS & JavaScript
             </Link>
-            <Link href="#step7" className="text-indigo-600 hover:text-indigo-700 hover:underline">
+            <Link href="#step7" className="text-orange-600 hover:text-orange-700 hover:underline">
               7. Integrate SDK on Your Website
             </Link>
-            <Link href="#step8" className="text-indigo-600 hover:text-indigo-700 hover:underline">
+            <Link href="#step8" className="text-orange-600 hover:text-orange-700 hover:underline">
               8. Test & Activate Your Popup
             </Link>
           </div>
@@ -909,7 +909,7 @@ window.PrzioSDK.processPopups();`}
 
       {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-12 text-center text-white">
+        <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-3xl p-12 text-center text-white">
           <h2 className="text-4xl font-bold mb-6">Ready to Build Your First Popup?</h2>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
             Start creating engaging popups that convert. Follow this tutorial and you&apos;ll have your first popup live in minutes!
@@ -917,7 +917,7 @@ window.PrzioSDK.processPopups();`}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/signup"
-              className="inline-block px-8 py-4 bg-white text-indigo-600 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all shadow-lg"
+              className="inline-block px-8 py-4 bg-white text-orange-600 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all shadow-lg"
             >
               Get Started Free
             </Link>

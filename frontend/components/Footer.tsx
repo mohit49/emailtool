@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -6,9 +7,15 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-2xl md:text-3xl font-extrabold mb-4 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              PRZIO
-            </h3>
+            <Link href="/" className="inline-block mb-4">
+              <Image 
+                src="/assets/logo-web.png" 
+                alt="PRZIO Logo" 
+                width={120} 
+                height={40}
+                className="h-8 md:h-10 w-auto"
+              />
+            </Link>
             <p className="text-gray-400">
               The best platform for creating and testing HTML email templates.
             </p>

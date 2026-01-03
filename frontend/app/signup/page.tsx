@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import axios from 'axios';
 
 declare global {
@@ -209,6 +210,16 @@ export default function SignupPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+          <Link href="/" className="flex justify-center mb-6">
+            <Image
+              src="/assets/logo-web.png"
+              alt="PRZIO Logo"
+              width={150}
+              height={40}
+              className="h-10 w-auto"
+              priority
+            />
+          </Link>
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -220,7 +231,7 @@ export default function SignupPage() {
           </p>
           <Link
             href="/login"
-            className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
+            className="inline-block px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all"
           >
             Go to Login
           </Link>
@@ -233,7 +244,17 @@ export default function SignupPage() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          <Link href="/" className="flex justify-center mb-6">
+            <Image
+              src="/assets/logo-web.png"
+              alt="PRZIO Logo"
+              width={150}
+              height={40}
+              className="h-10 w-auto"
+              priority
+            />
+          </Link>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent mb-2">
             Create Account
           </h1>
           <p className="text-gray-600">Sign up to get started</p>
@@ -256,7 +277,7 @@ export default function SignupPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition"
               placeholder="John Doe"
             />
           </div>
@@ -271,7 +292,7 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition"
               placeholder="you@example.com"
             />
           </div>
@@ -287,7 +308,7 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition"
               placeholder="••••••••"
             />
             <p className="mt-1 text-xs text-gray-500">Must be at least 6 characters</p>
@@ -296,7 +317,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
             {loading ? 'Creating account...' : 'Sign Up'}
           </button>
@@ -325,7 +346,7 @@ export default function SignupPage() {
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <Link href="/login" className="text-indigo-600 font-semibold hover:text-indigo-700">
+          <Link href="/login" className="text-orange-600 font-semibold hover:text-orange-700">
             Sign in
           </Link>
         </p>

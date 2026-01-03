@@ -3,6 +3,7 @@
 import { useAuth } from '../app/providers/AuthProvider';
 import Link from 'next/link';
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function Navigation() {
   const { user } = useAuth();
@@ -13,8 +14,15 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/" className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              PRZIO
+            <Link href="/" className="flex items-center">
+              <Image 
+                src="/assets/logo-web.png" 
+                alt="PRZIO Logo" 
+                width={120} 
+                height={40}
+                className="h-8 md:h-10 w-auto"
+                priority
+              />
             </Link>
           </div>
           
@@ -44,7 +52,7 @@ export default function Navigation() {
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-md"
+                  className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-700 transition-colors shadow-md"
                 >
                   Sign Up
                 </Link>
@@ -52,7 +60,7 @@ export default function Navigation() {
             ) : (
               <Link
                 href="/projects"
-                className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-md"
+                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-700 transition-colors shadow-md"
               >
                 My Projects
               </Link>
@@ -97,12 +105,12 @@ export default function Navigation() {
                   <Link href="/login" className="text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>
                     Login
                   </Link>
-                  <Link href="/signup" className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium text-center" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/signup" className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium text-center hover:from-orange-600 hover:to-red-700 transition-colors shadow-md" onClick={() => setMobileMenuOpen(false)}>
                     Sign Up
                   </Link>
                 </>
               ) : (
-                <Link href="/projects" className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium text-center" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/projects" className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium text-center hover:from-orange-600 hover:to-red-700 transition-colors shadow-md" onClick={() => setMobileMenuOpen(false)}>
                   My Projects
                 </Link>
               )}

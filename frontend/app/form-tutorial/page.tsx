@@ -30,13 +30,13 @@ export default function FormTutorial() {
         <div className="bg-white rounded-2xl p-8 shadow-lg">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Table of Contents</h2>
           <ul className="space-y-3 text-gray-700">
-            <li><a href="#step1" className="text-indigo-600 hover:text-indigo-700 hover:underline">Step 1: Create a New Form</a></li>
-            <li><a href="#step2" className="text-indigo-600 hover:text-indigo-700 hover:underline">Step 2: Choose Form Type</a></li>
-            <li><a href="#step3" className="text-indigo-600 hover:text-indigo-700 hover:underline">Step 3: Add Form Fields</a></li>
-            <li><a href="#step4" className="text-indigo-600 hover:text-indigo-700 hover:underline">Step 4: Configure Field Settings</a></li>
-            <li><a href="#step5" className="text-indigo-600 hover:text-indigo-700 hover:underline">Step 5: Add Form to Popup</a></li>
-            <li><a href="#step6" className="text-indigo-600 hover:text-indigo-700 hover:underline">Step 6: View Form Submissions</a></li>
-            <li><a href="#best-practices" className="text-indigo-600 hover:text-indigo-700 hover:underline">Best Practices</a></li>
+            <li><a href="#step1" className="text-orange-600 hover:text-orange-700 hover:underline">Step 1: Create a New Form</a></li>
+            <li><a href="#step2" className="text-orange-600 hover:text-orange-700 hover:underline">Step 2: Choose Form Type</a></li>
+            <li><a href="#step3" className="text-orange-600 hover:text-orange-700 hover:underline">Step 3: Add Form Fields</a></li>
+            <li><a href="#step4" className="text-orange-600 hover:text-orange-700 hover:underline">Step 4: Configure Field Settings</a></li>
+            <li><a href="#step5" className="text-orange-600 hover:text-orange-700 hover:underline">Step 5: Add Form to Popup</a></li>
+            <li><a href="#step6" className="text-orange-600 hover:text-orange-700 hover:underline">Step 6: View Form Submissions</a></li>
+            <li><a href="#best-practices" className="text-orange-600 hover:text-orange-700 hover:underline">Best Practices</a></li>
           </ul>
         </div>
       </section>
@@ -357,7 +357,7 @@ export default function FormTutorial() {
 
       {/* CTA Section */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-12 text-center text-white">
+        <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-3xl p-12 text-center text-white">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Ready to Create Your First Form?
           </h2>
@@ -367,7 +367,7 @@ export default function FormTutorial() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/signup"
-              className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all shadow-lg"
+              className="px-8 py-4 bg-white text-orange-600 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all shadow-lg"
             >
               Get Started Free
             </Link>

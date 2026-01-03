@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '../app/providers/AuthProvider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface AuthHeaderProps {
   showProjectInfo?: {
@@ -30,8 +31,15 @@ export default function AuthHeader({ showProjectInfo, projectId, hideEmailSettin
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-4">
-            <Link href="/" className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              PRZIO
+            <Link href="/" className="flex items-center">
+              <Image 
+                src="/assets/logo-web.png" 
+                alt="PRZIO Logo" 
+                width={120} 
+                height={40}
+                className="h-8 md:h-10 w-auto"
+                priority
+              />
             </Link>
             <span className="text-gray-400">|</span>
             <Link href="/projects" className="text-sm text-gray-600 hover:text-indigo-600 transition-colors">

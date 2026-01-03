@@ -1,63 +1,107 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Carousel from './Carousel';
+import Image from 'next/image';
 import { 
-  Mail, FileText, Layout, Eye, Code, Folder, Settings, Palette, Zap, Target, Plug, CheckCircle, BarChart, Link2, 
+  Mail, FileText, Eye, Code, Folder, Settings, Palette, Zap, Target, Plug, CheckCircle, BarChart, Link2, 
   UserCircle, GitBranch, Edit3
 } from 'lucide-react';
 
-export default function HomePageClient() {
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+// Typing Animation Component
+function TypingAnimation({ texts, speed = 100, deleteSpeed = 50, pauseTime = 2000, lineDelay = 1000 }: { 
+  texts: string[], 
+  speed?: number, 
+  deleteSpeed?: number,
+  pauseTime?: number,
+  lineDelay?: number
+}) {
+  const [currentTextIndex, setCurrentTextIndex] = useState(0);
+  const [currentText, setCurrentText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [charIndex, setCharIndex] = useState(0);
 
-  // Product carousel slides
-  const productSlides = [
-    {
-      title: 'Email Testing & Editor Tool',
-      description: 'Create, test, and send professional email campaigns with our powerful VS Code-like editor. Preview emails in real-time across all devices and email clients.',
-      features: [
-        'VS Code-like HTML editor with syntax highlighting',
-        'Real-time preview on mobile, tablet, and desktop',
-        'Bulk email sending with Excel import',
-        'Custom SMTP configuration',
-        'Template library and folder organization',
-        'Collaborative comments and feedback'
-      ],
-      gradient: 'from-indigo-600 to-purple-600',
-      color: 'indigo',
-      icon: <Mail className="w-16 h-16" />
-    },
-    {
-      title: 'Form Builder Tool',
-      description: 'Build powerful forms with our drag-and-drop form builder. Create subscription forms, contact forms, surveys, and quizzes with automatic validation.',
-      features: [
-        'Drag-and-drop form builder',
-        'Multiple form types (contact, survey, subscription)',
-        'Multi-step form support',
-        'Automatic form validation',
-        'Form data collection and export',
-        'Embed forms in popups seamlessly'
-      ],
-      gradient: 'from-purple-600 to-pink-600',
-      color: 'purple',
-      icon: <FileText className="w-16 h-16" />
-    },
-    {
-      title: 'Popup Builder Tool',
-      description: 'Create engaging popups and nudges with our intuitive builder. Set up smart triggers, exit intent detection, and embed forms for maximum conversions.',
-      features: [
-        'Drag-and-drop popup builder',
-        'Smart triggers (exit intent, scroll, timeout)',
-        'Custom CSS and JavaScript support',
-        'Easy SDK integration',
-        'Form integration in popups',
-        'Analytics and metrics tracking'
-      ],
-      gradient: 'from-pink-600 to-red-600',
-      color: 'pink',
-      icon: <Layout className="w-16 h-16" />
-    }
+  useEffect(() => {
+    if (isPaused) return;
+    
+    const currentFullText = texts[currentTextIndex];
+    
+    const timer = setTimeout(() => {
+      if (!isDeleting) {
+        // Typing
+        if (charIndex < currentFullText.length) {
+          setCurrentText(currentFullText.substring(0, charIndex + 1));
+          setCharIndex(charIndex + 1);
+        } else {
+          // Finished typing, pause then start deleting
+          setIsPaused(true);
+          setTimeout(() => {
+            setIsPaused(false);
+            setIsDeleting(true);
+          }, pauseTime);
+        }
+      } else {
+        // Deleting
+        if (charIndex > 0) {
+          setCurrentText(currentFullText.substring(0, charIndex - 1));
+          setCharIndex(charIndex - 1);
+        } else {
+          // Finished deleting, add delay before moving to next text
+          setIsPaused(true);
+          setTimeout(() => {
+            setIsPaused(false);
+            setIsDeleting(false);
+            setCurrentTextIndex((prev) => (prev + 1) % texts.length);
+            setCharIndex(0);
+          }, lineDelay);
+        }
+      }
+    }, isDeleting ? deleteSpeed : speed);
+
+    return () => clearTimeout(timer);
+  }, [charIndex, isDeleting, isPaused, currentTextIndex, texts, speed, deleteSpeed, pauseTime, lineDelay]);
+
+  return (
+    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold mb-6 text-left leading-tight">
+      <span className="bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+        {currentText}
+      </span>
+      <span className="inline-block w-0.5 h-[0.9em] bg-gradient-to-r from-orange-500 to-red-600 ml-1 align-middle animate-[blink_1s_infinite]"></span>
+    </h1>
+  );
+}
+
+export default function HomePageClient() {
+  const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const buttonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const updateTooltipPosition = () => {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setTooltipPosition({
+          top: 0, // Not needed for absolute positioning
+          left: 0, // Not needed for absolute positioning
+          width: rect.width,
+        });
+      }
+    };
+
+    updateTooltipPosition();
+    window.addEventListener('resize', updateTooltipPosition);
+
+    return () => {
+      window.removeEventListener('resize', updateTooltipPosition);
+    };
+  }, []);
+
+  // Typing animation texts
+  const typingTexts = [
+    'Create custom forms to engage and convert visitors',
+    'Schedule and send automated emails to engaged users',
+    'Track website visitors and conversions in real time',
+    'Design custom email templates and pop-ups for your business'
   ];
 
   // Features grouped for carousel
@@ -133,93 +177,71 @@ export default function HomePageClient() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      {/* Section 1: Product Carousel */}
-      <section className="w-full bg-orange-400 relative overflow-hidden">
-        {/* Faded background icons - different for each slide */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {currentSlideIndex === 0 && (
-            <Edit3 className="w-[800px] h-[800px] text-white/10 transition-opacity duration-500" />
-          )}
-          {currentSlideIndex === 1 && (
-            <FileText className="w-[800px] h-[800px] text-white/10 transition-opacity duration-500" />
-          )}
-          {currentSlideIndex === 2 && (
-            <Layout className="w-[800px] h-[800px] text-white/10 transition-opacity duration-500" />
-          )}
+    <div className="min-h-screen bg-blue-50">
+      {/* Section 1: Hero with Typing Animation */}
+      <section className="w-full bg-blue-50 relative overflow-hidden">
+        {/* Main header background image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/assets/main-heade-bg.jpg"
+            alt="Main header background"
+            fill
+            className="object-cover"
+            priority
+          />
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 relative z-10">
-          <Carousel items={productSlides.map((slide, index) => {
-          const colorClasses = {
-            indigo: {
-              check: 'text-indigo-600',
-              button: 'bg-gradient-to-r from-indigo-600 to-purple-600',
-              border: 'border-indigo-600',
-              text: 'text-indigo-600',
-              hover: 'hover:bg-indigo-50'
-            },
-            purple: {
-              check: 'text-purple-600',
-              button: 'bg-gradient-to-r from-purple-600 to-pink-600',
-              border: 'border-purple-600',
-              text: 'text-purple-600',
-              hover: 'hover:bg-purple-50'
-            },
-            pink: {
-              check: 'text-pink-600',
-              button: 'bg-gradient-to-r from-pink-600 to-red-600',
-              border: 'border-pink-600',
-              text: 'text-pink-600',
-              hover: 'hover:bg-pink-50'
-            }
-          };
-          const colors = colorClasses[slide.color as keyof typeof colorClasses];
-          
-          return (
-            <div key={index} className="rounded-3xl p-12 md:p-16 min-h-[600px] flex flex-col justify-center">
-              <div className="max-w-4xl mx-auto text-center">
-                <div className="flex justify-center mb-8">
-                  <div className={`bg-gradient-to-br ${slide.gradient} rounded-2xl p-6 text-white`}>
-                    {slide.icon}
-                  </div>
-                </div>
-                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white">
-                  {slide.title}
-                </h2>
-                <p className="text-xl md:text-2xl mb-8 text-white leading-relaxed">
-                  {slide.description}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 text-left">
-                  {slide.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-start">
-                      <CheckCircle className="w-6 h-6 mr-3 mt-1 flex-shrink-0 text-white" />
-                      <span className="text-lg text-white">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link
-                    href={index === 0 ? "/tool" : index === 1 ? "/forms" : "/popups"}
-                    className={`px-8 py-4 ${colors.button} text-white rounded-lg font-semibold text-lg hover:opacity-90 transition-all shadow-lg`}
-                  >
-                    View More
-                  </Link>
+          <div className="rounded-3xl py-12 px-0 md:py-16 md:px-0 min-h-[600px] flex flex-col justify-center relative w-full md:w-[50%]">
+            {/* Text content on top */}
+            <div className="relative z-10 max-w-4xl text-left">
+              <TypingAnimation texts={typingTexts} speed={50} deleteSpeed={30} pauseTime={1000} lineDelay={1500} />
+              <p className="text-xl md:text-2xl text-gray-700 mt-6 mb-8 leading-relaxed font-light">
+                Easily engage visitors, track conversions, and grow your business with custom forms, smart email campaigns, and real-time visitor analytics.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-start mt-8 relative">
+                <div ref={buttonRef} className="inline-block">
                   <Link
                     href="/signup"
-                    className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-lg font-semibold text-lg hover:bg-white/10 transition-all"
+                    className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold text-lg hover:from-orange-600 hover:to-red-700 transition-all shadow-lg inline-block"
                   >
                     Get Started Free
                   </Link>
                 </div>
+                {/* Animated gradient tooltip */}
+                {tooltipPosition && (
+                  <div 
+                    className="absolute top-full left-0 mt-3 pointer-events-none w-full animate-slide-bounce"
+                  >
+                    {/* Arrow pointing to button */}
+                    <div className="absolute -top-2 left-8 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-black"></div>
+                    <div className="bg-black rounded-lg px-4 py-3 shadow-lg animate-pulse-glow">
+                      <p className="text-sm md:text-base text-white font-medium">
+                        Create your Popup, Email Templates, and Forms now - totally free! Track conversions in real-time.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    const nextSection = document.getElementById('about-section');
+                    if (nextSection) {
+                      nextSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className="inline-block p-[2px] bg-gradient-to-r from-orange-500 to-red-600 rounded-lg hover:from-orange-600 hover:to-red-700 transition-all cursor-pointer"
+                >
+                  <span className="block px-8 py-4 bg-blue-50 rounded-lg">
+                    <span className="bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent font-semibold text-lg">Learn More</span>
+                  </span>
+                </button>
               </div>
             </div>
-          );
-        })} onSlideChange={setCurrentSlideIndex} />
+          </div>
         </div>
       </section>
 
       {/* Section 2: About Us */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white/50">
+      <section id="about-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             About <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">PRZIO</span>
@@ -253,15 +275,17 @@ export default function HomePageClient() {
         <div className="text-center mt-12">
           <Link
             href="/about"
-            className="text-indigo-600 hover:text-indigo-700 font-semibold text-lg"
+            className="inline-block p-[2px] bg-gradient-to-r from-orange-500 to-red-600 rounded-lg hover:from-orange-600 hover:to-red-700 transition-all"
           >
-            Learn More About Us →
+            <span className="block px-6 py-3 bg-blue-50 rounded-lg">
+              <span className="bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent font-semibold text-lg">Learn More About Us →</span>
+            </span>
           </Link>
         </div>
       </section>
 
       {/* Section 3: Powerful Features */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Powerful Features for <strong>Email Testing</strong>, <strong>Popup Building</strong> & <strong>Form Builder</strong>
@@ -357,7 +381,7 @@ export default function HomePageClient() {
       </section>
 
       {/* Section 4: How It Works */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white/50">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             How It Works
@@ -405,9 +429,11 @@ export default function HomePageClient() {
         <div className="text-center mt-12">
           <Link
             href="/how-it-works"
-            className="text-indigo-600 hover:text-indigo-700 font-semibold text-lg"
+            className="inline-block p-[2px] bg-gradient-to-r from-orange-500 to-red-600 rounded-lg hover:from-orange-600 hover:to-red-700 transition-all"
           >
-            Learn More →
+            <span className="block px-6 py-3 bg-blue-50 rounded-lg">
+              <span className="bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent font-semibold text-lg">Learn More →</span>
+            </span>
           </Link>
         </div>
       </section>
@@ -493,7 +519,7 @@ export default function HomePageClient() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white/50">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             What Our Users Say
@@ -534,7 +560,7 @@ export default function HomePageClient() {
       </section>
 
       {/* CTA Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-12 md:p-16 text-center text-white">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
             Ready to Get Started?
@@ -546,15 +572,17 @@ export default function HomePageClient() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/signup"
-              className="px-8 py-4 bg-white text-indigo-600 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-all shadow-lg"
+              className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold text-lg hover:from-orange-600 hover:to-red-700 transition-all shadow-lg"
             >
               Create Free Account
             </Link>
             <Link
               href="/about"
-              className="px-8 py-4 bg-transparent text-white border-2 border-white rounded-lg font-semibold text-lg hover:bg-white/10 transition-all"
+              className="inline-block p-[2px] bg-gradient-to-r from-orange-500 to-red-600 rounded-lg hover:from-orange-600 hover:to-red-700 transition-all"
             >
-              Learn More About Us
+              <span className="block px-8 py-4 bg-white rounded-lg">
+                <span className="bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent font-semibold text-lg">Learn More About Us</span>
+              </span>
             </Link>
           </div>
         </div>
