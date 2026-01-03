@@ -160,6 +160,7 @@ export default function ToolPage() {
   const [smtpConfigs, setSmtpConfigs] = useState<any[]>([]);
   const [recipients, setRecipients] = useState<any[]>([]);
   const [recipientFolders, setRecipientFolders] = useState<string[]>([]);
+  const [formSubmissions, setFormSubmissions] = useState<Record<string, any[]>>({});
   const [emailSubject, setEmailSubject] = useState('');
   const [sendingEmails, setSendingEmails] = useState(false);
   const [recipientSearch, setRecipientSearch] = useState('');
@@ -1879,11 +1880,80 @@ export default function ToolPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const recipientsData = response.data.recipients || [];
-      setRecipients(recipientsData);
       
-      // Extract unique folders
+      // Fetch form submissions if projectId is available
+      let formSubmissionRecipients: any[] = [];
+      if (projectId) {
+        try {
+          const formSubmissionsResponse = await axios.get(`/api/projects/${projectId}/form-submissions`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const submissionsByForm = formSubmissionsResponse.data.formSubmissions || {};
+          setFormSubmissions(submissionsByForm);
+          
+          // Convert form submissions to recipient-like objects
+          Object.entries(submissionsByForm).forEach(([formName, submissions]: [string, any]) => {
+            submissions.forEach((submission: any) => {
+              // Extract email from form data - check common email field names
+              const emailFieldNames = ['email', 'Email', 'e-mail', 'E-mail', 'EMAIL', 'e_mail', 'E_MAIL'];
+              let email = '';
+              let name = '';
+              
+              // Try to find email field
+              for (const fieldName of emailFieldNames) {
+                if (submission.data[fieldName]) {
+                  email = String(submission.data[fieldName]).trim();
+                  break;
+                }
+              }
+              
+              // If no email found, try to find any value that looks like an email
+              if (!email) {
+                for (const [key, value] of Object.entries(submission.data)) {
+                  const valueStr = String(value).trim();
+                  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valueStr)) {
+                    email = valueStr;
+                    break;
+                  }
+                }
+              }
+              
+              // Extract name from form data - check common name field names
+              const nameFieldNames = ['name', 'Name', 'NAME', 'fullName', 'FullName', 'full_name', 'Full_Name'];
+              for (const fieldName of nameFieldNames) {
+                if (submission.data[fieldName]) {
+                  name = String(submission.data[fieldName]).trim();
+                  break;
+                }
+              }
+              
+              // If email found, add as recipient
+              if (email) {
+                formSubmissionRecipients.push({
+                  _id: `form-submission-${submission._id}`,
+                  name: name || email.split('@')[0] || 'Form Lead',
+                  email: email,
+                  folder: formName,
+                  isFormSubmission: true,
+                  submissionId: submission._id,
+                  submittedAt: submission.submittedAt,
+                });
+              }
+            });
+          });
+        } catch (error) {
+          console.error('Error fetching form submissions:', error);
+          // Don't fail the whole fetch if form submissions fail
+        }
+      }
+      
+      // Combine regular recipients with form submission recipients
+      const allRecipients = [...recipientsData, ...formSubmissionRecipients];
+      setRecipients(allRecipients);
+      
+      // Extract unique folders (including form names)
       const uniqueFolders = Array.from(
-        new Set(recipientsData.map((r: any) => (r.folder || '').trim()).filter((f: string) => f))
+        new Set(allRecipients.map((r: any) => (r.folder || '').trim()).filter((f: string) => f))
       ) as string[];
       
       // Ensure Team Members folder appears first if it exists
@@ -1895,7 +1965,7 @@ export default function ToolPage() {
       
       setRecipientFolders(sortedFolders);
       
-      console.log('Recipients fetched:', recipientsData.length, 'Folders:', sortedFolders);
+      console.log('Recipients fetched:', recipientsData.length, 'Form leads:', formSubmissionRecipients.length, 'Folders:', sortedFolders);
     } catch (error) {
       console.error('Error fetching recipients:', error);
     }
@@ -2182,7 +2252,7 @@ export default function ToolPage() {
     // Add individual recipients
     selectedRecipients.forEach(id => {
       const recipient = recipients.find(r => r._id === id);
-      if (recipient) {
+      if (recipient && recipient.email) {
         recipientEmails.push(recipient.email);
       }
     });
@@ -2191,7 +2261,7 @@ export default function ToolPage() {
     selectedFolders.forEach(folder => {
       const folderRecipients = recipients.filter(r => r.folder === folder);
       folderRecipients.forEach(r => {
-        if (!recipientEmails.includes(r.email)) {
+        if (r.email && !recipientEmails.includes(r.email)) {
           recipientEmails.push(r.email);
         }
       });

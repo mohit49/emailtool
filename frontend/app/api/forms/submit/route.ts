@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Form from '@/lib/models/Form';
 import FormSubmission from '@/lib/models/FormSubmission';
+import AutoSendEmail from '@/lib/models/AutoSendEmail';
+import UserSmtp from '@/lib/models/UserSmtp';
+import AdminSmtp from '@/lib/models/AdminSmtp';
+import nodemailer from 'nodemailer';
 import mongoose from 'mongoose';
 
 // Helper function to get CORS headers
@@ -80,6 +84,74 @@ export async function POST(req: NextRequest) {
     });
 
     await submission.save();
+
+    // Check for auto-send email rules and send email if enabled
+    try {
+      const autoSendRule = await AutoSendEmail.findOne({
+        formId: form._id,
+        enabled: true,
+      }).populate('templateId');
+
+      if (autoSendRule) {
+        // Extract email from form data (check common email field names)
+        let recipientEmail = '';
+        const emailFields = ['email', 'Email', 'EMAIL', 'e-mail', 'E-mail', 'mail', 'Mail'];
+        for (const field of emailFields) {
+          if (data[field]) {
+            recipientEmail = String(data[field]).trim();
+            break;
+          }
+        }
+
+        if (recipientEmail) {
+          // Get SMTP configuration
+          let smtpConfig: any = null;
+          if (autoSendRule.smtpId.startsWith('admin_')) {
+            const adminSmtpId = autoSendRule.smtpId.replace('admin_', '');
+            smtpConfig = await AdminSmtp.findById(adminSmtpId);
+          } else {
+            smtpConfig = await UserSmtp.findById(autoSendRule.smtpId);
+          }
+
+          if (smtpConfig && smtpConfig.smtpHost && smtpConfig.smtpUser && smtpConfig.smtpPass) {
+            // Create transporter
+            const transporter = nodemailer.createTransport({
+              host: smtpConfig.smtpHost,
+              port: smtpConfig.smtpPort,
+              secure: smtpConfig.smtpPort === 465,
+              auth: {
+                user: smtpConfig.smtpUser,
+                pass: smtpConfig.smtpPass,
+              },
+            });
+
+            // Replace placeholders in subject and HTML with form data
+            let processedSubject = autoSendRule.subject;
+            let processedHtml = autoSendRule.html;
+            
+            Object.keys(data).forEach(key => {
+              const value = String(data[key]);
+              processedSubject = processedSubject.replace(new RegExp(`{{${key}}}`, 'gi'), value);
+              processedHtml = processedHtml.replace(new RegExp(`{{${key}}}`, 'gi'), value);
+            });
+
+            // Send email (fire and forget - don't wait for response)
+            transporter.sendMail({
+              from: smtpConfig.smtpFrom || smtpConfig.smtpUser,
+              to: recipientEmail,
+              subject: processedSubject,
+              html: processedHtml,
+            }).catch((error) => {
+              console.error('Error sending auto-send email:', error);
+              // Don't throw - we don't want to fail the form submission if email fails
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error processing auto-send email:', error);
+      // Don't fail the form submission if auto-send fails
+    }
 
     return NextResponse.json({ 
       message: 'Form submitted successfully',
