@@ -99,7 +99,7 @@ export default function SupportChat() {
         // Add support confirmation message
         const supportMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: 'Thank you for your message! We\'ve received it and will get back to you soon.',
+          text: 'Thank you for your message! We&apos;ve received it and will get back to you soon.',
           sender: 'support',
           timestamp: new Date(),
         };
@@ -181,7 +181,7 @@ export default function SupportChat() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Support Chat</h3>
-                <p className="text-sm text-white/80">We're here to help!</p>
+                <p className="text-sm text-white/80">We&apos;re here to help!</p>
               </div>
             </div>
             <button

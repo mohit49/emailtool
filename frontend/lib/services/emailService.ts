@@ -5,7 +5,7 @@ import UserSmtp from '@/lib/models/UserSmtp';
 import AdminSmtp from '@/lib/models/AdminSmtp';
 
 // Get admin SMTP settings for system emails (verification, password reset, etc.)
-const getAdminSMTPSettings = async () => {
+export const getAdminSMTPSettings = async () => {
   try {
     await connectDB();
     
@@ -137,7 +137,7 @@ const createTransporter = async (userId?: string) => {
 };
 
 // Create transporter for system emails (uses admin SMTP)
-const createSystemTransporter = async () => {
+export const createSystemTransporter = async () => {
   const settings = await getAdminSMTPSettings();
 
   if (!settings.user || !settings.pass) {
