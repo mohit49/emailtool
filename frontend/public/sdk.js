@@ -1,12 +1,31 @@
 /**
- * Przio Popup SDK
+ * PRZIO Unified SDK
+ * Combined Popup and Email SDK
  * 
- * Usage:
+ * Popup Usage:
  * <script src="https://przio.com/sdk.js" data-project-id="YOUR_PROJECT_ID"></script>
  * 
  * Or initialize manually:
  * <script>
  *   window.PrzioSDK.init({ projectId: 'YOUR_PROJECT_ID' });
+ * </script>
+ * 
+ * Email Usage:
+ * <script src="https://przio.com/sdk.js"></script>
+ * <script>
+ *   const przio = new PrzioSDK.Email({
+ *     apiKey: 'your-api-key',
+ *     projectId: 'your-project-id',
+ *     baseUrl: 'https://przio.com' // optional, defaults to current origin
+ *   });
+ *   
+ *   przio.connect().then(() => {
+ *     przio.sendEmail({
+ *       recipients: ['email@example.com'],
+ *       subject: 'Test Email',
+ *       html: '<html><body><h1>Hello!</h1></body></html>'
+ *     });
+ *   });
  * </script>
  */
 
@@ -1852,6 +1871,187 @@
     }
   }
 
+  /**
+   * PRZIO Email SDK Class
+   * For sending emails via PRZIO API
+   */
+  function PrzioEmailSDK(emailConfig) {
+    if (!emailConfig || !emailConfig.apiKey || !emailConfig.projectId) {
+      throw new Error('PrzioEmailSDK requires apiKey and projectId');
+    }
+
+    this.apiKey = emailConfig.apiKey;
+    this.projectId = emailConfig.projectId;
+    this.baseUrl = emailConfig.baseUrl || window.location.origin;
+    this.connected = false;
+  }
+
+  /**
+   * Connect to PRZIO API using API key
+   */
+  PrzioEmailSDK.prototype.connect = function() {
+    var self = this;
+    
+    return fetch(this.baseUrl + '/api/auth/api-key', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Important for cookies
+      body: JSON.stringify({
+        apiKey: this.apiKey,
+        projectId: this.projectId,
+      }),
+    })
+    .then(function(response) {
+      if (!response.ok) {
+        return response.json().then(function(err) {
+          throw new Error(err.error || 'Connection failed');
+        });
+      }
+      return response.json();
+    })
+    .then(function(data) {
+      self.connected = true;
+      // Token is stored in HTTP-only cookie automatically
+      return data;
+    })
+    .catch(function(error) {
+      self.connected = false;
+      throw error;
+    });
+  };
+
+  /**
+   * Send email using template
+   * 
+   * @param {Object} options - Email options
+   * @param {Array<string>} options.recipients - Array of recipient email addresses (required)
+   * @param {string} options.subject - Email subject (required)
+   * @param {string} [options.html] - HTML content (optional if templateId or default template is set)
+   * @param {string} [options.templateId] - Template ID to use (optional, uses project default if not provided)
+   * @param {string} [options.smtpId] - SMTP ID to use (optional, uses project default if not provided)
+   * 
+   * @returns {Promise} Promise that resolves with send result
+   */
+  PrzioEmailSDK.prototype.sendEmail = function(options) {
+    if (!this.connected) {
+      return Promise.reject(new Error('Not connected. Call connect() first.'));
+    }
+
+    if (!options || !options.recipients || !Array.isArray(options.recipients) || options.recipients.length === 0) {
+      return Promise.reject(new Error('Recipients array is required'));
+    }
+
+    if (!options.subject) {
+      return Promise.reject(new Error('Subject is required'));
+    }
+
+    // Either html or templateId must be provided, or project must have default template
+    if (!options.html && !options.templateId) {
+      return Promise.reject(new Error('Either html or templateId is required. Or set a default template in project settings.'));
+    }
+
+    return fetch(this.baseUrl + '/api/emails/send-bulk', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Important for cookies
+      body: JSON.stringify({
+        templateId: options.templateId || null,
+        html: options.html || null,
+        subject: options.subject,
+        smtpId: options.smtpId || null,
+        recipients: options.recipients,
+        projectId: this.projectId,
+      }),
+    })
+    .then(function(response) {
+      if (!response.ok) {
+        return response.json().then(function(err) {
+          throw new Error(err.error || 'Failed to send email');
+        });
+      }
+      return response.json();
+    });
+  };
+
+  /**
+   * Get email templates for the project
+   */
+  PrzioEmailSDK.prototype.getTemplates = function() {
+    if (!this.connected) {
+      return Promise.reject(new Error('Not connected. Call connect() first.'));
+    }
+
+    return fetch(this.baseUrl + '/api/templates?projectId=' + this.projectId, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    })
+    .then(function(response) {
+      if (!response.ok) {
+        return response.json().then(function(err) {
+          throw new Error(err.error || 'Failed to fetch templates');
+        });
+      }
+      return response.json();
+    });
+  };
+
+  /**
+   * Get email history
+   */
+  PrzioEmailSDK.prototype.getEmailHistory = function(options) {
+    if (!this.connected) {
+      return Promise.reject(new Error('Not connected. Call connect() first.'));
+    }
+
+    options = options || {};
+    var params = new URLSearchParams({
+      page: (options.page || 1).toString(),
+      limit: (options.limit || 50).toString(),
+    });
+
+    if (options.status) {
+      params.append('status', options.status);
+    }
+
+    return fetch(this.baseUrl + '/api/projects/' + this.projectId + '/emails?' + params.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    })
+    .then(function(response) {
+      if (!response.ok) {
+        return response.json().then(function(err) {
+          throw new Error(err.error || 'Failed to fetch email history');
+        });
+      }
+      return response.json();
+    });
+  };
+
+  /**
+   * Check connection status
+   */
+  PrzioEmailSDK.prototype.isConnected = function() {
+    return this.connected;
+  };
+
+  /**
+   * Disconnect (clear local state)
+   * Note: Cookie will remain until it expires, but local connection state is cleared
+   */
+  PrzioEmailSDK.prototype.disconnect = function() {
+    this.connected = false;
+  };
+
   // Expose API
   window.PrzioSDK = {
     init,
@@ -1859,7 +2059,12 @@
     showPopup,
     version: SDK_VERSION,
     config: () => config,
+    // Email SDK class
+    Email: PrzioEmailSDK,
   };
+
+  // Also support lowercase for convenience (for email SDK)
+  window.przioSDK = PrzioEmailSDK;
 
 })(window, document);
 

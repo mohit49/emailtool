@@ -228,7 +228,7 @@ class Przio_Popup {
                 <?php esc_html_e('Popup SDK', 'przio-popup'); ?> (https://przio.com/sdk.js)
             </option>
             <option value="email" <?php selected($sdk_type, 'email'); ?>>
-                <?php esc_html_e('Email SDK', 'przio-popup'); ?> (https://przio.com/przio-sdk.js)
+                <?php esc_html_e('Email SDK', 'przio-popup'); ?> (https://przio.com/sdk.js)
             </option>
         </select>
         <p class="description">
@@ -401,12 +401,7 @@ class Przio_Popup {
     private function get_sdk_url() {
         $sdk_type = get_option('przio_popup_sdk_type', 'popup');
         
-        // Use przio.com domain for both SDKs
-        if ($sdk_type === 'email') {
-            return 'https://przio.com/przio-sdk.js';
-        }
-        
-        // Default to popup SDK
+        // Both popup and email SDKs are now in the same file
         return 'https://przio.com/sdk.js';
     }
     

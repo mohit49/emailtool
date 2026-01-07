@@ -16,11 +16,11 @@ export default function ThirdPartyIntegrationPage() {
 
   const codeExamples = {
     basic: `<!-- Include PRZIO SDK -->
-<script src="https://przio.com/przio-sdk.js"></script>
+<script src="https://przio.com/sdk.js"></script>
 
 <script>
-  // Initialize SDK
-  const przio = new PrzioSDK({
+  // Initialize Email SDK
+  const przio = new PrzioSDK.Email({
     apiKey: 'przio_xxxxxxxxxxxxx',
     projectId: 'your-project-id-here',
     baseUrl: 'https://przio.com' // optional
@@ -157,10 +157,10 @@ przio.connect().then(() => {
                 </p>
                 <div className="bg-gray-900 rounded-lg p-4 relative">
                   <code className="text-green-400 text-sm">
-                    {'<script src="https://przio.com/przio-sdk.js"></script>'}
+                    {'<script src="https://przio.com/sdk.js"></script>'}
                   </code>
                   <button
-                    onClick={() => copyToClipboard('<script src="https://przio.com/przio-sdk.js"></script>', 'sdk-script')}
+                    onClick={() => copyToClipboard('<script src="https://przio.com/sdk.js"></script>', 'sdk-script')}
                     className="absolute top-2 right-2 p-2 text-gray-400 hover:text-white transition-colors"
                     title="Copy code"
                   >
@@ -310,7 +310,7 @@ przio.connect().then(() => {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Constructor</h3>
               <div className="bg-gray-50 rounded-lg p-4 mb-2">
                 <code className="text-sm text-gray-800">
-                  new PrzioSDK(config)
+                  new PrzioSDK.Email(config)
                 </code>
               </div>
               <div className="ml-4 space-y-2">
