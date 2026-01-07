@@ -85,3 +85,4 @@ const ScheduledEmail: Model<IScheduledEmail> =
 
 export default ScheduledEmail;
 
+

@@ -31,3 +31,4 @@ public/
 
 **Note:** Files in the `public` folder are served from the root URL, so `/assets/logo.png` refers to `public/assets/logo.png`.
 
+

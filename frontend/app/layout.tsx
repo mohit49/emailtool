@@ -3,6 +3,7 @@ import { Lato } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from './providers/AuthProvider'
 import ExternalScripts from '../components/ExternalScripts'
+import SupportChat from '../components/SupportChat'
 
 const lato = Lato({ 
   subsets: ['latin'],
@@ -29,6 +30,7 @@ export default function RootLayout({
           {children}
         </AuthProvider>
         <ExternalScripts />
+        <SupportChat />
       </body>
     </html>
   )

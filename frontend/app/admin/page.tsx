@@ -73,6 +73,8 @@ export default function AdminDashboard() {
     injectInHead: false,
   });
   const [savingJs, setSavingJs] = useState(false);
+  const [supportEmail, setSupportEmail] = useState('');
+  const [savingSupportEmail, setSavingSupportEmail] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -99,7 +101,7 @@ export default function AdminDashboard() {
   const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const [smtpResponse, googleOAuthResponse, jsScriptsResponse] = await Promise.all([
+      const [smtpResponse, googleOAuthResponse, jsScriptsResponse, settingsResponse] = await Promise.all([
         axios.get(`${API_URL}/admin/smtp`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -107,6 +109,9 @@ export default function AdminDashboard() {
           headers: { Authorization: `Bearer ${token}` },
         }),
         axios.get(`${API_URL}/admin/external-js`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${API_URL}/admin/settings`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -119,6 +124,13 @@ export default function AdminDashboard() {
         });
       }
       setExternalJsScripts(jsScriptsResponse.data.scripts || []);
+      
+      // Get support email setting
+      if (settingsResponse.data.settings?.supportEmail) {
+        setSupportEmail(settingsResponse.data.settings.supportEmail.value || '');
+      } else {
+        setSupportEmail(process.env.SUPPORT_EMAIL || 'support@przio.com');
+      }
     } catch (error) {
       console.error('Failed to fetch admin settings:', error);
     } finally {
@@ -470,6 +482,45 @@ export default function AdminDashboard() {
       },
       onCancel: () => setConfirmDialog({ ...confirmDialog, isOpen: false }),
     });
+  };
+
+  const handleSaveSupportEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportEmail.trim() || !supportEmail.includes('@')) {
+      setAlert({
+        isOpen: true,
+        message: 'Please enter a valid email address',
+        type: 'error',
+      });
+      return;
+    }
+
+    setSavingSupportEmail(true);
+    try {
+      await axios.post(
+        `${API_URL}/admin/settings`,
+        {
+          key: 'supportEmail',
+          value: supportEmail.trim(),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setAlert({
+        isOpen: true,
+        message: 'Support email saved successfully!',
+        type: 'success',
+      });
+    } catch (error: any) {
+      setAlert({
+        isOpen: true,
+        message: error.response?.data?.error || 'Failed to save support email',
+        type: 'error',
+      });
+    } finally {
+      setSavingSupportEmail(false);
+    }
   };
 
   const handleSendTestEmail = async () => {
@@ -1061,6 +1112,47 @@ export default function AdminDashboard() {
                     className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {savingGoogleOAuth ? 'Saving...' : 'Save Google OAuth Settings'}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Support Chat Email Configuration */}
+            <div className="bg-white rounded-lg shadow-md p-6 mt-8">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Support Chat Email</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Configure the email address where support chat messages will be sent
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveSupportEmail} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Support Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    placeholder="support@przio.com"
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    All messages from the support chat widget will be sent to this email address
+                  </p>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-gray-200">
+                  <button
+                    type="submit"
+                    disabled={savingSupportEmail}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingSupportEmail ? 'Saving...' : 'Save Support Email'}
                   </button>
                 </div>
               </form>

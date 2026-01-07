@@ -1,0 +1,10 @@
+# This directory should contain:
+# - icon-256x256.png (256x256 PNG icon for WordPress plugin directory)
+# 
+# To add the logo:
+# 1. Copy your logo file (logo-web.png) to this directory
+# 2. Resize it to 256x256 pixels
+# 3. Rename it to icon-256x256.png
+# 
+# WordPress will automatically use this icon in the plugin directory listing.
+
