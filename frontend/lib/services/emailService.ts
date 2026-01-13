@@ -604,6 +604,9 @@ export const sendTicketUpdateNotification = async (
       `;
     }
 
+    // Use production URL for logo to ensure it loads in emails
+    const logoImageUrl = 'https://www.przio.com/assets/logo-web.png';
+
     // Send email to each recipient
     for (const recipient of recipients) {
       const ticketUrl = `${appUrl}/support/tickets/${ticketId}`;
@@ -630,7 +633,7 @@ export const sendTicketUpdateNotification = async (
                     <!-- Gradient Header -->
                     <tr>
                       <td align="center" style="padding: 40px 30px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);">
-                        <img src="${appUrl}/assets/logo-web.png" alt="PRZIO Logo" style="max-width: 150px; height: auto; margin-bottom: 20px;" />
+                        <img src="${logoImageUrl}" alt="PRZIO Logo" style="max-width: 150px; height: auto; margin-bottom: 20px; display: block;" />
                         <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center;">
                           ${updateType === 'new' ? '🎫 New Support Ticket' : '🎫 Support Ticket Update'}
                         </h1>
