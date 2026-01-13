@@ -455,7 +455,7 @@ export default function ProjectsPage() {
                 <p className="text-gray-700 leading-relaxed mb-4">
                   Get started by creating a new project to organize your email templates, popups, and forms. 
                   Projects help you manage your campaigns, collaborate with team members, and track performance metrics. 
-                  Click the "Create Project" button below to begin organizing your work and start building amazing email campaigns, engaging popups, and powerful forms.
+                  Click the &quot;Create Project&quot; button below to begin organizing your work and start building amazing email campaigns, engaging popups, and powerful forms.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
