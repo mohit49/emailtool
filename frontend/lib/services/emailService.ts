@@ -390,9 +390,7 @@ export const sendProjectInvitationEmail = async (
     // Don't throw error - we don't want to fail the API call if email fails
     console.error('Failed to send project invitation email, but member was added successfully');
   }
-};
-
-// Send project invitation email for unregistered users (prompts them to sign up)
+};// Send project invitation email for unregistered users (prompts them to sign up)
 export const sendProjectSignupInvitationEmail = async (
   email: string,
   projectName: string,
@@ -513,5 +511,210 @@ export const sendProjectSignupInvitationEmail = async (
     console.error('Error sending project signup invitation email:', error);
     // Don't throw error - we don't want to fail the API call if email fails
     console.error('Failed to send project signup invitation email, but invitation was created successfully');
+  }
+};
+
+// Send ticket update notification email (uses admin SMTP)
+export const sendTicketUpdateNotification = async (
+  ticketNumber: string,
+  ticketTitle: string,
+  updateType: 'status' | 'priority' | 'comment' | 'assignment' | 'new',
+  updatedBy: { name: string; email: string; role: string },
+  recipients: Array<{ email: string; name: string }>,
+  updateDetails: {
+    oldStatus?: string;
+    newStatus?: string;
+    oldPriority?: string;
+    newPriority?: string;
+    comment?: string;
+    assignedUsers?: string[];
+  },
+  ticketId: string
+) => {
+  try {
+    const transporter = await createSystemTransporter();
+    const settings = await getAdminSMTPSettings();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    
+    // Build update description
+    let updateDescription = '';
+    let updateSubject = '';
+    
+    if (updateType === 'new') {
+      updateSubject = `New Support Ticket #${ticketNumber} Created`;
+      updateDescription = `
+        <p style="margin: 0 0 15px; font-size: 16px; line-height: 24px; color: #333333;">
+          A new support ticket has been created and requires your attention.
+        </p>
+        ${updateDetails.comment ? `
+          <div style="background-color: #f3f4f6; border-left: 4px solid #6366f1; padding: 15px; margin: 15px 0; border-radius: 4px;">
+            <p style="margin: 0; font-size: 14px; line-height: 20px; color: #1f2937; white-space: pre-wrap;">${updateDetails.comment}</p>
+          </div>
+        ` : ''}
+      `;
+    } else if (updateType === 'status' && updateDetails.oldStatus && updateDetails.newStatus) {
+      updateSubject = `Ticket #${ticketNumber} Status Updated`;
+      updateDescription = `
+        <p style="margin: 0 0 15px; font-size: 16px; line-height: 24px; color: #333333;">
+          The status has been changed from <strong>${updateDetails.oldStatus}</strong> to <strong>${updateDetails.newStatus}</strong>.
+        </p>
+      `;
+    } else if (updateType === 'priority' && updateDetails.oldPriority && updateDetails.newPriority) {
+      updateSubject = `Ticket #${ticketNumber} Priority Updated`;
+      updateDescription = `
+        <p style="margin: 0 0 15px; font-size: 16px; line-height: 24px; color: #333333;">
+          The priority has been changed from <strong>${updateDetails.oldPriority}</strong> to <strong>${updateDetails.newPriority}</strong>.
+        </p>
+      `;
+    } else if (updateType === 'comment') {
+      updateSubject = `New Comment on Ticket #${ticketNumber}`;
+      updateDescription = `
+        <p style="margin: 0 0 15px; font-size: 16px; line-height: 24px; color: #333333;">
+          A new comment has been added to the ticket.
+        </p>
+        ${updateDetails.comment ? `
+          <div style="background-color: #f3f4f6; border-left: 4px solid #6366f1; padding: 15px; margin: 15px 0; border-radius: 4px;">
+            <p style="margin: 0; font-size: 14px; line-height: 20px; color: #1f2937; white-space: pre-wrap;">${updateDetails.comment}</p>
+          </div>
+        ` : ''}
+      `;
+    } else if (updateType === 'assignment') {
+      updateSubject = `Ticket #${ticketNumber} Assignment Updated`;
+      updateDescription = `
+        <p style="margin: 0 0 15px; font-size: 16px; line-height: 24px; color: #333333;">
+          The assigned users have been updated.
+        </p>
+      `;
+    } else {
+      updateSubject = `Ticket #${ticketNumber} Updated`;
+      updateDescription = `
+        <p style="margin: 0 0 15px; font-size: 16px; line-height: 24px; color: #333333;">
+          The ticket has been updated.
+        </p>
+      `;
+    }
+    
+    // Add comment if provided (for status/priority changes)
+    if (updateDetails.comment && updateType !== 'comment') {
+      updateDescription += `
+        <div style="background-color: #f3f4f6; border-left: 4px solid #6366f1; padding: 15px; margin: 15px 0; border-radius: 4px;">
+          <p style="margin: 0 0 5px; font-size: 12px; font-weight: 600; color: #6366f1; text-transform: uppercase;">Note:</p>
+          <p style="margin: 0; font-size: 14px; line-height: 20px; color: #1f2937; white-space: pre-wrap;">${updateDetails.comment}</p>
+        </div>
+      `;
+    }
+
+    // Send email to each recipient
+    for (const recipient of recipients) {
+      const ticketUrl = `${appUrl}/support/tickets/${ticketId}`;
+      
+      const mailOptions = {
+        from: settings.from || 'support@przio.com',
+        to: recipient.email,
+        subject: `${updateSubject} - ${ticketTitle}`,
+        html: `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Ticket Update</title>
+          </head>
+          <body style="margin: 0; padding: 0; background-color: #f2f4f7; font-family: Arial, Helvetica, sans-serif;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f2f4f7">
+              <tr>
+                <td align="center" style="padding: 40px 20px;">
+                  <!-- Main Container -->
+                  <table width="600" cellpadding="0" cellspacing="0" border="0" style="width: 100%; max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    
+                    <!-- Gradient Header -->
+                    <tr>
+                      <td align="center" style="padding: 40px 30px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);">
+                        <img src="${appUrl}/assets/logo-web.png" alt="PRZIO Logo" style="max-width: 150px; height: auto; margin-bottom: 20px;" />
+                        <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #ffffff; text-align: center;">
+                          ${updateType === 'new' ? '🎫 New Support Ticket' : '🎫 Support Ticket Update'}
+                        </h1>
+                      </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                      <td style="padding: 40px 30px;">
+                        <p style="margin: 0 0 20px; font-size: 16px; line-height: 24px; color: #333333;">
+                          Hi <strong>${recipient.name}</strong>,
+                        </p>
+                        
+                        <p style="margin: 0 0 20px; font-size: 16px; line-height: 24px; color: #333333;">
+                          ${updateType === 'new' 
+                            ? `A new support ticket has been created by <strong>${updatedBy.name}</strong> and requires your attention.`
+                            : `Your support ticket has been updated by <strong>${updatedBy.name}</strong> ${updatedBy.role === 'admin' ? '(Administrator)' : ''}.`
+                          }
+                        </p>
+
+                        <!-- Ticket Card -->
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 100%); border-radius: 8px; padding: 20px; margin: 20px 0;">
+                          <tr>
+                            <td>
+                              <div style="margin-bottom: 10px;">
+                                <span style="font-size: 12px; font-weight: 600; color: #6366f1; text-transform: uppercase; letter-spacing: 0.5px;">Ticket Number</span>
+                                <p style="margin: 5px 0 0; font-size: 20px; font-weight: bold; color: #1f2937; font-family: monospace;">
+                                  #${ticketNumber}
+                                </p>
+                              </div>
+                              <div style="margin-top: 15px;">
+                                <span style="font-size: 12px; font-weight: 600; color: #6366f1; text-transform: uppercase; letter-spacing: 0.5px;">Title</span>
+                                <p style="margin: 5px 0 0; font-size: 16px; font-weight: 600; color: #1f2937;">
+                                  ${ticketTitle}
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        </table>
+
+                        ${updateDescription}
+
+                        <!-- CTA Button -->
+                        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 30px 0;">
+                          <tr>
+                            <td align="center">
+                              <a href="${ticketUrl}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);">
+                                View Ticket →
+                              </a>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <p style="margin: 20px 0 0; font-size: 14px; line-height: 20px; color: #6b7280;">
+                          If you have any questions, feel free to reach out to our support team.
+                        </p>
+                      </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                      <td style="padding: 30px; background-color: #f9fafb; border-top: 1px solid #e5e7eb;">
+                        <p style="margin: 0; font-size: 12px; line-height: 18px; color: #6b7280; text-align: center;">
+                          This email was sent by PRZIO - Email Testing Tool<br>
+                          © ${new Date().getFullYear()} PRZIO. All rights reserved.
+                        </p>
+                      </td>
+                    </tr>
+
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
+        `,
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log(`Ticket update notification sent to ${recipient.email} from ${settings.from}`);
+    }
+  } catch (error) {
+    console.error('Error sending ticket update notification:', error);
+    // Don't throw error - we don't want to fail the API call if email fails
+    console.error('Failed to send ticket update notification, but ticket was updated successfully');
   }
 };

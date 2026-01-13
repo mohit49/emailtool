@@ -3,6 +3,7 @@ import connectDB from '@/lib/db';
 import SupportTicket from '@/lib/models/SupportTicket';
 import User from '@/lib/models/User';
 import { authenticateRequest } from '@/lib/utils/auth';
+import { sendTicketUpdateNotification } from '@/lib/services/emailService';
 import mongoose from 'mongoose';
 
 // GET - Get all tickets (user can see their own, admin can see all)
@@ -218,6 +219,39 @@ export async function POST(req: NextRequest) {
       .populate('createdBy', 'name email')
       .populate('assignedUsers', 'name email')
       .lean();
+
+    // Send email notification to all admins about new ticket
+    try {
+      const admins = await User.find({ role: 'admin' })
+        .select('name email')
+        .lean();
+      
+      if (admins.length > 0) {
+        const recipients = admins.map((admin: any) => ({
+          email: admin.email,
+          name: admin.name,
+        }));
+        
+        await sendTicketUpdateNotification(
+          ticket.ticketNumber,
+          ticket.title,
+          'new', // New ticket type
+          {
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          },
+          recipients,
+          {
+            comment: ticket.description,
+          },
+          ticket._id.toString()
+        );
+      }
+    } catch (emailError) {
+      // Log error but don't fail the request
+      console.error('Failed to send new ticket notification:', emailError);
+    }
 
     return NextResponse.json(
       { ticket: populatedTicket },

@@ -3,6 +3,7 @@ import connectDB from '@/lib/db';
 import SupportTicket from '@/lib/models/SupportTicket';
 import User from '@/lib/models/User';
 import { authenticateRequest } from '@/lib/utils/auth';
+import { sendTicketUpdateNotification } from '@/lib/services/emailService';
 import mongoose from 'mongoose';
 
 // GET - Get a specific ticket
@@ -120,11 +121,28 @@ export async function PUT(
 
     const { status, priority, comment, commentImages, images, assignedUsers } = await req.json();
 
+    // Track what changed for email notifications
+    let updateType: 'status' | 'priority' | 'comment' | 'assignment' | null = null;
+    const updateDetails: {
+      oldStatus?: string;
+      newStatus?: string;
+      oldPriority?: string;
+      newPriority?: string;
+      comment?: string;
+      assignedUsers?: string[];
+    } = {};
+
     // Update status if provided
     if (status && ['open', 'in-progress', 'resolved', 'closed'].includes(status)) {
       const oldStatus = ticket.status;
       if (oldStatus !== status) {
         ticket.status = status;
+        updateType = 'status';
+        updateDetails.oldStatus = oldStatus;
+        updateDetails.newStatus = status;
+        if (comment) {
+          updateDetails.comment = comment;
+        }
         // Add timeline entry
         ticket.timeline.push({
           type: 'status',
@@ -144,6 +162,15 @@ export async function PUT(
       const oldPriority = ticket.priority;
       if (oldPriority !== priority) {
         ticket.priority = priority;
+        // If status wasn't changed, set updateType to priority
+        if (!updateType) {
+          updateType = 'priority';
+        }
+        updateDetails.oldPriority = oldPriority;
+        updateDetails.newPriority = priority;
+        if (comment && !updateDetails.comment) {
+          updateDetails.comment = comment;
+        }
         // Add timeline entry
         ticket.timeline.push({
           type: 'priority',
@@ -164,9 +191,11 @@ export async function PUT(
     }
 
     // Add comment if provided (only if it's a standalone comment, not tied to status/priority change)
-    const isStatusOrPriorityChange = (status && ticket.status !== status) || (priority && ticket.priority !== priority);
+    const isStatusOrPriorityChange = updateType === 'status' || updateType === 'priority';
     if (!isStatusOrPriorityChange && ((comment && comment.trim()) || (commentImages && commentImages.length > 0))) {
       const commentText = comment ? comment.trim() : '';
+      updateType = 'comment';
+      updateDetails.comment = commentText;
       ticket.comments.push({
         userId: userId,
         userName: user.name,
@@ -193,6 +222,10 @@ export async function PUT(
         ticket.assignedUsers = assignedUsers.map(
           (id: string) => new mongoose.Types.ObjectId(id)
         );
+        if (!updateType) {
+          updateType = 'assignment';
+        }
+        updateDetails.assignedUsers = assignedUsers;
       } else {
         return NextResponse.json(
           { error: 'Only administrators can update assigned users' },
@@ -208,6 +241,88 @@ export async function PUT(
       .populate('assignedUsers', 'name email')
       .populate('comments.userId', 'name email')
       .lean();
+
+    // Send email notifications if there was an update
+    if (updateType) {
+      try {
+        // Determine recipients based on who made the update
+        const recipients: Array<{ email: string; name: string }> = [];
+        
+        if (isAdmin) {
+          // Admin updated: notify ticket creator
+          const creator = await User.findById(ticket.createdBy);
+          if (creator && creator.email !== user.email) {
+            recipients.push({
+              email: creator.email,
+              name: creator.name,
+            });
+          }
+        } else {
+          // User updated: notify all admins and assigned users (but not the updater)
+          // Get all admins
+          const admins = await User.find({ role: 'admin' })
+            .select('name email')
+            .lean();
+          
+          admins.forEach((admin: any) => {
+            if (admin.email !== user.email) {
+              recipients.push({
+                email: admin.email,
+                name: admin.name,
+              });
+            }
+          });
+          
+          // Get assigned users
+          const assignedUserIds = ticket.assignedUsers.map((id: any) => id.toString());
+          const assignedUsersList = await User.find({
+            _id: { $in: assignedUserIds }
+          })
+            .select('name email')
+            .lean();
+          
+          assignedUsersList.forEach((assigned: any) => {
+            if (assigned.email !== user.email && 
+                !recipients.some(r => r.email === assigned.email)) {
+              recipients.push({
+                email: assigned.email,
+                name: assigned.name,
+              });
+            }
+          });
+          
+          // Also notify ticket creator if they're not the updater
+          const creator = await User.findById(ticket.createdBy);
+          if (creator && creator.email !== user.email &&
+              !recipients.some(r => r.email === creator.email)) {
+            recipients.push({
+              email: creator.email,
+              name: creator.name,
+            });
+          }
+        }
+        
+        // Send notification if there are recipients
+        if (recipients.length > 0) {
+          await sendTicketUpdateNotification(
+            ticket.ticketNumber,
+            ticket.title,
+            updateType,
+            {
+              name: user.name,
+              email: user.email,
+              role: user.role,
+            },
+            recipients,
+            updateDetails,
+            ticket._id.toString()
+          );
+        }
+      } catch (emailError) {
+        // Log error but don't fail the request
+        console.error('Failed to send ticket update notification:', emailError);
+      }
+    }
 
     return NextResponse.json({ ticket: updatedTicket });
   } catch (error: any) {
