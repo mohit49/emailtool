@@ -33,6 +33,21 @@ export default function SupportChat() {
     }
   }, [isOpen, showEmailInput]);
 
+  // Listen for custom event to open chat
+  useEffect(() => {
+    const handleOpenChat = () => {
+      setIsOpen(true);
+      if (messages.length === 0) {
+        setShowEmailInput(true);
+      }
+    };
+
+    window.addEventListener('openSupportChat', handleOpenChat);
+    return () => {
+      window.removeEventListener('openSupportChat', handleOpenChat);
+    };
+  }, [messages.length]);
+
   const handleOpen = () => {
     setIsOpen(true);
     if (messages.length === 0) {

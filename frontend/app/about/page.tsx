@@ -1,27 +1,43 @@
+'use client';
+
 import Link from 'next/link';
 import Navigation from '../../components/Navigation';
 import Footer from '../../components/Footer';
-
-export const metadata = {
-  title: 'About Us - PRZIO',
-  description: 'Learn about PRZIO, our mission, and how we help marketers and developers create amazing email campaigns.',
-};
+import Image from 'next/image';
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       <Navigation />
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6">
-            About <span className="font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">PRZIO</span>
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We&apos;re on a mission to make email template creation and testing simple, 
-            powerful, and accessible to everyone.
-          </p>
+      {/* Hero Section with Full Screen Background */}
+      <section className="w-full relative overflow-hidden min-h-[30vh] md:min-h-[35vh] lg:min-h-[40vh] flex items-center">
+        {/* Full screen background image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/assets/main-heade-bg.jpg"
+            alt="About background"
+            fill
+            className="object-cover"
+            priority
+          />
+          {/* Overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+        </div>
+        
+        {/* Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 lg:py-10 relative z-10 w-full">
+          <div className="text-center">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 md:mb-6 drop-shadow-lg">
+              <span className="bg-gradient-to-r from-white via-indigo-100 to-purple-100 bg-clip-text text-transparent">
+                About PRZIO
+              </span>
+            </h1>
+            <p className="text-base sm:text-lg md:text-xl text-white/90 max-w-3xl mx-auto drop-shadow-md px-4">
+              The all-in-one platform for <strong>email template testing</strong>, <strong>popup builder</strong>, and <strong>form builder</strong> integration. 
+              Create, test, and deploy powerful marketing tools with ease.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -30,15 +46,15 @@ export default function AboutPage() {
         <div className="bg-white rounded-2xl p-12 shadow-lg">
           <h2 className="text-4xl font-bold text-gray-900 mb-6">Our Mission</h2>
           <p className="text-lg text-gray-600 leading-relaxed mb-6">
-            PRZIO was born from a simple need: making email template creation 
-            and testing as easy as possible. We believe that everyone, regardless of technical 
-            expertise, should be able to create beautiful, responsive email templates.
+            <strong>PRZIO</strong> is the comprehensive platform for <strong>email template testing</strong>, <strong>popup builder</strong>, and <strong>form builder</strong> solutions. 
+            We empower marketers, developers, and businesses to create, test, and deploy professional <strong>email templates</strong>, 
+            engaging <strong>popup campaigns</strong>, and powerful <strong>form integrations</strong> without technical complexity.
           </p>
           <p className="text-lg text-gray-600 leading-relaxed">
-            Whether you&apos;re a marketer sending newsletters, a developer building email systems, 
-            or a designer creating email campaigns, our platform provides the tools you need 
-            to succeed. We combine the power of professional code editors with intuitive 
-            interfaces to give you the best of both worlds.
+            Our platform combines three powerful tools: <strong>Email Template Builder</strong> for creating and testing responsive email designs, 
+            <strong>Popup Builder</strong> for building conversion-optimized popups, and <strong>Form Builder</strong> for seamless form integration. 
+            Whether you&apos;re sending transactional emails, creating marketing campaigns, or collecting leads, <strong>PRZIO</strong> provides 
+            everything you need in one integrated solution.
           </p>
         </div>
       </section>
@@ -47,41 +63,38 @@ export default function AboutPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            What We Offer
+            Our Products
           </h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Three powerful tools integrated into one platform for complete marketing automation
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="bg-white rounded-2xl p-8 shadow-lg">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Professional Tools</h3>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Email Template Builder</h3>
             <p className="text-gray-600 leading-relaxed">
-              Our VS Code-like editor provides syntax highlighting, autocomplete, and all the 
-              features you&apos;d expect from a professional development environment. Write clean, 
-              maintainable HTML code with confidence.
+              Create and test responsive <strong>email templates</strong> with our professional HTML editor. 
+              Send bulk emails, test across email clients, and integrate with your <strong>SMTP server</strong>. 
+              Perfect for transactional emails, newsletters, and marketing campaigns.
             </p>
           </div>
 
           <div className="bg-white rounded-2xl p-8 shadow-lg">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Real-Time Preview</h3>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Popup Builder</h3>
             <p className="text-gray-600 leading-relaxed">
-              See your email templates come to life as you type. Preview on mobile, tablet, 
-              and desktop views to ensure your emails look perfect on every device and email client.
+              Build conversion-optimized <strong>popups</strong> and <strong>popup campaigns</strong> with our drag-and-drop builder. 
+              Create exit-intent popups, welcome modals, and promotional overlays. Integrate easily with our <strong>popup SDK</strong> 
+              and track performance metrics in real-time.
             </p>
           </div>
 
           <div className="bg-white rounded-2xl p-8 shadow-lg">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Bulk Email Sending</h3>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Form Builder</h3>
             <p className="text-gray-600 leading-relaxed">
-              Send emails to hundreds or thousands of recipients with ease. Import recipients 
-              from Excel, organize them in folders, and track your sending progress in real-time.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-8 shadow-lg">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Custom SMTP</h3>
-            <p className="text-gray-600 leading-relaxed">
-              Use your own SMTP servers to send emails from your domain. Maintain full control 
-              over your email delivery and branding while leveraging our powerful template system.
+              Design and integrate powerful <strong>forms</strong> for lead generation and data collection. 
+              Our <strong>form builder</strong> provides seamless integration with your website, automatic email notifications, 
+              and comprehensive form submission management.
             </p>
           </div>
         </div>
@@ -93,6 +106,9 @@ export default function AboutPage() {
           <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
             Why Choose <span className="font-extrabold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">PRZIO</span>?
           </h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            The complete solution for <strong>email testing</strong>, <strong>popup integration</strong>, and <strong>form builder</strong> needs
+          </p>
         </div>
 
         <div className="space-y-8">
@@ -105,10 +121,10 @@ export default function AboutPage() {
               </div>
             </div>
             <div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-3">Fast & Efficient</h3>
+              <h3 className="text-2xl font-semibold text-gray-900 mb-3">Easy Integration</h3>
               <p className="text-gray-600 leading-relaxed">
-                Built with performance in mind. Our platform loads quickly, saves your work automatically, 
-                and provides instant previews. No more waiting around for your templates to render.
+                Integrate <strong>PRZIO email SDK</strong>, <strong>popup SDK</strong>, and <strong>form builder</strong> into your website in minutes. 
+                Simple JavaScript integration with comprehensive documentation. No complex setup required.
               </p>
             </div>
           </div>
@@ -117,15 +133,15 @@ export default function AboutPage() {
             <div className="flex-shrink-0">
               <div className="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center">
                 <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
             </div>
             <div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-3">Secure & Private</h3>
+              <h3 className="text-2xl font-semibold text-gray-900 mb-3">Real-Time Analytics</h3>
               <p className="text-gray-600 leading-relaxed">
-                Your data is encrypted and stored securely. We never share your templates or 
-                recipient information with third parties. Your privacy is our priority.
+                Track <strong>email open rates</strong>, <strong>popup conversion metrics</strong>, and <strong>form submission analytics</strong> in real-time. 
+                Monitor performance, optimize campaigns, and make data-driven decisions.
               </p>
             </div>
           </div>
@@ -134,15 +150,15 @@ export default function AboutPage() {
             <div className="flex-shrink-0">
               <div className="w-16 h-16 bg-pink-100 rounded-lg flex items-center justify-center">
                 <svg className="w-8 h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
             </div>
             <div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-3">Built for Teams</h3>
+              <h3 className="text-2xl font-semibold text-gray-900 mb-3">Secure & Reliable</h3>
               <p className="text-gray-600 leading-relaxed">
-                Organize your templates in folders, manage recipients efficiently, and collaborate 
-                with your team. Share templates and work together seamlessly.
+                Enterprise-grade security for your <strong>email templates</strong>, <strong>popup data</strong>, and <strong>form submissions</strong>. 
+                Your data is encrypted, backed up, and never shared with third parties.
               </p>
             </div>
           </div>
@@ -156,10 +172,11 @@ export default function AboutPage() {
               </div>
             </div>
             <div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-3">Always Improving</h3>
+              <h3 className="text-2xl font-semibold text-gray-900 mb-3">All-in-One Platform</h3>
               <p className="text-gray-600 leading-relaxed">
-                We&apos;re constantly adding new features and improvements based on user feedback. 
-                Our platform evolves with your needs, ensuring you always have the best tools available.
+                Manage <strong>email templates</strong>, <strong>popups</strong>, and <strong>forms</strong> from one dashboard. 
+                No need for multiple tools or integrations. Everything you need for email marketing, lead generation, 
+                and conversion optimization in one place.
               </p>
             </div>
           </div>

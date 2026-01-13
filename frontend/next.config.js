@@ -27,6 +27,30 @@ const nextConfig = {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   },
   
+  // Image configuration
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'przio.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.przio.com',
+        pathname: '/**',
+      },
+    ],
+    // Allow local images from public folder
+    unoptimized: false,
+  },
+  
   // Headers for security
   async headers() {
     return [

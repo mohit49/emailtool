@@ -1,5 +1,4 @@
 import Navigation from '../components/Navigation';
-import HomeRedirect from '../components/HomeRedirect';
 import Footer from '../components/Footer';
 import HomePageClient from '../components/HomePageClient';
 
@@ -12,7 +11,6 @@ export const metadata = {
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      <HomeRedirect />
       <Navigation />
       <HomePageClient />
       <Footer />

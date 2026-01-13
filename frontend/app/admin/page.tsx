@@ -8,6 +8,7 @@ import axios from 'axios';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import Alert from '../../components/Alert';
 import AuthHeader from '../../components/AuthHeader';
+import { Ticket, Eye } from 'lucide-react';
 
 const API_URL = '/api';
 
@@ -24,7 +25,7 @@ interface User {
 export default function AdminDashboard() {
   const { user, token, logout, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'users' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'settings' | 'tickets'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminSmtpConfigs, setAdminSmtpConfigs] = useState<any[]>([]);
@@ -75,6 +76,26 @@ export default function AdminDashboard() {
   const [savingJs, setSavingJs] = useState(false);
   const [supportEmail, setSupportEmail] = useState('');
   const [savingSupportEmail, setSavingSupportEmail] = useState(false);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [ticketStats, setTicketStats] = useState({
+    open: 0,
+    'in-progress': 0,
+    resolved: 0,
+    closed: 0,
+    total: 0,
+  });
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketFilters, setTicketFilters] = useState({
+    status: 'all' as 'all' | 'open' | 'in-progress' | 'resolved' | 'closed',
+    priority: 'all' as 'all' | 'low' | 'medium' | 'high' | 'urgent',
+    search: '',
+  });
+  const [ticketPagination, setTicketPagination] = useState({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    hasMore: false,
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -155,15 +176,118 @@ export default function AdminDashboard() {
     }
   }, [token, fetchData]);
 
+  const fetchTickets = useCallback(async (page = 1, append = false) => {
+    setTicketsLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/tickets`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      let ticketsData = response.data.tickets || [];
+      
+      // Apply filters
+      if (ticketFilters.status !== 'all') {
+        ticketsData = ticketsData.filter((t: any) => t.status === ticketFilters.status);
+      }
+      if (ticketFilters.priority !== 'all') {
+        ticketsData = ticketsData.filter((t: any) => t.priority === ticketFilters.priority);
+      }
+      if (ticketFilters.search.trim()) {
+        const searchLower = ticketFilters.search.toLowerCase();
+        ticketsData = ticketsData.filter((t: any) => 
+          t.title.toLowerCase().includes(searchLower) ||
+          t.description?.toLowerCase().includes(searchLower) ||
+          t.ticketNumber.includes(searchLower) ||
+          t.createdBy?.name?.toLowerCase().includes(searchLower) ||
+          t.createdBy?.email?.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      // Calculate statistics from all tickets (before filtering)
+      const allTickets = response.data.tickets || [];
+      const stats = {
+        open: 0,
+        'in-progress': 0,
+        resolved: 0,
+        closed: 0,
+        total: allTickets.length,
+      };
+      allTickets.forEach((ticket: any) => {
+        if (ticket.status in stats) {
+          stats[ticket.status as keyof typeof stats]++;
+        }
+      });
+      setTicketStats(stats);
+      
+      // Pagination
+      const total = ticketsData.length;
+      const startIndex = (page - 1) * ticketPagination.pageSize;
+      const endIndex = startIndex + ticketPagination.pageSize;
+      const paginatedTickets = ticketsData.slice(startIndex, endIndex);
+      
+      if (append) {
+        setTickets((prev) => [...prev, ...paginatedTickets]);
+      } else {
+        setTickets(paginatedTickets);
+      }
+      
+      setTicketPagination((prev) => ({
+        ...prev,
+        page,
+        total,
+        hasMore: endIndex < total,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch tickets:', error);
+      setAlert({
+        isOpen: true,
+        message: 'Failed to load support tickets',
+        type: 'error',
+      });
+    } finally {
+      setTicketsLoading(false);
+    }
+  }, [token, ticketFilters, ticketPagination.pageSize]);
+  
+  const handleFilterChange = (filterType: 'status' | 'priority' | 'search', value: string) => {
+    setTicketFilters(prev => ({
+      ...prev,
+      [filterType]: value,
+    }));
+    setTicketPagination(prev => ({ ...prev, page: 1 }));
+  };
+  
+  const handleLoadMore = () => {
+    if (ticketPagination.hasMore && !ticketsLoading) {
+      fetchTickets(ticketPagination.page + 1, true);
+    }
+  };
+  
+  const handleResetFilters = () => {
+    setTicketFilters({
+      status: 'all',
+      priority: 'all',
+      search: '',
+    });
+    setTicketPagination(prev => ({ ...prev, page: 1 }));
+  };
+
   useEffect(() => {
     if (user && user.role === 'admin' && token) {
       if (activeTab === 'settings') {
         fetchSettings();
+      } else if (activeTab === 'tickets') {
+        fetchTickets(1, false);
       } else {
         fetchData();
       }
     }
   }, [user, token, activeTab, fetchData, fetchSettings, seedWelcomeTemplate]);
+  
+  useEffect(() => {
+    if (activeTab === 'tickets' && user && user.role === 'admin' && token) {
+      fetchTickets(1, false);
+    }
+  }, [ticketFilters, activeTab, user, token]);
 
   const handleOpenSmtpModal = (config?: any) => {
     if (config) {
@@ -657,6 +781,16 @@ export default function AdminDashboard() {
               >
                 Settings
               </button>
+              <button
+                onClick={() => setActiveTab('tickets')}
+                className={`px-6 py-3 font-medium text-sm transition-colors ${
+                  activeTab === 'tickets'
+                    ? 'text-indigo-600 border-b-2 border-indigo-600'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Support Tickets
+              </button>
             </div>
           </div>
         </div>
@@ -734,7 +868,7 @@ export default function AdminDashboard() {
               </table>
             </div>
           </div>
-        ) : (
+        ) : activeTab === 'settings' ? (
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Email Settings (SMTP)</h2>
@@ -1313,7 +1447,274 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
-        )}
+        ) : activeTab === 'tickets' ? (
+          <div className="space-y-6">
+            {/* Ticket Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Tickets</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-2">{ticketStats.total}</p>
+                  </div>
+                  <div className="bg-indigo-100 rounded-full p-3">
+                    <Ticket className="w-6 h-6 text-indigo-600" />
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Open</p>
+                    <p className="text-3xl font-bold text-blue-600 mt-2">{ticketStats.open}</p>
+                  </div>
+                  <div className="bg-blue-100 rounded-full p-3">
+                    <div className="w-6 h-6 bg-blue-600 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">In Progress</p>
+                    <p className="text-3xl font-bold text-yellow-600 mt-2">{ticketStats['in-progress']}</p>
+                  </div>
+                  <div className="bg-yellow-100 rounded-full p-3">
+                    <div className="w-6 h-6 bg-yellow-600 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Resolved</p>
+                    <p className="text-3xl font-bold text-green-600 mt-2">{ticketStats.resolved}</p>
+                  </div>
+                  <div className="bg-green-100 rounded-full p-3">
+                    <div className="w-6 h-6 bg-green-600 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Closed</p>
+                    <p className="text-3xl font-bold text-gray-600 mt-2">{ticketStats.closed}</p>
+                  </div>
+                  <div className="bg-gray-100 rounded-full p-3">
+                    <div className="w-6 h-6 bg-gray-600 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tickets Table */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+                <h2 className="text-2xl font-bold text-gray-900">All Support Tickets</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => fetchTickets(1, false)}
+                    disabled={ticketsLoading}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <svg className={`w-5 h-5 ${ticketsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                  </button>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="mb-6 space-y-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* Search */}
+                  <div className="flex-1 min-w-[200px]">
+                    <input
+                      type="text"
+                      placeholder="Search tickets..."
+                      value={ticketFilters.search}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  
+                  {/* Status Filter */}
+                  <div className="min-w-[150px]">
+                    <select
+                      value={ticketFilters.status}
+                      onChange={(e) => handleFilterChange('status', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="open">Open</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </div>
+                  
+                  {/* Priority Filter */}
+                  <div className="min-w-[150px]">
+                    <select
+                      value={ticketFilters.priority}
+                      onChange={(e) => handleFilterChange('priority', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="all">All Priority</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </div>
+                  
+                  {/* Reset Filters */}
+                  {(ticketFilters.status !== 'all' || ticketFilters.priority !== 'all' || ticketFilters.search) && (
+                    <button
+                      onClick={handleResetFilters}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                
+                {/* Results count */}
+                <div className="text-sm text-gray-600">
+                  Showing {tickets.length} of {ticketPagination.total} tickets
+                </div>
+              </div>
+
+              {ticketsLoading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                  <p className="mt-4 text-gray-600">Loading tickets...</p>
+                </div>
+              ) : tickets.length === 0 ? (
+                <div className="text-center py-12">
+                  <Ticket className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 text-lg">No tickets found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ticket #
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Title
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Created By
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Priority
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Created
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {tickets.map((ticket) => (
+                        <tr key={ticket._id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm font-mono font-semibold text-indigo-600">
+                              {ticket.ticketNumber}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+                              {ticket.title}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{ticket.createdBy?.name || 'N/A'}</div>
+                            <div className="text-sm text-gray-500">{ticket.createdBy?.email || ''}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                ticket.status === 'open'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : ticket.status === 'in-progress'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : ticket.status === 'resolved'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {ticket.status.replace('-', ' ').toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                ticket.priority === 'urgent'
+                                  ? 'bg-red-100 text-red-800'
+                                  : ticket.priority === 'high'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : ticket.priority === 'medium'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {ticket.priority.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(ticket.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <Link
+                              href={`/support/tickets/${ticket._id}`}
+                              className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"
+                            >
+                              <Eye className="w-4 h-4" />
+                              View
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              
+              {/* Load More Button */}
+              {ticketPagination.hasMore && (
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={ticketsLoading}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                  >
+                    {ticketsLoading ? (
+                      <>
+                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        Load More ({ticketPagination.total - tickets.length} remaining)
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Test Email Modal */}

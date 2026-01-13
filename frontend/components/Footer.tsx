@@ -59,9 +59,9 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="mailto:support@przio.com" className="hover:text-white transition-colors">
+                <Link href="/support" className="hover:text-white transition-colors">
                   Support
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

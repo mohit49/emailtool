@@ -58,9 +58,6 @@ export default function Navigation() {
             <Link href="/" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
               Home
             </Link>
-            <Link href="/about" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
-              About
-            </Link>
             <Link href="/how-it-works" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
               How It Works
             </Link>
@@ -146,9 +143,6 @@ export default function Navigation() {
             <div className="flex flex-col space-y-4">
               <Link href="/" className="text-gray-700 hover:text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>
                 Home
-              </Link>
-              <Link href="/about" className="text-gray-700 hover:text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>
-                About
               </Link>
               <Link href="/how-it-works" className="text-gray-700 hover:text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>
                 How It Works
