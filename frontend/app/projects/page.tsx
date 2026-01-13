@@ -9,6 +9,7 @@ import ConfirmDialog from '../../components/ConfirmDialog';
 import Alert from '../../components/Alert';
 import Footer from '../../components/Footer';
 import AuthHeader from '../../components/AuthHeader';
+import { Mail, Layout, FileText, TrendingUp, Clock, Users, Activity } from 'lucide-react';
 
 const API_URL = '/api';
 
@@ -43,6 +44,20 @@ interface ProjectMember {
   createdAt: string;
 }
 
+interface ProjectStats {
+  projectId: string;
+  emailsSent: number;
+  emailsPending: number;
+  popupsCreated: number;
+  popupsActivated: number;
+  formsCreated: number;
+  recentActivity: Array<{
+    type: 'email' | 'popup' | 'form' | 'member';
+    message: string;
+    timestamp: string;
+  }>;
+}
+
 export default function ProjectsPage() {
   const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -70,6 +85,8 @@ export default function ProjectsPage() {
     message: '',
     type: 'success' as 'success' | 'error' | 'info',
   });
+  const [projectStats, setProjectStats] = useState<Record<string, ProjectStats>>({});
+  const [loadingStats, setLoadingStats] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -103,6 +120,89 @@ export default function ProjectsPage() {
       fetchProjects();
     }
   }, [token, fetchProjects]);
+
+  const fetchProjectStats = useCallback(async (projectId: string) => {
+    if (!token) return;
+
+    try {
+      // Fetch email stats
+      const emailResponse = await axios.get(`${API_URL}/projects/${projectId}/emails?limit=5`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Fetch popup activities
+      const popupResponse = await axios.get(`${API_URL}/popup-activities?projectId=${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Fetch recent email history
+      const recentEmails = emailResponse.data.emailHistory || [];
+      const emailStats = emailResponse.data.stats || { sent: 0, pending: 0, failed: 0, success: 0 };
+      
+      const popups = popupResponse.data.activities || [];
+      const activatedPopups = popups.filter((p: any) => p.status === 'activated').length;
+
+      // Build recent activity
+      const activities: ProjectStats['recentActivity'] = [];
+      
+      // Add recent email activities
+      recentEmails.slice(0, 3).forEach((email: any) => {
+        activities.push({
+          type: 'email',
+          message: `Email ${email.status === 'sent' || email.status === 'success' ? 'sent' : email.status} to ${email.recipients?.length || 0} recipient(s)`,
+          timestamp: email.createdAt || email.sentAt,
+        });
+      });
+
+      // Add recent popup activities
+      popups.slice(0, 2).forEach((popup: any) => {
+        activities.push({
+          type: 'popup',
+          message: `Popup "${popup.name}" ${popup.status === 'activated' ? 'activated' : 'created'}`,
+          timestamp: popup.createdAt || popup.updatedAt,
+        });
+      });
+
+      // Sort by timestamp (most recent first)
+      activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+      setProjectStats((prev) => ({
+        ...prev,
+        [projectId]: {
+          projectId,
+          emailsSent: emailStats.sent || emailStats.success || 0,
+          emailsPending: emailStats.pending || 0,
+          popupsCreated: popups.length,
+          popupsActivated: activatedPopups,
+          formsCreated: 0, // TODO: Add forms API when available
+          recentActivity: activities.slice(0, 5),
+        },
+      }));
+    } catch (error) {
+      console.error('Error fetching project stats:', error);
+      // Set default stats on error
+      setProjectStats((prev) => ({
+        ...prev,
+        [projectId]: {
+          projectId,
+          emailsSent: 0,
+          emailsPending: 0,
+          popupsCreated: 0,
+          popupsActivated: 0,
+          formsCreated: 0,
+          recentActivity: [],
+        },
+      }));
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (projects.length > 0 && token) {
+      setLoadingStats(true);
+      Promise.all(projects.map((project) => fetchProjectStats(project._id)))
+        .finally(() => setLoadingStats(false));
+    }
+  }, [projects, token, fetchProjectStats]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -340,6 +440,45 @@ export default function ProjectsPage() {
 
       <div className="min-h-[700px] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
         <div className="w-full max-w-6xl">
+          {/* Info Message Section */}
+          <div className="mb-12 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-6 md:p-8 border border-indigo-200/50 shadow-lg">
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
+                  Create Your First Project
+                </h3>
+                <p className="text-gray-700 leading-relaxed mb-4">
+                  Get started by creating a new project to organize your email templates, popups, and forms. 
+                  Projects help you manage your campaigns, collaborate with team members, and track performance metrics. 
+                  Click the "Create Project" button below to begin organizing your work and start building amazing email campaigns, engaging popups, and powerful forms.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                    <Mail className="w-3 h-3 mr-1" />
+                    Email Templates
+                  </span>
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                    <Layout className="w-3 h-3 mr-1" />
+                    Popup Builder
+                  </span>
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-pink-100 text-pink-700">
+                    <FileText className="w-3 h-3 mr-1" />
+                    Form Builder
+                  </span>
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                    <Users className="w-3 h-3 mr-1" />
+                    Team Collaboration
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center justify-center gap-6">
           {/* Create Project Tile - Always shown first */}
           <button
@@ -433,6 +572,178 @@ export default function ProjectsPage() {
             </div>
           ))}
           </div>
+
+          {/* Stats and Activity Cards */}
+          {projects.length > 0 && (
+            <div className="mt-16 w-full">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">Project Statistics & Recent Activity</h2>
+              <div className="grid grid-cols-1 gap-6">
+                {projects.map((project, index) => {
+                  const stats = projectStats[project._id];
+                  const isLoading = !stats && loadingStats;
+
+                  // Different gradients for each card
+                  const gradients = [
+                    { bg: 'from-slate-900 via-purple-900 to-slate-800', border: 'border-purple-500/20', hoverBorder: 'hover:border-purple-500/40', icon: 'from-purple-500 to-pink-500' },
+                    { bg: 'from-slate-900 via-blue-900 to-slate-800', border: 'border-blue-500/20', hoverBorder: 'hover:border-blue-500/40', icon: 'from-blue-500 to-cyan-500' },
+                    { bg: 'from-slate-900 via-indigo-900 to-slate-800', border: 'border-indigo-500/20', hoverBorder: 'hover:border-indigo-500/40', icon: 'from-indigo-500 to-purple-500' },
+                    { bg: 'from-slate-900 via-pink-900 to-slate-800', border: 'border-pink-500/20', hoverBorder: 'hover:border-pink-500/40', icon: 'from-pink-500 to-rose-500' },
+                    { bg: 'from-slate-900 via-emerald-900 to-slate-800', border: 'border-emerald-500/20', hoverBorder: 'hover:border-emerald-500/40', icon: 'from-emerald-500 to-teal-500' },
+                    { bg: 'from-slate-900 via-orange-900 to-slate-800', border: 'border-orange-500/20', hoverBorder: 'hover:border-orange-500/40', icon: 'from-orange-500 to-red-500' },
+                    { bg: 'from-slate-900 via-cyan-900 to-slate-800', border: 'border-cyan-500/20', hoverBorder: 'hover:border-cyan-500/40', icon: 'from-cyan-500 to-blue-500' },
+                    { bg: 'from-slate-900 via-violet-900 to-slate-800', border: 'border-violet-500/20', hoverBorder: 'hover:border-violet-500/40', icon: 'from-violet-500 to-purple-500' },
+                  ];
+
+                  const gradient = gradients[index % gradients.length];
+
+                  return (
+                    <div
+                      key={project._id}
+                      className={`bg-gradient-to-br ${gradient.bg} rounded-2xl p-6 shadow-2xl border ${gradient.border} ${gradient.hoverBorder} transition-all duration-300`}
+                    >
+                      <div className="flex flex-col md:flex-row gap-6">
+                        {/* Left Section - Project Header & Stats */}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-bold text-white truncate">{project.name}</h3>
+                            <div className={`w-10 h-10 bg-gradient-to-br ${gradient.icon} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                              <Activity className="w-5 h-5 text-white" />
+                            </div>
+                          </div>
+
+                          {isLoading ? (
+                            <div className="text-center py-8">
+                              <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${gradient.border.replace('border-', 'border-').replace('/20', '-400')} mx-auto`}></div>
+                              <p className={`mt-2 text-sm ${gradient.border.includes('purple') ? 'text-purple-300' : gradient.border.includes('blue') ? 'text-blue-300' : gradient.border.includes('indigo') ? 'text-indigo-300' : gradient.border.includes('pink') ? 'text-pink-300' : gradient.border.includes('emerald') ? 'text-emerald-300' : gradient.border.includes('orange') ? 'text-orange-300' : gradient.border.includes('cyan') ? 'text-cyan-300' : 'text-violet-300'}`}>Loading stats...</p>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Stats Grid - Horizontal Layout */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                <Link
+                                  href={`/projects/${project._id}/emails`}
+                                  className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 rounded-xl p-4 border border-blue-500/30 hover:border-blue-500/60 hover:from-blue-600/30 hover:to-blue-800/30 transition-all cursor-pointer group"
+                                >
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <Mail className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                                    <span className="text-xs text-blue-300 font-medium">Emails Sent</span>
+                                  </div>
+                                  <p className="text-2xl font-bold text-white">{stats?.emailsSent || 0}</p>
+                                  <p className="text-xs text-blue-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">View →</p>
+                                </Link>
+
+                                <Link
+                                  href={`/popups?projectId=${project._id}`}
+                                  className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 rounded-xl p-4 border border-purple-500/30 hover:border-purple-500/60 hover:from-purple-600/30 hover:to-purple-800/30 transition-all cursor-pointer group"
+                                >
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <Layout className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+                                    <span className="text-xs text-purple-300 font-medium">Popups</span>
+                                  </div>
+                                  <p className="text-2xl font-bold text-white">{stats?.popupsCreated || 0}</p>
+                                  <p className="text-xs text-purple-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">View →</p>
+                                </Link>
+
+                                <Link
+                                  href={`/forms?projectId=${project._id}`}
+                                  className="bg-gradient-to-br from-pink-600/20 to-pink-800/20 rounded-xl p-4 border border-pink-500/30 hover:border-pink-500/60 hover:from-pink-600/30 hover:to-pink-800/30 transition-all cursor-pointer group"
+                                >
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <FileText className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform" />
+                                    <span className="text-xs text-pink-300 font-medium">Forms</span>
+                                  </div>
+                                  <p className="text-2xl font-bold text-white">{stats?.formsCreated || 0}</p>
+                                  <p className="text-xs text-pink-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">View →</p>
+                                </Link>
+
+                                <div className="bg-gradient-to-br from-green-600/20 to-green-800/20 rounded-xl p-4 border border-green-500/30">
+                                  <div className="flex items-center space-x-2 mb-2">
+                                    <TrendingUp className="w-4 h-4 text-green-400" />
+                                    <span className="text-xs text-green-300 font-medium">Active</span>
+                                  </div>
+                                  <p className="text-2xl font-bold text-white">{stats?.popupsActivated || 0}</p>
+                                </div>
+                              </div>
+
+                              {/* Quick Access Links */}
+                              <div className="flex flex-wrap gap-3 mb-6">
+                                <Link
+                                  href={`/projects/${project._id}`}
+                                  className="px-4 py-2 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 border border-indigo-500/40 rounded-lg text-sm font-medium text-white hover:from-indigo-600/50 hover:to-purple-600/50 hover:border-indigo-500/60 transition-all"
+                                >
+                                  Project Dashboard
+                                </Link>
+                                <Link
+                                  href={`/projects/${project._id}/emails`}
+                                  className="px-4 py-2 bg-gradient-to-r from-blue-600/30 to-blue-800/30 border border-blue-500/40 rounded-lg text-sm font-medium text-white hover:from-blue-600/50 hover:to-blue-800/50 hover:border-blue-500/60 transition-all"
+                                >
+                                  Email History
+                                </Link>
+                                <Link
+                                  href={`/popups?projectId=${project._id}`}
+                                  className="px-4 py-2 bg-gradient-to-r from-purple-600/30 to-pink-600/30 border border-purple-500/40 rounded-lg text-sm font-medium text-white hover:from-purple-600/50 hover:to-pink-600/50 hover:border-purple-500/60 transition-all"
+                                >
+                                  Popups
+                                </Link>
+                                <Link
+                                  href={`/tool?projectId=${project._id}`}
+                                  className="px-4 py-2 bg-gradient-to-r from-orange-600/30 to-red-600/30 border border-orange-500/40 rounded-lg text-sm font-medium text-white hover:from-orange-600/50 hover:to-red-600/50 hover:border-orange-500/60 transition-all"
+                                >
+                                  Email Editor
+                                </Link>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Right Section - Recent Activity */}
+                        <div className="md:w-80 flex-shrink-0">
+                          <div className="flex items-center space-x-2 mb-4">
+                            <Clock className={`w-4 h-4 ${gradient.border.includes('purple') ? 'text-purple-400' : gradient.border.includes('blue') ? 'text-blue-400' : gradient.border.includes('indigo') ? 'text-indigo-400' : gradient.border.includes('pink') ? 'text-pink-400' : gradient.border.includes('emerald') ? 'text-emerald-400' : gradient.border.includes('orange') ? 'text-orange-400' : gradient.border.includes('cyan') ? 'text-cyan-400' : 'text-violet-400'}`} />
+                            <h4 className={`text-sm font-semibold ${gradient.border.includes('purple') ? 'text-purple-300' : gradient.border.includes('blue') ? 'text-blue-300' : gradient.border.includes('indigo') ? 'text-indigo-300' : gradient.border.includes('pink') ? 'text-pink-300' : gradient.border.includes('emerald') ? 'text-emerald-300' : gradient.border.includes('orange') ? 'text-orange-300' : gradient.border.includes('cyan') ? 'text-cyan-300' : 'text-violet-300'}`}>Recent Activity</h4>
+                          </div>
+                          <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                            {stats?.recentActivity && stats.recentActivity.length > 0 ? (
+                              stats.recentActivity.map((activity, idx) => (
+                                <div
+                                  key={idx}
+                                  className="bg-black/30 rounded-lg p-3 border border-purple-500/10 hover:border-purple-500/30 transition-colors"
+                                >
+                                  <div className="flex items-start space-x-2">
+                                    <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                                      activity.type === 'email' ? 'bg-blue-400' :
+                                      activity.type === 'popup' ? 'bg-purple-400' :
+                                      activity.type === 'form' ? 'bg-pink-400' :
+                                      'bg-green-400'
+                                    }`}></div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs text-gray-300 leading-relaxed">{activity.message}</p>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        {new Date(activity.timestamp).toLocaleDateString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit',
+                                        })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-4">
+                                <p className="text-sm text-gray-400">No recent activity</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

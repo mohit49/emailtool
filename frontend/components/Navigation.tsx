@@ -2,12 +2,39 @@
 
 import { useAuth } from '../app/providers/AuthProvider';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export default function Navigation() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    if (userDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [userDropdownOpen]);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+    setUserDropdownOpen(false);
+  };
 
   return (
     <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
@@ -37,9 +64,12 @@ export default function Navigation() {
             <Link href="/how-it-works" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
               How It Works
             </Link>
+            <Link href="/integration" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
+              Integration
+            </Link>
             {user && (
               <Link href="/third-party-integration" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">
-                Integration
+                API Docs
               </Link>
             )}
             {!user ? (
@@ -58,12 +88,40 @@ export default function Navigation() {
                 </Link>
               </>
             ) : (
-              <Link
-                href="/projects"
-                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-700 transition-colors shadow-md"
-              >
-                My Projects
-              </Link>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-700 transition-colors shadow-md"
+                >
+                  <span>{user?.name || 'User'}</span>
+                  <svg 
+                    className={`w-4 h-4 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {userDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <Link
+                      href="/projects"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      Go to Projects
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -95,9 +153,12 @@ export default function Navigation() {
               <Link href="/how-it-works" className="text-gray-700 hover:text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>
                 How It Works
               </Link>
+              <Link href="/integration" className="text-gray-700 hover:text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>
+                Integration
+              </Link>
               {user && (
                 <Link href="/third-party-integration" className="text-gray-700 hover:text-indigo-600 font-medium" onClick={() => setMobileMenuOpen(false)}>
-                  Integration
+                  API Docs
                 </Link>
               )}
               {!user ? (
@@ -110,9 +171,24 @@ export default function Navigation() {
                   </Link>
                 </>
               ) : (
-                <Link href="/projects" className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium text-center hover:from-orange-600 hover:to-red-700 transition-colors shadow-md" onClick={() => setMobileMenuOpen(false)}>
-                  My Projects
-                </Link>
+                <div className="space-y-2">
+                  <Link 
+                    href="/projects" 
+                    className="block px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium text-center hover:from-orange-600 hover:to-red-700 transition-colors shadow-md" 
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Go to Projects
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block w-full px-6 py-2 text-gray-700 font-medium text-center hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
               )}
             </div>
           </div>

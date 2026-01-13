@@ -1,19 +1,7 @@
 'use client';
 
-import { useAuth } from '../app/providers/AuthProvider';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-
+// This component is now empty - users can access home page even when logged in
 export default function HomeRedirect() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.push('/tool');
-    }
-  }, [user, loading, router]);
-
   return null;
 }
 

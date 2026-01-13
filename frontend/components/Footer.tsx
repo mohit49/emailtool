@@ -34,7 +34,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/third-party-integration" className="hover:text-white transition-colors">
+                <Link href="/integration" className="hover:text-white transition-colors">
                   Integration
                 </Link>
               </li>

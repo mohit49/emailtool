@@ -515,4 +515,3 @@ export const sendProjectSignupInvitationEmail = async (
     console.error('Failed to send project signup invitation email, but invitation was created successfully');
   }
 };
-
