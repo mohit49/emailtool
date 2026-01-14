@@ -3,9 +3,9 @@ import Footer from '../components/Footer';
 import HomePageClient from '../components/HomePageClient';
 
 export const metadata = {
-  title: 'Email Testing Tool & Popup Builder with Forms - Create, Test & Send Emails, Popups & Forms | PRZIO',
-  description: 'Free email testing tool, popup builder, and form builder platform. Test, preview, and send HTML email templates. Create engaging popups with embedded forms, lead generation forms, contact forms, and surveys. Perfect for email campaigns, popup marketing, exit intent popups, form submissions, and website engagement tools.',
-  keywords: 'email testing tool, popup builder, form builder, nudge builder, email template editor, popup creator, exit intent popup, website popup builder, email testing, HTML email editor, popup marketing, email campaign tool, drag and drop popup builder, conversion popup, lead generation popup, email preview tool, popup designer, email builder, website engagement tool, popup trigger, scroll popup, timeout popup, cookie-based popup, session popup, contact form builder, survey form builder, subscription form, form validation, embedded forms, popup forms, lead capture form, form submission, form data collection',
+  title: 'Smart Website Popups: Free Exit Intent Popups & Custom Forms – Boost Conversions Now! | PRZIO',
+  description: 'Create advanced website popups and custom forms for your website in minutes. Improve conversion rates with free exit intent popups, inline forms, lead submission tracking, and end-user steps. Get submission leads, track users on one platform, use our free email testing tool, and send emails to form users. Sign up FREE – no credit card required!',
+  keywords: 'exit intent popups, website popups, custom forms, lead generation, conversion optimization, popup builder, form builder, email testing tool, lead capture, website engagement, exit intent, popup marketing, conversion popup, lead generation popup, website popup builder, popup creator, form submission, lead tracking, user tracking, email automation, autoresponder, A/B testing, cart abandonment, email list building, website conversion, popup triggers, scroll popup, timeout popup, contact form builder, survey form builder, subscription form, embedded forms, popup forms, lead capture form',
 };
 
 export default function Home() {

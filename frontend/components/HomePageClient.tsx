@@ -98,10 +98,10 @@ export default function HomePageClient() {
 
   // Typing animation texts
   const typingTexts = [
-    'Create custom forms to engage and convert visitors',
-    'Schedule and send automated emails to engaged users',
-    'Track website visitors and conversions in real time',
-    'Design custom email templates and pop-ups for your business'
+    'Transform Visitors Into Customers With AI-Powered Popups',
+    'Create Smart Exit Intent Popups That Convert',
+    'Build Custom Forms That Capture Leads',
+    'Track Every User Interaction & Boost Conversions'
   ];
 
   // Features grouped for carousel
@@ -196,7 +196,7 @@ export default function HomePageClient() {
             <div className="relative z-10 max-w-4xl text-left">
               <TypingAnimation texts={typingTexts} speed={50} deleteSpeed={30} pauseTime={1000} lineDelay={1500} />
               <p className="text-xl md:text-2xl text-gray-700 mt-6 mb-8 leading-relaxed font-light">
-                Easily engage visitors, track conversions, and grow your business with custom forms, smart email campaigns, and real-time visitor analytics.
+                Create smart website popups and custom forms that convert. Build advanced exit intent popups, inline forms, and track every user interaction – all in minutes. No coding required.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-start mt-8 relative">
                 <div ref={buttonRef} className="inline-block">
@@ -204,7 +204,7 @@ export default function HomePageClient() {
                     href="/signup"
                     className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold text-lg hover:from-orange-600 hover:to-red-700 transition-all shadow-lg inline-block"
                   >
-                    Get Started Free
+                    Start Free – No Credit Card Required
                   </Link>
                 </div>
                 {/* Animated gradient tooltip */}
@@ -216,7 +216,7 @@ export default function HomePageClient() {
                     <div className="absolute -top-2 left-8 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-black"></div>
                     <div className="bg-black rounded-lg px-4 py-3 shadow-lg animate-pulse-glow">
                       <p className="text-sm md:text-base text-white font-medium">
-                        Create your Popup, Email Templates, and Forms now - totally free! Track conversions in real-time.
+                        Start Free – No Credit Card Required! Create popups, forms, and track conversions in minutes.
                       </p>
                     </div>
                   </div>
@@ -295,87 +295,236 @@ export default function HomePageClient() {
           </p>
         </div>
 
-        {/* Email Testing Features */}
+        {/* Smart Exit Intent Popups */}
         <div className="mb-20">
           <div className="text-center mb-12">
             <div className="flex justify-center mb-6">
               <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
-                <Eye className="w-12 h-12" />
+                <Zap className="w-12 h-12" />
               </div>
             </div>
             <h3 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              {featureGroups[0].title}
+              Smart Exit Intent Popups
             </h3>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-8">
+              Recover abandoning visitors before they leave. Our AI detects exit behavior and displays compelling offers that convert browsers into buyers.
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featureGroups[0].features.map((feature, idx) => {
-              const IconComponent = feature.icon;
-              return (
-                <div key={idx} className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                  <div className="mb-4 text-indigo-600">
-                    <IconComponent className="w-10 h-10" />
-                  </div>
-                  <h4 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h4>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="mb-4 text-indigo-600">
+                <Target className="w-10 h-10" />
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Reduce Cart Abandonment</h4>
+              <p className="text-gray-600 leading-relaxed">Reduce cart abandonment by up to 35% with targeted exit intent popups</p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="mb-4 text-indigo-600">
+                <Mail className="w-10 h-10" />
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Capture Emails</h4>
+              <p className="text-gray-600 leading-relaxed">Capture emails from leaving visitors with compelling offers</p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="mb-4 text-indigo-600">
+                <UserCircle className="w-10 h-10" />
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Personalized Offers</h4>
+              <p className="text-gray-600 leading-relaxed">Show personalized offers based on user behavior and preferences</p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="mb-4 text-indigo-600">
+                <Eye className="w-10 h-10" />
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Mobile Optimized</h4>
+              <p className="text-gray-600 leading-relaxed">Works perfectly on desktop and mobile devices</p>
+            </div>
           </div>
         </div>
 
-        {/* Popup Building Features */}
+        {/* Custom Forms That Convert */}
         <div className="mb-20">
           <div className="text-center mb-12">
             <div className="flex justify-center mb-6">
               <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
-                <Palette className="w-12 h-12" />
-              </div>
-            </div>
-            <h3 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              {featureGroups[1].title}
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featureGroups[1].features.map((feature, idx) => {
-              const IconComponent = feature.icon;
-              return (
-                <div key={idx} className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                  <div className="mb-4 text-purple-600">
-                    <IconComponent className="w-10 h-10" />
-                  </div>
-                  <h4 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h4>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Form Builder Features */}
-        <div>
-          <div className="text-center mb-12">
-            <div className="flex justify-center mb-6">
-              <div className="bg-gradient-to-br from-pink-600 to-red-600 rounded-2xl p-6 text-white">
                 <FileText className="w-12 h-12" />
               </div>
             </div>
             <h3 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              {featureGroups[2].title}
+              Custom Forms That Convert
             </h3>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-8">
+              Build beautiful, high-converting forms in minutes. No designer or developer needed – just drag, drop, and publish.
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featureGroups[2].features.map((feature, idx) => {
-              const IconComponent = feature.icon;
-              return (
-                <div key={idx} className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-                  <div className="mb-4 text-pink-600">
-                    <IconComponent className="w-10 h-10" />
-                  </div>
-                  <h4 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h4>
-                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="mb-4 text-purple-600">
+                <Mail className="w-10 h-10" />
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Email Subscription</h4>
+              <p className="text-gray-600 leading-relaxed">Build email subscription forms to grow your list</p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="mb-4 text-purple-600">
+                <Target className="w-10 h-10" />
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Lead Capture</h4>
+              <p className="text-gray-600 leading-relaxed">Capture leads with powerful lead generation forms</p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="mb-4 text-purple-600">
+                <Link2 className="w-10 h-10" />
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Contact Forms</h4>
+              <p className="text-gray-600 leading-relaxed">Create professional contact forms for your website</p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="mb-4 text-purple-600">
+                <GitBranch className="w-10 h-10" />
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Multi-Step Forms</h4>
+              <p className="text-gray-600 leading-relaxed">Build engaging multi-step forms for better UX</p>
+            </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+              <div className="mb-4 text-purple-600">
+                <BarChart className="w-10 h-10" />
+              </div>
+              <h4 className="text-xl font-semibold text-gray-900 mb-3">Surveys & Feedback</h4>
+              <p className="text-gray-600 leading-relaxed">Collect feedback with survey and quiz forms</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Advanced User Tracking & Email Tools */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
+          <div className="bg-white rounded-2xl p-8 shadow-lg">
+            <div className="flex items-center mb-6">
+              <div className="bg-gradient-to-br from-pink-600 to-red-600 rounded-xl p-4 text-white mr-4">
+                <BarChart className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900">Advanced User Tracking</h3>
+            </div>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              Track end-user steps across your entire website. Understand your visitors&apos; journey, identify drop-off points, and optimize for maximum conversions.
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Page visits and time spent</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Click patterns and interactions</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Form submission leads</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Conversion funnel analytics</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">User behavior heatmaps</span>
+              </li>
+            </ul>
+          </div>
+          <div className="bg-white rounded-2xl p-8 shadow-lg">
+            <div className="flex items-center mb-6">
+              <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl p-4 text-white mr-4">
+                <Mail className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900">Built-In Email Tools</h3>
+            </div>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              Send automated emails to form users instantly. Welcome new subscribers, deliver lead magnets, or send promotional offers – all without leaving PRZIO.
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Autoresponder emails</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Welcome email sequences</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Free email testing tool</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Custom email templates</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">A/B test your emails</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        
+        {/* All-In-One Lead Management & Display Rules */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-white rounded-2xl p-8 shadow-lg">
+            <div className="flex items-center mb-6">
+              <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-4 text-white mr-4">
+                <Folder className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900">All-In-One Lead Management</h3>
+            </div>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              Manage all your leads on a single platform. No more juggling between tools – everything you need in one place.
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Centralized lead database</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Real-time lead notifications</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Automatic lead scoring</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Export leads to any CRM</span>
+              </li>
+            </ul>
+          </div>
+          <div className="bg-white rounded-2xl p-8 shadow-lg">
+            <div className="flex items-center mb-6">
+              <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-xl p-4 text-white mr-4">
+                <Settings className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900">Powerful Display Rules</h3>
+            </div>
+            <p className="text-gray-600 leading-relaxed mb-6">
+              Show the right message to the right person at the right time. Create targeted campaigns based on user behavior, location, device, and more.
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Exit intent triggers</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Time-based & scroll triggers</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Geo-location targeting</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                <span className="text-gray-600">Device & browser targeting</span>
+              </li>
+            </ul>
           </div>
         </div>
       </section>
@@ -387,7 +536,7 @@ export default function HomePageClient() {
             How It Works
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Get started in minutes with our simple process for Email Testing, Form Building, and Popup Creation
+            Get started in minutes with our simple 3-step process
           </p>
         </div>
 
@@ -396,10 +545,9 @@ export default function HomePageClient() {
             <div className="w-20 h-20 bg-indigo-600 text-white rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6">
               1
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Create Your Account</h3>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Choose Your Template</h3>
             <p className="text-gray-600 leading-relaxed">
-              Sign up for free in seconds. Verify your email and you&apos;re ready to start creating amazing 
-              email templates, forms, and popups.
+              Select from 100+ professionally designed popup and form templates, or create your own from scratch.
             </p>
           </div>
 
@@ -407,10 +555,9 @@ export default function HomePageClient() {
             <div className="w-20 h-20 bg-purple-600 text-white rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6">
               2
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Build & Design</h3>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Customize & Configure</h3>
             <p className="text-gray-600 leading-relaxed">
-              Use our powerful tools to create email templates with the HTML editor, build forms with the 
-              drag-and-drop builder, and design popups with custom triggers. Preview everything in real-time.
+              Use our intuitive drag-and-drop editor to customize your popup. Add your branding, set display rules, and configure targeting options.
             </p>
           </div>
 
@@ -418,10 +565,9 @@ export default function HomePageClient() {
             <div className="w-20 h-20 bg-pink-600 text-white rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-6">
               3
             </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Deploy & Track</h3>
+            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Launch & Track</h3>
             <p className="text-gray-600 leading-relaxed">
-              Send your emails, embed your forms, and integrate your popups with our easy SDK. 
-              Track performance, collect data, and optimize your campaigns.
+              Install one line of code on your website, or use our native integrations. Watch your conversions grow while tracking every interaction in real-time.
             </p>
           </div>
         </div>
@@ -563,18 +709,18 @@ export default function HomePageClient() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-12 md:p-16 text-center text-white">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Ready to Get Started?
+            Ready to Transform Visitors Into Customers?
           </h2>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Join thousands of users who are already creating amazing email campaigns, forms, and engaging popups. 
-            Start for free today and boost your conversions!
+            Join thousands of businesses using PRZIO to capture leads, boost conversions, and grow their email lists. 
+            Start free today – no credit card required!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/signup"
               className="px-8 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold text-lg hover:from-orange-600 hover:to-red-700 transition-all shadow-lg"
             >
-              Create Free Account
+              Start Free – No Credit Card Required
             </Link>
             <Link
               href="/about"
