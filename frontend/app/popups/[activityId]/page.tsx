@@ -533,6 +533,7 @@ export default function PopupActivityPage() {
   const htmlEditorRef = useRef<HTMLEditorRef>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isAutoSavingRef = useRef(false);
+  const autoSaveRef = useRef<((htmlToSave: string) => Promise<void>) | null>(null);
 
   // Cleanup auto-save timeout on unmount
   useEffect(() => {
@@ -2679,7 +2680,54 @@ export default function PopupActivityPage() {
         setImageModalType(buttonType);
         setShowImageModal(true);
       } else if (e.data?.type === 'przio-content-updated') {
-        // Handle contentEditable updates if needed
+        // Handle contentEditable updates - update the HTML with the new popup content
+        const updatedPopupHtml = e.data.html;
+        if (updatedPopupHtml) {
+          setFormData((prev) => {
+            // Parse the current HTML to extract style and other elements
+            const parser = new DOMParser();
+            const currentHtml = prev.html || '';
+            const wrapped = wrapForParsing(currentHtml);
+            const doc = parser.parseFromString(wrapped, 'text/html');
+            
+            // Find the popup element in the current HTML
+            const popupEl = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
+            if (popupEl) {
+              // Update the popup element's innerHTML with the new content
+              popupEl.innerHTML = updatedPopupHtml;
+              
+              // Serialize back to HTML string
+              const updatedHtml = extractPopupContent('<!DOCTYPE html>' + doc.documentElement.outerHTML);
+              
+              console.log('Text updated in preview, syncing to HTML editor:', { 
+                updatedPopupHtml: updatedPopupHtml.substring(0, 100),
+                htmlUpdated: true 
+              });
+              
+              // Clear existing timeout
+              if (autoSaveTimeoutRef.current) {
+                clearTimeout(autoSaveTimeoutRef.current);
+              }
+              
+              // Auto-save after 2 seconds of inactivity
+              // Store the HTML to save and trigger auto-save via state update
+              const htmlToSave = updatedHtml;
+              autoSaveTimeoutRef.current = setTimeout(() => {
+                // Access autoSave via ref if available, otherwise save directly
+                if (autoSaveRef.current) {
+                  autoSaveRef.current(htmlToSave);
+                } else {
+                  // Fallback: save directly if ref not available yet
+                  // This will be handled by the autoSave function when it's defined
+                  console.log('Auto-save ref not available, will save on next render');
+                }
+              }, 2000);
+              
+              return { ...prev, html: updatedHtml };
+            }
+            return prev;
+          });
+        }
       }
     };
 
@@ -3398,6 +3446,11 @@ export default function PopupActivityPage() {
       isAutoSavingRef.current = false;
     }
   }, [activityId, token, formData, popupCssSettings, closeIconSettings, triggerSettings, backdropSettings, submitTriggerSettings]);
+
+  // Store autoSave in ref for access in message handler
+  useEffect(() => {
+    autoSaveRef.current = autoSave;
+  }, [autoSave]);
 
   const handleSave = async () => {
     if (!activityId || !formData.name.trim()) {

@@ -509,19 +509,34 @@ export default function ToolPage() {
   // Update text content of an element
   const updateTextContent = useCallback((selector: string, newText: string) => {
     try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html || '<!doctype html><html><body></body></html>', 'text/html');
-      const targetEl = doc.querySelector(selector);
-      
-      if (targetEl) {
-        targetEl.innerHTML = newText;
-        const nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
-        setHtml(nextHtml);
-      }
+      setHtml((currentHtml) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(currentHtml || '<!doctype html><html><body></body></html>', 'text/html');
+        const targetEl = doc.querySelector(selector);
+        
+        if (targetEl) {
+          // Always use innerHTML since the iframe sends innerHTML
+          // This preserves any formatting (bold, italic, etc.) that the user might have added
+          targetEl.innerHTML = newText;
+          
+          // Serialize back to HTML string - preserve proper formatting
+          let nextHtml = '<!doctype html>' + doc.documentElement.outerHTML;
+          // Ensure proper line breaks and formatting
+          nextHtml = nextHtml.replace(/<!doctype html>/i, '<!DOCTYPE html>');
+          
+          // Log for debugging
+          console.log('Text updated:', { selector, newText, htmlUpdated: true });
+          
+          return nextHtml;
+        } else {
+          console.warn('Element not found for selector:', selector);
+        }
+        return currentHtml;
+      });
     } catch (error) {
       console.error('Failed to update text:', error);
     }
-  }, [html]);
+  }, []);
 
   // Update href attribute of an anchor tag
   const updateLinkHref = useCallback((selector: string, newHref: string) => {

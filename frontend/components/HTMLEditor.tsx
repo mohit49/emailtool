@@ -46,6 +46,28 @@ const HTMLEditor = forwardRef<HTMLEditorRef, HTMLEditorProps>(({ value, onChange
   }, [isFullscreen]);
 
 
+  // Ensure editor updates when value prop changes (from external sources like preview edits)
+  useEffect(() => {
+    if (monacoEditorRef.current && value !== undefined) {
+      const editor = monacoEditorRef.current;
+      const model = editor.getModel();
+      if (model) {
+        const currentValue = model.getValue();
+        // Only update if the value has actually changed to avoid unnecessary updates
+        if (currentValue !== value) {
+          // Use executeEdits to update content - this properly updates the editor
+          const fullRange = model.getFullModelRange();
+          editor.executeEdits('external-update', [{
+            range: fullRange,
+            text: value || '',
+          }]);
+          // Force a layout update to ensure the editor reflects the changes
+          editor.layout();
+        }
+      }
+    }
+  }, [value]);
+
   useImperativeHandle(ref, () => ({
     highlightRange: (startLine: number, startCol: number, endLine: number, endCol: number) => {
       if (monacoEditorRef.current) {

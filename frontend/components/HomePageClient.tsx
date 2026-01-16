@@ -76,12 +76,36 @@ export default function HomePageClient() {
   const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState(0);
   
   const heroImages = [
     '/assets/main-system-coutdown.png',
     '/assets/main-system-poup.png',
     '/assets/main-system-forms.png',
     '/assets/main-system-email.png'
+  ];
+
+  const tabData = [
+    {
+      title: 'Exit Intent Popup',
+      description: 'Trigger popups when users are about to leave your website',
+      image: '/assets/screen-capture-exitintent.gif'
+    },
+    {
+      title: 'Execute After Delay',
+      description: 'Show popups after a specified time delay to engage visitors',
+      image: '/assets/main-system-coutdown.png'
+    },
+    {
+      title: 'On Element Exist',
+      description: 'Display popups when specific elements appear on the page',
+      image: '/assets/main-system-forms.png'
+    },
+    {
+      title: 'On Scroll Percentage',
+      description: 'Trigger popups when users scroll to a certain percentage of the page',
+      image: '/assets/main-system-email.png'
+    }
   ];
 
   useEffect(() => {
@@ -231,7 +255,7 @@ export default function HomePageClient() {
                 )}
                 <button
                   onClick={() => {
-                    const nextSection = document.getElementById('about-section');
+                    const nextSection = document.getElementById('features-section');
                     if (nextSection) {
                       nextSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
@@ -286,55 +310,11 @@ export default function HomePageClient() {
         </div>
       </section>
 
-      {/* Section 2: About Us */}
-      <section id="about-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
+      {/* Section 2: What PRZIO Can Do For You */}
+      <section id="features-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            About <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">PRZIO</span>
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            We&apos;re on a mission to make email template creation, form building, and popup creation simple, 
-            powerful, and accessible to everyone.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="bg-white rounded-2xl p-8 shadow-lg">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">Our Mission</h3>
-            <p className="text-gray-600 leading-relaxed">
-              PRZIO was born from a simple need: making email template creation, form building, and popup creation 
-              as easy as possible. We believe that everyone, regardless of technical expertise, should be able to 
-              create beautiful, responsive email templates, powerful forms, and engaging popups.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-8 shadow-lg">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">What We Offer</h3>
-            <p className="text-gray-600 leading-relaxed">
-              Whether you&apos;re a marketer sending newsletters, a developer building email systems, or a designer 
-              creating email campaigns, our platform provides the tools you need to succeed. We combine the power 
-              of professional code editors with intuitive interfaces to give you the best of both worlds.
-            </p>
-          </div>
-        </div>
-
-        <div className="text-center mt-12">
-          <Link
-            href="/about"
-            className="inline-block p-[2px] bg-gradient-to-r from-orange-500 to-red-600 rounded-lg hover:from-orange-600 hover:to-red-700 transition-all"
-          >
-            <span className="block px-6 py-3 bg-blue-50 rounded-lg">
-              <span className="bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent font-semibold text-lg">Learn More About Us →</span>
-            </span>
-          </Link>
-        </div>
-      </section>
-
-      {/* Section 3: What PRZIO Can Do For You */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Here&apos;s What PRZIO Can Do For You
+            What PRZIO Can Do For You
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Built for digital agencies, online marketers, bloggers, portals and eCommerce website owners seeking to:
@@ -343,9 +323,9 @@ export default function HomePageClient() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Boost Visitor Engagement Tile */}
-          <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-indigo-500 text-center">
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg p-3 text-white w-12 h-12 flex items-center justify-center mb-4 mx-auto">
-              <Zap className="w-6 h-6" />
+          <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow text-center">
+            <div className="w-12 h-12 flex items-center justify-center mb-4 mx-auto">
+              <Zap className="w-8 h-8 text-gray-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Boost Visitor Engagement</h3>
             <p className="text-gray-600 text-sm leading-relaxed">
@@ -354,9 +334,9 @@ export default function HomePageClient() {
           </div>
 
           {/* Grow Email Subscribers Tile */}
-          <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-purple-500 text-center">
-            <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg p-3 text-white w-12 h-12 flex items-center justify-center mb-4 mx-auto">
-              <Mail className="w-6 h-6" />
+          <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow text-center">
+            <div className="w-12 h-12 flex items-center justify-center mb-4 mx-auto">
+              <Mail className="w-8 h-8 text-gray-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Grow Email Subscribers</h3>
             <p className="text-gray-600 text-sm leading-relaxed">
@@ -365,9 +345,9 @@ export default function HomePageClient() {
           </div>
 
           {/* Capture Leads & Sales Tile */}
-          <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-pink-500 text-center">
-            <div className="bg-gradient-to-br from-pink-500 to-red-600 rounded-lg p-3 text-white w-12 h-12 flex items-center justify-center mb-4 mx-auto">
-              <Target className="w-6 h-6" />
+          <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow text-center">
+            <div className="w-12 h-12 flex items-center justify-center mb-4 mx-auto">
+              <Target className="w-8 h-8 text-gray-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Capture Leads & Sales</h3>
             <p className="text-gray-600 text-sm leading-relaxed">
@@ -376,9 +356,9 @@ export default function HomePageClient() {
           </div>
 
           {/* Reduce Cart Abandonment Tile */}
-          <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow border-t-4 border-green-500 text-center">
-            <div className="bg-gradient-to-br from-green-500 to-teal-600 rounded-lg p-3 text-white w-12 h-12 flex items-center justify-center mb-4 mx-auto">
-              <BarChart className="w-6 h-6" />
+          <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow text-center">
+            <div className="w-12 h-12 flex items-center justify-center mb-4 mx-auto">
+              <BarChart className="w-8 h-8 text-gray-600" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Reduce Cart Abandonment</h3>
             <p className="text-gray-600 text-sm leading-relaxed">
@@ -443,6 +423,67 @@ export default function HomePageClient() {
         </div>
       </section>
 
+      {/* Tab Panel and Images Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-blue-50">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Popups Types
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Explore our diverse collection of popup types designed to boost conversions and engage your visitors effectively
+            </p>
+          </div>
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            {/* Left Side - Tab List Panel (Smaller) */}
+            <div className="w-full md:w-80 flex-shrink-0">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div className="divide-y divide-gray-200">
+                  {tabData.map((tab, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setActiveTab(index)}
+                      className={`w-full text-left p-6 transition-all duration-200 ${
+                        activeTab === index
+                          ? 'bg-indigo-50 border-l-4 border-indigo-500'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <h4 className={`text-lg font-semibold mb-2 ${
+                        activeTab === index ? 'text-indigo-600' : 'text-gray-900'
+                      }`}>
+                        {tab.title}
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        {tab.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Dynamic Image (Bigger) */}
+            <div className="flex-1 w-full min-w-0">
+              <div className="relative h-[550px] w-full">
+                {/* Background SVG */}
+              
+                {/* Foreground Image */}
+                <div className="relative w-full h-full z-10">
+                  <Image
+                    src={tabData[activeTab].image}
+                    alt={tabData[activeTab].title}
+                    fill
+                    className="object-contain transition-opacity duration-300"
+                    priority={activeTab === 0}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Perfect For Everyone Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
@@ -455,68 +496,68 @@ export default function HomePageClient() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-10 text-white">
-            <h3 className="text-3xl font-bold mb-4">For Marketers</h3>
-            <p className="text-lg mb-6 opacity-90">
+          <div className="bg-white rounded-2xl p-10 shadow-lg border border-gray-200">
+            <h3 className="text-3xl font-bold mb-4 text-gray-900">For Marketers</h3>
+            <p className="text-lg mb-6 text-gray-600">
               Create stunning email campaigns without coding. Use our pre-built templates 
               or customize them to match your brand. Build forms and popups to capture leads.
             </p>
             <ul className="space-y-3">
               <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-3" />
-                Pre-built email templates
+                <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                <span className="text-gray-600">Pre-built email templates</span>
               </li>
               <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-3" />
-                Lead generation forms
+                <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                <span className="text-gray-600">Lead generation forms</span>
               </li>
               <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-3" />
-                Exit intent popups
+                <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                <span className="text-gray-600">Exit intent popups</span>
               </li>
             </ul>
           </div>
 
-          <div className="bg-gradient-to-br from-pink-500 to-red-600 rounded-2xl p-10 text-white">
-            <h3 className="text-3xl font-bold mb-4">For Developers</h3>
-            <p className="text-lg mb-6 opacity-90">
+          <div className="bg-white rounded-2xl p-10 shadow-lg border border-gray-200">
+            <h3 className="text-3xl font-bold mb-4 text-gray-900">For Developers</h3>
+            <p className="text-lg mb-6 text-gray-600">
               Write clean HTML code with our VS Code-like editor. Test email rendering 
               across different clients and devices. Build custom popups with advanced triggers and JavaScript SDK integration.
             </p>
             <ul className="space-y-3">
               <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-3" />
-                Advanced HTML editor
+                <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                <span className="text-gray-600">Advanced HTML editor</span>
               </li>
               <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-3" />
-                Popup SDK integration
+                <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                <span className="text-gray-600">Popup SDK integration</span>
               </li>
               <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-3" />
-                Custom CSS & JavaScript
+                <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                <span className="text-gray-600">Custom CSS & JavaScript</span>
               </li>
             </ul>
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-10 text-white">
-            <h3 className="text-3xl font-bold mb-4">For Growth Marketers</h3>
-            <p className="text-lg mb-6 opacity-90">
+          <div className="bg-white rounded-2xl p-10 shadow-lg border border-gray-200">
+            <h3 className="text-3xl font-bold mb-4 text-gray-900">For Growth Marketers</h3>
+            <p className="text-lg mb-6 text-gray-600">
               Create conversion-focused popups and email campaigns. Use exit intent popups, 
               scroll triggers, and smart timing to capture leads and boost engagement.
             </p>
             <ul className="space-y-3">
               <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-3" />
-                Exit intent popups
+                <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                <span className="text-gray-600">Exit intent popups</span>
               </li>
               <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-3" />
-                Lead generation forms
+                <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                <span className="text-gray-600">Lead generation forms</span>
               </li>
               <li className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-3" />
-                Smart trigger options
+                <CheckCircle className="w-5 h-5 mr-3 text-green-500" />
+                <span className="text-gray-600">Smart trigger options</span>
               </li>
             </ul>
           </div>
