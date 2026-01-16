@@ -15,6 +15,75 @@ import ElementToolbar from '../../../components/popups/ElementToolbar';
 import CssEditorModal from '../../../components/popups/CssEditorModal';
 import PopupSettingsModal from '../../../components/popups/PopupSettingsModal';
 
+// Component to fetch and display website HTML in iframe
+const WebsitePreview = ({ url, className, style }: { url: string; className?: string; style?: React.CSSProperties }) => {
+  const [websiteHtml, setWebsiteHtml] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!url) {
+      setWebsiteHtml('');
+      setLoading(false);
+      return;
+    }
+
+    const fetchWebsite = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await axios.get('/api/proxy-fetch', {
+          params: { url },
+        });
+        setWebsiteHtml(response.data.html);
+      } catch (err: any) {
+        console.error('Failed to fetch website:', err);
+        setError(err.response?.data?.error || 'Failed to fetch website');
+        setWebsiteHtml('');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchWebsite, 500); // Debounce
+    return () => clearTimeout(timeoutId);
+  }, [url]);
+
+  if (loading) {
+    return (
+      <div className={className} style={style}>
+        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+          <p className="text-gray-500 text-sm">Loading website...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={className} style={style}>
+        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+          <p className="text-red-500 text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!websiteHtml) {
+    return null;
+  }
+
+  return (
+    <iframe
+      className={className}
+      style={style}
+      srcDoc={websiteHtml}
+      title="Website Preview"
+      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+    />
+  );
+};
+
 const API_URL = '/api';
 
 interface UrlCondition {
@@ -529,7 +598,7 @@ export default function PopupActivityPage() {
     tabletCustomCss: '',
     desktopCustomCss: '',
   });
-  const previewIframeRef = useRef<HTMLIFrameElement>(null);
+  const previewIframeRef = useRef<HTMLIFrameElement | HTMLDivElement>(null);
   const htmlEditorRef = useRef<HTMLEditorRef>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isAutoSavingRef = useRef(false);
@@ -1787,7 +1856,7 @@ export default function PopupActivityPage() {
 
     // Refresh iframe to show updated attributes
     const iframe = previewIframeRef.current;
-    if (iframe && iframe.contentWindow) {
+    if (iframe && iframe instanceof HTMLIFrameElement && iframe.contentWindow) {
       const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
       if (iframeDoc) {
         const iframeElement = iframeDoc.querySelector(selectedElement.id);
@@ -2304,6 +2373,11 @@ export default function PopupActivityPage() {
     console.log('🏗️ Setting up iframe drag-drop handlers');
     
     const setupDragHandlers = () => {
+      if (!(iframe instanceof HTMLIFrameElement)) {
+        console.warn('⚠️ Not an iframe, skipping iframe setup');
+        return;
+      }
+      
       const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
       if (!iframeDoc || !iframeDoc.body) {
         console.warn('⚠️ Iframe document or body not available');
@@ -2566,6 +2640,10 @@ export default function PopupActivityPage() {
     };
 
     // Check if iframe is already loaded
+    if (!(iframe instanceof HTMLIFrameElement)) {
+      return;
+    }
+    
     const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
     if (iframeDoc && iframeDoc.readyState === 'complete' && iframeDoc.body && iframeDoc.body.innerHTML !== '') {
       console.log('iframe already complete, setting up handlers immediately');
@@ -2579,6 +2657,242 @@ export default function PopupActivityPage() {
       iframe.removeEventListener('load', setupDragHandlers);
     };
   }, []);
+
+  // Setup popup div drag-drop handlers (for direct DOM manipulation when previewUrl is used)
+  const setupPopupDragDrop = useCallback((popupDiv: HTMLDivElement | null) => {
+    if (!popupDiv) return;
+    
+    console.log('🏗️ Setting up popup div drag-drop handlers');
+    
+    const setupDragHandlers = () => {
+      const popupEl = popupDiv.querySelector('.przio') || popupDiv.querySelector('.przio-popup');
+      if (!popupEl) {
+        console.warn('⚠️ Popup element not found in div');
+        return;
+      }
+
+      // Inject styles for drag-drop and selection
+      let styleEl = document.getElementById('przio-drag-styles-popup');
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'przio-drag-styles-popup';
+        styleEl.textContent = `
+          .przio-editable:hover { outline: 2px dashed #94a3b8 !important; outline-offset: 2px; cursor: pointer; }
+          .przio-selected { outline: 2px solid #4f46e5 !important; outline-offset: 2px; position: relative; z-index: 1000000 !important; }
+          .przio.przio-drag-over, .przio-popup.przio-drag-over { 
+            outline: 2px dashed #4f46e5 !important; 
+            outline-offset: 4px; 
+            background-color: rgba(79, 70, 229, 0.05) !important; 
+            min-height: 100px !important;
+          }
+          .przio:empty::before {
+            content: 'Drag components here';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100px;
+            color: #6366f1;
+            font-size: 14px;
+            font-weight: 500;
+            border: 2px dashed #e0e7ff;
+            border-radius: 8px;
+            background: #f8fafc;
+          }
+          .przio > *:not(.przio-placeholder).przio-drag-over { 
+            outline: 2px dashed #4f46e5 !important; 
+            outline-offset: 2px; 
+            background-color: rgba(79, 70, 229, 0.1) !important; 
+          }
+        `;
+        document.head.appendChild(styleEl);
+      }
+
+      // Mark editable elements
+      const markEditableElements = () => {
+        popupEl.querySelectorAll('*').forEach(el => {
+          if (['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'A', 'BUTTON', 'IMG'].includes(el.tagName)) {
+            el.classList.add('przio-editable');
+            if (['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(el.tagName)) {
+              (el as HTMLElement).contentEditable = 'true';
+              el.addEventListener('blur', () => {
+                // Update formData.html when text changes
+                setFormData((prev) => {
+                  const parser = new DOMParser();
+                  const currentHtml = prev.html || '';
+                  const wrapped = wrapForParsing(currentHtml);
+                  const doc = parser.parseFromString(wrapped, 'text/html');
+                  const popupElInDoc = doc.querySelector('.przio') || doc.querySelector('.przio-popup');
+                  if (popupElInDoc) {
+                    popupElInDoc.innerHTML = popupEl.innerHTML;
+                    const updatedHtml = extractPopupContent('<!DOCTYPE html>' + doc.documentElement.outerHTML);
+                    return { ...prev, html: updatedHtml };
+                  }
+                  return prev;
+                });
+              });
+            }
+          }
+        });
+      };
+
+      // Setup drop handlers
+      const setupDropHandlers = () => {
+        const docBody = document.body;
+
+        // Global drag handlers on body
+        const handleDragOver = (e: DragEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          docBody.classList.add('przio-dragging');
+          
+          const target = document.elementFromPoint(e.clientX, e.clientY);
+          document.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+          
+          if (target && (target === popupEl || popupEl.contains(target))) {
+            target.classList.add('przio-drag-over');
+          }
+        };
+
+        const handleDragLeave = (e: DragEvent) => {
+          if (e.relatedTarget === null || (e.relatedTarget as Node).nodeType === undefined) {
+            docBody.classList.remove('przio-dragging');
+            document.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+          }
+        };
+
+        const handleDrop = (e: DragEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          docBody.classList.remove('przio-dragging');
+          
+          const target = document.elementFromPoint(e.clientX, e.clientY);
+          document.querySelectorAll('.przio-drag-over').forEach(el => el.classList.remove('przio-drag-over'));
+          
+          if (target && (target === popupEl || popupEl.contains(target) || target === docBody)) {
+            let selector = '.przio';
+            let position: 'inside' | 'before' | 'after' = 'inside';
+            
+            if (target && target !== docBody && (target === popupEl || popupEl.contains(target))) {
+              // Generate selector
+              const przioClass = Array.from(target.classList).find(c => 
+                c.startsWith('przio-') && 
+                c !== 'przio' && 
+                c !== 'przio-popup' && 
+                c !== 'przio-element' && 
+                c !== 'przio-editable' && 
+                c !== 'przio-selected' && 
+                c !== 'przio-drag-over'
+              );
+              if (przioClass) {
+                selector = `.${przioClass}`;
+              } else if (target.id) {
+                selector = `#${target.id}`;
+              }
+              
+              if (target.tagName === 'DIV' || target === popupEl) {
+                position = 'inside';
+              } else {
+                position = 'after';
+              }
+            }
+            
+            // Get snippet from ref
+            const snippet = draggingSnippetRef.current;
+            const item = draggingItemRef.current;
+            
+            if (item?.isForm || item?.key === 'form') {
+              formDropPositionRef.current = { selector, position };
+              handleOpenFormModal();
+              draggingItemRef.current = null;
+              draggingSnippetRef.current = null;
+              return;
+            }
+            
+            if (snippet) {
+              injectSnippet(snippet, selector, position);
+              draggingSnippetRef.current = null;
+              draggingItemRef.current = null;
+            }
+          }
+        };
+
+        docBody.addEventListener('dragover', handleDragOver);
+        docBody.addEventListener('dragleave', handleDragLeave);
+        docBody.addEventListener('drop', handleDrop);
+
+        // Click to select
+        popupEl.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement;
+          
+          if (target && target !== popupEl && popupEl.contains(target) && target.classList.contains('przio-editable')) {
+            document.querySelectorAll('.przio-selected').forEach(el => el.classList.remove('przio-selected'));
+            target.classList.add('przio-selected');
+            
+            const przioClass = Array.from(target.classList).find(c => 
+              c.startsWith('przio-') && 
+              c !== 'przio' && 
+              c !== 'przio-popup' && 
+              c !== 'przio-element' && 
+              c !== 'przio-editable' && 
+              c !== 'przio-selected'
+            );
+            const selector = przioClass ? `.${przioClass}` : (target.id ? `#${target.id}` : '');
+            
+            if (selector) {
+              const rect = target.getBoundingClientRect();
+              setSelectedElement({ 
+                id: selector, 
+                element: target,
+                tagName: target.tagName
+              });
+              setToolbarPosition({
+                top: rect.top - 55,
+                left: rect.left,
+              });
+              setShowElementToolbar(true);
+            }
+          } else if (target === popupEl) {
+            document.querySelectorAll('.przio-selected').forEach(el => el.classList.remove('przio-selected'));
+            popupEl.classList.add('przio-selected');
+            setSelectedElement({ 
+              id: '.przio', 
+              element: popupEl as HTMLElement,
+              tagName: 'DIV'
+            });
+            setShowElementToolbar(false);
+          }
+        });
+
+        return () => {
+          docBody.removeEventListener('dragover', handleDragOver);
+          docBody.removeEventListener('dragleave', handleDragLeave);
+          docBody.removeEventListener('drop', handleDrop);
+        };
+      };
+
+      markEditableElements();
+      return setupDropHandlers();
+    };
+
+    // Setup immediately if div already has content
+    if (popupDiv.querySelector('.przio') || popupDiv.querySelector('.przio-popup')) {
+      return setupDragHandlers();
+    }
+    
+    // Otherwise wait for content
+    const observer = new MutationObserver((mutations) => {
+      if (popupDiv.querySelector('.przio') || popupDiv.querySelector('.przio-popup')) {
+        observer.disconnect();
+        return setupDragHandlers();
+      }
+    });
+    
+    observer.observe(popupDiv, { childList: true, subtree: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [injectSnippet, handleOpenFormModal]);
 
   // Listen for messages from iframe
   useEffect(() => {
@@ -2654,11 +2968,17 @@ export default function PopupActivityPage() {
         // Get the actual element from iframe
         const iframe = previewIframeRef.current;
         let element: HTMLElement | null = null;
-        if (iframe && iframe.contentDocument) {
+        if (iframe && iframe instanceof HTMLIFrameElement && iframe.contentDocument) {
           element = iframe.contentDocument.querySelector(selector) as HTMLElement;
           // If selector is ID but element not found, try .przio as fallback
           if (!element && selector.startsWith('#popup-')) {
             element = iframe.contentDocument.querySelector('.przio') as HTMLElement;
+          }
+        } else if (iframe && iframe instanceof HTMLDivElement) {
+          // For div-based preview, query directly
+          element = iframe.querySelector(selector) as HTMLElement;
+          if (!element && selector.startsWith('#popup-')) {
+            element = iframe.querySelector('.przio') as HTMLElement;
           }
         }
         
@@ -2735,14 +3055,23 @@ export default function PopupActivityPage() {
     return () => window.removeEventListener('message', handleMessage);
   }, [injectSnippet, loadElementCss, activityId, formData.html, handleOpenFormModal]);
 
-  // Setup iframe when HTML changes or tab changes
+  // Setup popup drag-drop handlers when HTML changes or tab changes
   useEffect(() => {
-    const iframe = previewIframeRef.current;
-    if (!iframe) return;
+    const container = previewIframeRef.current;
+    if (!container) return;
     
-    const cleanup = setupIframeDragDrop(iframe);
-    return () => cleanup?.();
-  }, [formData.html, activeTab, setupIframeDragDrop]);
+    // Check if it's an iframe or a div
+    const isIframe = container instanceof HTMLIFrameElement;
+    
+    if (isIframe) {
+      const cleanup = setupIframeDragDrop(container as HTMLIFrameElement);
+      return () => cleanup?.();
+    } else {
+      // For div, setup direct DOM drag-drop handlers
+      const cleanup = setupPopupDragDrop(container as HTMLDivElement);
+      return () => cleanup?.();
+    }
+  }, [formData.html, activeTab, previewUrl, setupIframeDragDrop, setupPopupDragDrop]);
 
   // Handle split view resizing
   useEffect(() => {
@@ -2841,14 +3170,22 @@ export default function PopupActivityPage() {
     if (!previewIframeRef.current) return;
     
     const iframe = previewIframeRef.current;
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!iframeDoc) return;
+    if (!iframe) return;
+    
+    let doc: Document | null = null;
+    if (iframe instanceof HTMLIFrameElement) {
+      doc = iframe.contentDocument || iframe.contentWindow?.document || null;
+    } else if (iframe instanceof HTMLDivElement) {
+      doc = iframe.ownerDocument;
+    }
+    
+    if (!doc) return;
     
     // Remove previous highlights
-    iframeDoc.querySelectorAll('.przio-selected').forEach(el => el.classList.remove('przio-selected'));
+    doc.querySelectorAll('.przio-selected').forEach((el: Element) => el.classList.remove('przio-selected'));
     
     // Find and highlight the element
-    const element = iframeDoc.querySelector(selector);
+    const element = doc.querySelector(selector);
     if (element) {
       element.classList.add('przio-selected');
       
@@ -3800,16 +4137,18 @@ export default function PopupActivityPage() {
                           style={{ 
                             width: getPreviewWidth(), 
                             height: previewMode === 'desktop' ? '100%' : '667px',
-                            maxHeight: '100%'
+                            maxHeight: '100%',
+                            position: 'relative'
                           }}
                         >
-                          <iframe
-                            key={`preview-split-${formData.html?.length || 0}-${formData.html?.slice(-20) || ''}-${previewMode}`}
-                            ref={previewIframeRef}
-                            srcDoc={getPreviewHTML()}
-                            className="w-full h-full border-0"
-                            title="Preview"
-                          />
+                        {/* Split view always uses iframe with srcDoc - no previewUrl support */}
+                        <iframe
+                          key={`preview-split-${formData.html?.length || 0}-${formData.html?.slice(-20) || ''}-${previewMode}`}
+                          ref={previewIframeRef as React.RefObject<HTMLIFrameElement>}
+                          srcDoc={getPreviewHTML()}
+                          className="w-full h-full border-0"
+                          title="Preview"
+                        />
                         </div>
                       </div>
                     </div>
@@ -3885,15 +4224,48 @@ export default function PopupActivityPage() {
                         style={{ 
                           width: getPreviewWidth(), 
                           height: previewMode === 'desktop' ? '100%' : '667px',
-                          maxHeight: '100%'
+                          maxHeight: '100%',
+                          position: 'relative'
                         }}
                       >
-                        <iframe
-                          key={`preview-full-${formData.html?.length || 0}-${formData.html?.slice(-20) || ''}-${previewMode}`}
+                        {/* Website HTML in iframe (behind) - fetched via proxy - only in preview tab */}
+                        {previewUrl && (
+                          <WebsitePreview 
+                            url={previewUrl}
+                            className="w-full h-full absolute top-0 left-0 border-0"
+                            style={{ 
+                              zIndex: 1,
+                              pointerEvents: 'auto'
+                            }}
+                          />
+                        )}
+                        
+                        {/* Popup overlay div (on top) - editable */}
+                        <div
+                          key={`popup-full-${formData.html?.length || 0}-${formData.html?.slice(-20) || ''}-${previewMode}`}
                           ref={previewIframeRef}
-                          srcDoc={getPreviewHTML()}
-                          className="w-full h-full border-0"
-                          title="Visual Editor"
+                          className="w-full h-full absolute top-0 left-0"
+                          style={{ 
+                            zIndex: 999999,
+                            pointerEvents: 'auto'
+                          }}
+                          dangerouslySetInnerHTML={{ __html: previewUrl ? (() => {
+                            // Extract just the popup HTML without the wrapper
+                            const parser = new DOMParser();
+                            const popupDoc = parser.parseFromString(wrapForParsing(formData.html || ''), 'text/html');
+                            const styleEl = popupDoc.querySelector('style');
+                            const popupElement = popupDoc.querySelector('.przio') || popupDoc.querySelector('.przio-popup');
+                            
+                            let popupHTML = '';
+                            if (styleEl) {
+                              popupHTML += styleEl.outerHTML + '\n';
+                            }
+                            if (popupElement) {
+                              popupHTML += popupElement.outerHTML;
+                            }
+                            
+                            return popupHTML || '<div class="przio"></div>';
+                          })() : getPreviewHTML() }}
                         />
                       </div>
                     </div>

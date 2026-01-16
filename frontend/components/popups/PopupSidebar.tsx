@@ -99,31 +99,24 @@ const PopupSidebar: React.FC<PopupSidebarProps> = ({
       <div>
         <h2 className="text-sm font-semibold text-gray-900 mb-2">Enable Popup on Page</h2>
 
-        {/* Domain Name - Single field at top */}
+        {/* Preview URL - For fetching website HTML */}
         <div className="mb-3">
           <label className="block text-xs font-medium text-gray-700 mb-1">
-            Domain Name *
+            Preview URL (Optional)
           </label>
           <input
             type="text"
-            value={formData.domain}
+            value={previewUrl}
             onChange={(e) => {
-              const domain = e.target.value;
-              setFormData({ ...formData, domain });
-              // Update preview URL if it's empty or matches the old domain pattern
-              if (!previewUrl || previewUrl.includes(formData.domain)) {
-                const newUrl = domain 
-                  ? (domain.startsWith('http://') || domain.startsWith('https://') 
-                      ? domain 
-                      : `https://${domain}`)
-                  : '';
-                setPreviewUrl(newUrl);
-              }
+              const url = e.target.value;
+              setPreviewUrl(url);
             }}
             className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-            placeholder="example.com"
-            required
+            placeholder="https://example.com"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Enter a URL to preview the popup on a live website
+          </p>
         </div>
 
         {/* URL Conditions */}
