@@ -60,13 +60,8 @@ const WebsitePreview = ({ url, className, style }: { url: string; className?: st
   }
 
   if (error) {
-    return (
-      <div className={className} style={style}>
-        <div className="w-full h-full flex items-center justify-center bg-gray-100">
-          <p className="text-red-500 text-sm">{error}</p>
-        </div>
-      </div>
-    );
+    // Don't render anything on error - popup editing should continue independently
+    return null;
   }
 
   if (!websiteHtml) {
@@ -79,7 +74,8 @@ const WebsitePreview = ({ url, className, style }: { url: string; className?: st
       style={style}
       srcDoc={websiteHtml}
       title="Website Preview"
-      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals"
+      referrerPolicy="no-referrer"
     />
   );
 };
@@ -4229,18 +4225,19 @@ export default function PopupActivityPage() {
                         }}
                       >
                         {/* Website HTML in iframe (behind) - fetched via proxy - only in preview tab */}
+                        {/* Only show iframe if it successfully loads (no error) */}
                         {previewUrl && (
                           <WebsitePreview 
                             url={previewUrl}
                             className="w-full h-full absolute top-0 left-0 border-0"
                             style={{ 
                               zIndex: 1,
-                              pointerEvents: 'auto'
+                              pointerEvents: 'none'  // Changed from 'auto' to 'none' - allows events to pass through
                             }}
                           />
                         )}
                         
-                        {/* Popup overlay div (on top) - editable */}
+                        {/* Popup overlay div (on top) - editable - ALWAYS renders independently */}
                         <div
                           key={`popup-full-${formData.html?.length || 0}-${formData.html?.slice(-20) || ''}-${previewMode}`}
                           ref={previewIframeRef}
@@ -4249,23 +4246,7 @@ export default function PopupActivityPage() {
                             zIndex: 999999,
                             pointerEvents: 'auto'
                           }}
-                          dangerouslySetInnerHTML={{ __html: previewUrl ? (() => {
-                            // Extract just the popup HTML without the wrapper
-                            const parser = new DOMParser();
-                            const popupDoc = parser.parseFromString(wrapForParsing(formData.html || ''), 'text/html');
-                            const styleEl = popupDoc.querySelector('style');
-                            const popupElement = popupDoc.querySelector('.przio') || popupDoc.querySelector('.przio-popup');
-                            
-                            let popupHTML = '';
-                            if (styleEl) {
-                              popupHTML += styleEl.outerHTML + '\n';
-                            }
-                            if (popupElement) {
-                              popupHTML += popupElement.outerHTML;
-                            }
-                            
-                            return popupHTML || '<div class="przio"></div>';
-                          })() : getPreviewHTML() }}
+                          dangerouslySetInnerHTML={{ __html: getPreviewHTML() }}  // Always use getPreviewHTML(), not conditional
                         />
                       </div>
                     </div>
